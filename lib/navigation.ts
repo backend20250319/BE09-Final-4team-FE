@@ -12,7 +12,7 @@ export interface MenuItem {
 export const defaultMenuItems: MenuItem[] = [
   { icon: "Home", label: "대시보드", active: true, href: "/" },
   { icon: "Users", label: "구성원", active: false, href: "/members" },
-  { icon: "Briefcase", label: "근무", active: false, href: "/schedule" },
+  { icon: "Briefcase", label: "근무", active: false, href: "/work" },
   { icon: "Calendar", label: "휴가", active: false, href: "/vacation" },
   { icon: "Megaphone", label: "공지", active: false, href: "/announcements" },
   { icon: "ClipboardList", label: "결재", active: false, href: "/approvals" },
@@ -24,9 +24,9 @@ export const defaultMenuItems: MenuItem[] = [
 export const ROUTES = {
   DASHBOARD: "/",
   MEMBERS: "/members",
-  SCHEDULE: "/schedule",
-  SCHEDULE_ME: "/schedule/me",
-  SCHEDULE_COWORKER: "/schedule/coworker",
+  SCHEDULE: "/work",
+  SCHEDULE_ME: "/work/me",
+  SCHEDULE_COWORKER: "/work/coworker",
   VACATION: "/vacation",
   ANNOUNCEMENTS: "/announcements",
   APPROVALS: "/approvals",

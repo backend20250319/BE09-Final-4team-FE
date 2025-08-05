@@ -25,7 +25,7 @@ export default function SchedulePage() {
       description: "개인 근무 일정을 확인하고 관리하세요",
       icon: Calendar,
       color: colors.primary.blue,
-      href: "/schedule/me",
+      href: "/work/me",
       stats: {
         thisWeek: "40시간",
         thisMonth: "160시간",
@@ -38,7 +38,7 @@ export default function SchedulePage() {
       description: "팀원들의 근무 현황을 한눈에 확인하세요",
       icon: Users,
       color: colors.status.info.gradient,
-      href: "/schedule/coworker",
+      href: "/work/coworker",
       stats: {
         totalMembers: "24명",
         workingToday: "22명",
