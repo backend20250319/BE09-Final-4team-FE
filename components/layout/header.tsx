@@ -11,13 +11,13 @@ interface HeaderProps {
 }
 
 export function Header({ 
-  title = "HR System", 
+  title = "Hermes", 
   userName = "김인사",
   showNotifications = true,
   showUserProfile = true 
 }: HeaderProps) {
   return (
-    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 py-6 sticky top-0 z-10">
+    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
           {title}
