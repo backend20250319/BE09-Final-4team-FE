@@ -1,12 +1,11 @@
 "use client"
 
-import { ReactNode } from "react"
+import { ReactNode, useState } from "react"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 
 interface MainLayoutProps {
   children: ReactNode
-  title?: string
   userName?: string
   showNotifications?: boolean
   showUserProfile?: boolean
@@ -15,21 +14,26 @@ interface MainLayoutProps {
 
 export function MainLayout({
   children,
-  title,
   userName,
   showNotifications,
   showUserProfile,
   onMenuItemClick
 }: MainLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Sidebar onMenuItemClick={onMenuItemClick} />
-      <div className="ml-72">
+      <Sidebar onMenuItemClick={onMenuItemClick} isOpen={sidebarOpen} />
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-72' : 'ml-0'}`}>
         <Header 
-          title={title}
           userName={userName}
           showNotifications={showNotifications}
           showUserProfile={showUserProfile}
+          onToggleSidebar={toggleSidebar}
         />
         <div className="p-8">
           {children}

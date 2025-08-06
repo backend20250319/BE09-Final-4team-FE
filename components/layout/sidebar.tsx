@@ -31,9 +31,10 @@ const iconMap: Record<string, LucideIcon> = {
 
 interface SidebarProps {
   onMenuItemClick?: (index: number) => void
+  isOpen?: boolean
 }
 
-export function Sidebar({ onMenuItemClick }: SidebarProps) {
+export function Sidebar({ onMenuItemClick, isOpen = true }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -52,7 +53,9 @@ export function Sidebar({ onMenuItemClick }: SidebarProps) {
   }
 
   return (
-    <div className="fixed left-0 top-0 h-full w-72 bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50">
+    <div className={`fixed left-0 top-0 h-full w-72 bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50 transition-all duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    }`}>
       <div className="p-6">
         {/* Hermes Logo */}
         <div className="flex flex-col items-center mb-6">
