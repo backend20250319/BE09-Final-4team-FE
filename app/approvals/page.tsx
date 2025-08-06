@@ -160,10 +160,11 @@ export default function ApprovalsPage() {
   const inProgressData = [...myPendingApprovals, ...inProgressApprovals]
   const completedData = filteredApprovals.filter(a => a.status === "approved" || a.status === "rejected")
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return Clock
+        // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
+        return isMyApproval ? AlertCircle : Clock
       case "approved":
         return CheckCircle
       case "rejected":
@@ -173,23 +174,11 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBgColor = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return colors.status.warning.gradient
-      case "approved":
-        return colors.status.success.gradient
-      case "rejected":
-        return colors.status.error.gradient
-      default:
-        return colors.status.info.gradient
-    }
-  }
-
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return colors.status.warning.bg
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.bg : colors.status.info.bg
       case "approved":
         return colors.status.success.bg
       case "rejected":
@@ -199,10 +188,11 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusTextColor = (status: string) => {
+  const getStatusTextColor = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return colors.status.warning.text
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.text : colors.status.info.text
       case "approved":
         return colors.status.success.text
       case "rejected":
@@ -220,10 +210,9 @@ export default function ApprovalsPage() {
   }
 
   const renderApprovalCard = (approval: any) => {
-    const StatusIcon = getStatusIcon(approval.status)
-    const statusColor = getStatusColor(approval.status)
-    const statusBgColor = getStatusBgColor(approval.status)
-    const statusTextColor = getStatusTextColor(approval.status)
+    const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
+    const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
+    const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
     
     return (
       <GlassCard key={approval.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
@@ -258,7 +247,8 @@ export default function ApprovalsPage() {
                 </div>
                 <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30`}>
                   <StatusIcon className="w-3 h-3" />
-                  {approval.status === "pending" ? "진행중" :
+                  {approval.status === "pending" ? 
+                    (approval.isMyApproval ? "승인 필요" : "진행중") :
                    approval.status === "approved" ? "승인됨" :
                    approval.status === "rejected" ? "반려됨" : approval.status}
                 </div>
@@ -368,7 +358,7 @@ export default function ApprovalsPage() {
           {/* 승인 필요 - 가장 우선적으로 표시 */}
           {renderSection("승인 필요", myPendingApprovals, "myPending", Clock, colors.status.warning.gradient)}
           
-          {/* 진행중 - 내가 신청했지만 타인의 승인을 기다리는 결재 */}
+          {/* 진행중 - 타인의 승인을 기다리는 결재 */}
           {renderSection("진행중", inProgressApprovals, "inProgress", Clock, colors.status.info.gradient)}
           
           {/* 검색 결과가 없을 때 */}
