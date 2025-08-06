@@ -1,27 +1,36 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Bell, User } from "lucide-react"
+import { Bell, User, Menu } from "lucide-react"
 
 interface HeaderProps {
-  title?: string
   userName?: string
   showNotifications?: boolean
   showUserProfile?: boolean
+  onToggleSidebar?: () => void
 }
 
 export function Header({ 
-  title = "HR System", 
   userName = "김인사",
   showNotifications = true,
-  showUserProfile = true 
+  showUserProfile = true,
+  onToggleSidebar
 }: HeaderProps) {
   return (
-    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 py-6 sticky top-0 z-10">
+    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-          {title}
-        </h1>
+        <div className="flex items-center gap-4">
+          {onToggleSidebar && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onToggleSidebar}
+              className="hover:bg-gray-100/80 transition-colors"
+            >
+              <Menu className="w-5 h-5 text-gray-500" />
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-6">
           {showNotifications && (
             <Button variant="ghost" size="sm" className="relative hover:bg-gray-100/80 transition-colors">

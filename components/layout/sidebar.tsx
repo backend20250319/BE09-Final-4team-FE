@@ -14,6 +14,8 @@ import {
   FileText,
   Settings,
 } from "lucide-react"
+import Image from "next/image"
+import { Separator } from "@/components/ui/separator"
 
 // 아이콘 매핑
 const iconMap: Record<string, LucideIcon> = {
@@ -29,9 +31,10 @@ const iconMap: Record<string, LucideIcon> = {
 
 interface SidebarProps {
   onMenuItemClick?: (index: number) => void
+  isOpen?: boolean
 }
 
-export function Sidebar({ onMenuItemClick }: SidebarProps) {
+export function Sidebar({ onMenuItemClick, isOpen = true }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -50,16 +53,21 @@ export function Sidebar({ onMenuItemClick }: SidebarProps) {
   }
 
   return (
-    <div className="fixed left-0 top-0 h-full w-72 bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50">
+    <div className={`fixed left-0 top-0 h-full w-72 bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50 transition-all duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    }`}>
       <div className="p-6">
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-10">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white text-sm font-bold">HR</span>
-          </div>
-          <span className="font-bold text-xl text-gray-800">HR System</span>
+        {/* Hermes Logo */}
+        <div className="flex flex-col items-center mb-6">
+          <span className="mt-2 text-2xl font-extrabold text-gray-800 tracking-wide">Hermes</span>
         </div>
-
+        {/* Company Info */}
+        <div className="flex items-center gap-3 mb-6 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+            <span className="text-white text-xs font-bold">C</span>
+          </div>
+          <span className="text-sm font-medium text-gray-700">Company</span>
+        </div>
         {/* Navigation */}
         <nav className="space-y-2">
           {defaultMenuItems.map((item, index) => {
@@ -70,7 +78,7 @@ export function Sidebar({ onMenuItemClick }: SidebarProps) {
               <Button
                 key={index}
                 variant={active ? "default" : "ghost"}
-                className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 ${
+                className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 cursor-pointer ${
                   active
                     ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
@@ -83,16 +91,6 @@ export function Sidebar({ onMenuItemClick }: SidebarProps) {
             )
           })}
         </nav>
-      </div>
-
-      {/* Company Info */}
-      <div className="absolute bottom-6 left-6">
-        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-xs font-bold">C</span>
-          </div>
-          <span className="text-sm font-medium text-gray-700">Company</span>
-        </div>
       </div>
     </div>
   )
