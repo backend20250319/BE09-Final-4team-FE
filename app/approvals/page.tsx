@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
+import { ApprovalModal } from "@/components/ui/approval-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import {
   Search,
@@ -31,6 +32,8 @@ export default function ApprovalsPage() {
     approved: false,
     rejected: false,
   })
+  const [selectedApproval, setSelectedApproval] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
   const currentUser = "김철수"
@@ -48,8 +51,54 @@ export default function ApprovalsPage() {
       content: "8월 1일 연차 사용 신청합니다.",
       icon: Calendar,
       color: colors.status.warning.gradient,
-      approver: "김인사", // 승인자
+      approver: "김인사", // 기존 호환성을 위한 필드
       isMyApproval: true, // 내가 승인해야 하는지
+              approvalStages: [
+          {
+            id: 1,
+            status: "completed",
+            approvers: [
+              {
+                userId: "team-leader-1",
+                name: "박팀장",
+                position: "개발팀장",
+                status: "completed",
+                comment: "승인합니다.",
+                date: "2025.07.26"
+              }
+            ]
+          },
+          {
+            id: 2,
+            status: "current",
+          approvers: [
+            {
+              userId: "current-user-id", // 현재 사용자
+              name: "김인사",
+              position: "인사팀장",
+              status: "pending"
+            },
+            {
+              userId: "hr-manager-1",
+              name: "이인사",
+              position: "인사팀원",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-1",
+          name: "정수민",
+          position: "경영지원팀장"
+        },
+        {
+          userId: "ref-2", 
+          name: "최지영",
+          position: "인사팀원"
+        }
+      ]
     },
     {
       id: 2,
@@ -65,6 +114,57 @@ export default function ApprovalsPage() {
       color: colors.status.success.gradient,
       approver: "김철수",
       isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "design-leader-1",
+              name: "최디자인",
+              position: "디자인팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "completed",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        },
+        {
+          id: 3,
+          status: "completed",
+          approvers: [
+            {
+              userId: "support-manager-1",
+              name: "정수민",
+              position: "경영지원팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.26"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-3",
+          name: "박민수",
+          position: "마케팅팀장"
+        }
+      ]
     },
     {
       id: 3,
@@ -80,6 +180,43 @@ export default function ApprovalsPage() {
       color: colors.status.error.gradient,
       approver: "김철수",
       isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "marketing-leader-1",
+              name: "김마케팅",
+              position: "마케팅팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.24"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "rejected",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김철수",
+              position: "개발팀장",
+              status: "rejected",
+              comment: "예산 부족으로 반려합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-4",
+          name: "이영희",
+          position: "디자인팀장"
+        }
+      ]
     },
     {
       id: 4,
@@ -95,6 +232,47 @@ export default function ApprovalsPage() {
       color: colors.status.info.gradient,
       approver: "김인사",
       isMyApproval: true,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "hr-leader-1",
+              name: "김인사",
+              position: "인사팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.23"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김인사",
+              position: "인사팀장",
+              status: "pending"
+            },
+            {
+              userId: "executive-1",
+              name: "박대표",
+              position: "대표이사",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-5",
+          name: "정수민",
+          position: "경영지원팀장"
+        }
+      ]
     },
     {
       id: 5,
@@ -110,6 +288,29 @@ export default function ApprovalsPage() {
       color: colors.status.success.gradient,
       approver: "박민수",
       isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "support-leader-1",
+              name: "정수민",
+              position: "경영지원팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.22"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-6",
+          name: "박민수",
+          position: "마케팅팀장"
+        }
+      ]
     },
     {
       id: 6,
@@ -125,6 +326,58 @@ export default function ApprovalsPage() {
       color: colors.status.info.gradient,
       approver: "이영희",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "dev-leader-1",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.21"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "design-leader-1",
+              name: "이영희",
+              position: "디자인팀장",
+              status: "pending"
+            }
+          ]
+        },
+        {
+          id: 3,
+          status: "pending",
+          approvers: [
+            {
+              userId: "executive-1",
+              name: "박대표",
+              position: "대표이사",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-7",
+          name: "정수민",
+          position: "경영지원팀장"
+        },
+        {
+          userId: "ref-8",
+          name: "최지영",
+          position: "인사팀장"
+        }
+      ]
     },
     {
       id: 7,
@@ -140,6 +393,41 @@ export default function ApprovalsPage() {
       color: colors.status.info.gradient,
       approver: "박민수",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "dev-leader-1",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.20"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "hr-manager-1",
+              name: "박민수",
+              position: "인사팀원",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-9",
+          name: "최지영",
+          position: "인사팀장"
+        }
+      ]
     },
   ]
 
@@ -209,13 +497,34 @@ export default function ApprovalsPage() {
     }))
   }
 
+  const handleApprovalClick = (approval: any) => {
+    setSelectedApproval(approval)
+    setIsModalOpen(true)
+  }
+
+  const handleApprove = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 승인 처리
+    console.log("승인 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  const handleReject = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 반려 처리
+    console.log("반려 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
   const renderApprovalCard = (approval: any) => {
     const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
     const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
     const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
     
     return (
-      <GlassCard key={approval.id} className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+      <GlassCard 
+        key={approval.id} 
+        className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden"
+        onClick={() => handleApprovalClick(approval)}
+      >
         <div className="flex items-center gap-4 h-full">
           <div
             className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
@@ -254,10 +563,24 @@ export default function ApprovalsPage() {
               <div className="flex gap-2 flex-shrink-0">
                 {approval.status === "pending" && approval.isMyApproval && (
                   <>
-                    <GradientButton variant="success" size="sm">
+                    <GradientButton 
+                      variant="success" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleApprovalClick(approval)
+                      }}
+                    >
                       승인
                     </GradientButton>
-                    <GradientButton variant="error" size="sm">
+                    <GradientButton 
+                      variant="error" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleApprovalClick(approval)
+                      }}
+                    >
                       반려
                     </GradientButton>
                   </>
@@ -381,6 +704,15 @@ export default function ApprovalsPage() {
           )}
         </div>
       )}
+
+      {/* 결재 문서 모달 */}
+      <ApprovalModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        approval={selectedApproval}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </MainLayout>
   )
 } 

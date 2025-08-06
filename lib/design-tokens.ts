@@ -88,8 +88,8 @@ export const shadows = {
 // 애니메이션 (Animations)
 export const animations = {
   transition: "transition-all duration-200",
-  hover: "hover:scale-105",
-  hoverUp: "hover:-translate-y-1",
+  hover: "hover:scale-101",
+  hoverUp: "hover:-translate-y-0.5",
 } as const
 
 // 테두리 반경 (Border Radius)
