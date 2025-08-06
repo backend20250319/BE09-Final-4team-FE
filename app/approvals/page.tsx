@@ -215,51 +215,43 @@ export default function ApprovalsPage() {
     const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
     
     return (
-      <GlassCard key={approval.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-        <div className="flex items-start gap-4">
+      <GlassCard key={approval.id} className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden">
+        <div className="flex items-center gap-4 h-full">
           <div
-            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg`}
+            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
           >
             <approval.icon className="w-6 h-6 text-white" />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className={`${typography.h4} text-gray-800`}>{approval.title}</h3>
-              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                {approval.type}
-              </span>
+          <div className="flex-1 flex flex-col justify-center h-full">
+            <div className="flex items-center gap-3 mb-1 min-w-0">
+              <h3 className={`${typography.h3} text-gray-800 truncate flex-shrink-0`}>{approval.requester}</h3>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm text-gray-500">{approval.date}</span>
+              </div>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
+                <StatusIcon className="w-3 h-3" />
+                {approval.status === "pending" ? 
+                  (approval.isMyApproval ? "승인 필요" : "진행중") :
+                 approval.status === "approved" ? "승인됨" :
+                 approval.status === "rejected" ? "반려됨" : approval.status}
+              </div>
               {approval.priority === "high" && (
-                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex-shrink-0">
                   긴급
                 </span>
               )}
-            </div>
-            <p className="text-gray-600 mb-4">{approval.content}</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-1">
+              {approval.status === "pending" && (
+                <div className="flex items-center gap-1 ml-auto flex-shrink-0">
                   <User className="w-4 h-4" />
-                  {approval.requester} ({approval.department})
+                  <span className="text-sm text-gray-500 truncate">승인자: {approval.approver}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {approval.date}
-                </div>
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30`}>
-                  <StatusIcon className="w-3 h-3" />
-                  {approval.status === "pending" ? 
-                    (approval.isMyApproval ? "승인 필요" : "진행중") :
-                   approval.status === "approved" ? "승인됨" :
-                   approval.status === "rejected" ? "반려됨" : approval.status}
-                </div>
-                {approval.status === "pending" && (
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    승인자: {approval.approver}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
+              <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
+              <div className="flex gap-2 flex-shrink-0">
                 {approval.status === "pending" && approval.isMyApproval && (
                   <>
                     <GradientButton variant="success" size="sm">
@@ -356,7 +348,7 @@ export default function ApprovalsPage() {
       {activeTab === "inProgress" && (
         <div className="space-y-6">
           {/* 승인 필요 - 가장 우선적으로 표시 */}
-          {renderSection("승인 필요", myPendingApprovals, "myPending", Clock, colors.status.warning.gradient)}
+          {renderSection("승인 필요", myPendingApprovals, "myPending", AlertCircle, colors.status.warning.gradient)}
           
           {/* 진행중 - 타인의 승인을 기다리는 결재 */}
           {renderSection("진행중", inProgressApprovals, "inProgress", Clock, colors.status.info.gradient)}
