@@ -1,5 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -74,7 +75,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -113,282 +114,325 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+* {
+  border-color: var(--border);
+  outline-color: var(--ring);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* 공통 디자인 시스템 클래스들 */
-@layer components {
-  /* 글래스모피즘 효과 */
-  .glass {
-    @apply bg-white/60 backdrop-blur-sm;
-  }
 
-  .glass-strong {
-    @apply bg-white/80 backdrop-blur-xl;
-  }
+/* 글래스모피즘 효과 */
+.glass {
+  background-color: rgb(255 255 255 / 0.6);
+  backdrop-filter: blur(4px);
+}
 
-  /* 그라데이션 배경 */
-  .gradient-bg {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50;
-  }
+.glass-strong {
+  background-color: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(24px);
+}
 
-  /* 기본 그라데이션 */
-  .gradient-primary {
-    @apply bg-gradient-to-r from-blue-500 to-indigo-600;
-  }
+/* 그라데이션 배경 */
+.gradient-bg {
+  background: linear-gradient(to bottom right, rgb(248 250 252), rgb(239 246 255), rgb(238 242 255));
+}
 
-  .gradient-primary-hover {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-700;
-  }
+/* 기본 그라데이션 */
+.gradient-primary {
+  background: linear-gradient(to right, rgb(59 130 246), rgb(79 70 229));
+}
 
-  /* 상태별 그라데이션 */
-  .gradient-success {
-    @apply bg-gradient-to-r from-emerald-400 to-emerald-500;
-  }
+.gradient-primary-hover {
+  background: linear-gradient(to right, rgb(37 99 235), rgb(67 56 202));
+}
 
-  .gradient-warning {
-    @apply bg-gradient-to-r from-amber-400 to-amber-500;
-  }
+/* 상태별 그라데이션 */
+.gradient-success {
+  background: linear-gradient(to right, rgb(52 211 153), rgb(16 185 129));
+}
 
-  .gradient-error {
-    @apply bg-gradient-to-r from-red-400 to-red-500;
-  }
+.gradient-warning {
+  background: linear-gradient(to right, rgb(251 191 36), rgb(245 158 11));
+}
 
-  .gradient-info {
-    @apply bg-gradient-to-r from-blue-400 to-blue-500;
-  }
+.gradient-error {
+  background: linear-gradient(to right, rgb(248 113 113), rgb(239 68 68));
+}
 
-  /* 스케줄 타입별 스타일 */
-  .schedule-meeting {
-    @apply bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200;
-  }
+.gradient-info {
+  background: linear-gradient(to right, rgb(96 165 250), rgb(59 130 246));
+}
 
-  .schedule-project {
-    @apply bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200;
-  }
+/* 스케줄 타입별 스타일 */
+.schedule-meeting {
+  background: linear-gradient(to right, rgb(239 246 255), rgb(219 234 254));
+  color: rgb(29 78 216);
+  border-color: rgb(191 219 254);
+}
 
-  .schedule-education {
-    @apply bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200;
-  }
+.schedule-project {
+  background: linear-gradient(to right, rgb(236 253 245), rgb(209 250 229));
+  color: rgb(21 128 61);
+  border-color: rgb(167 243 208);
+}
 
-  .schedule-customer {
-    @apply bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200;
-  }
+.schedule-education {
+  background: linear-gradient(to right, rgb(254 243 199), rgb(253 230 138));
+  color: rgb(161 98 7);
+  border-color: rgb(253 224 71);
+}
 
-  .schedule-report {
-    @apply bg-gradient-to-r from-teal-50 to-teal-100 text-teal-700 border-teal-200;
-  }
+.schedule-customer {
+  background: linear-gradient(to right, rgb(250 245 255), rgb(243 232 255));
+  color: rgb(126 34 206);
+  border-color: rgb(233 213 255);
+}
 
-  .schedule-vacation {
-    @apply bg-gradient-to-r from-rose-50 to-rose-100 text-rose-700 border-rose-200;
-  }
+.schedule-report {
+  background: linear-gradient(to right, rgb(240 253 250), rgb(204 251 241));
+  color: rgb(13 116 128);
+  border-color: rgb(153 246 228);
+}
 
-  .schedule-return {
-    @apply bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 border-indigo-200;
-  }
+.schedule-vacation {
+  background: linear-gradient(to right, rgb(255 241 242), rgb(254 226 226));
+  color: rgb(190 18 60);
+  border-color: rgb(254 202 202);
+}
 
-  /* 직원별 아바타 색상 */
-  .avatar-ceo {
-    @apply bg-gradient-to-r from-purple-500 to-pink-500;
-  }
+.schedule-return {
+  background: linear-gradient(to right, rgb(238 242 255), rgb(224 231 255));
+  color: rgb(67 56 202);
+  border-color: rgb(199 210 254);
+}
 
-  .avatar-developer {
-    @apply bg-gradient-to-r from-blue-500 to-cyan-500;
-  }
+/* 직원별 아바타 색상 */
+.avatar-ceo {
+  background: linear-gradient(to right, rgb(168 85 247), rgb(236 72 153));
+}
 
-  .avatar-senior {
-    @apply bg-gradient-to-r from-green-500 to-teal-500;
-  }
+.avatar-developer {
+  background: linear-gradient(to right, rgb(59 130 246), rgb(34 211 238));
+}
 
-  .avatar-designer {
-    @apply bg-gradient-to-r from-orange-500 to-red-500;
-  }
+.avatar-senior {
+  background: linear-gradient(to right, rgb(34 197 94), rgb(20 184 166));
+}
 
-  /* 애니메이션 */
-  .transition-smooth {
-    @apply transition-all duration-200;
-  }
+.avatar-designer {
+  background: linear-gradient(to right, rgb(249 115 22), rgb(239 68 68));
+}
 
-  .hover-lift {
-    @apply hover:-translate-y-1 hover:shadow-xl;
-  }
+/* 애니메이션 */
+.transition-smooth {
+  transition: all 0.2s ease;
+}
 
-  .hover-scale {
-    @apply hover:scale-105;
-  }
+.hover-lift:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
 
-  /* 그림자 */
-  .shadow-primary {
-    @apply shadow-lg shadow-blue-500/25;
-  }
+.hover-scale:hover {
+  transform: scale(1.05);
+}
 
-  /* 테두리 반경 */
-  .rounded-glass {
-    @apply rounded-xl;
-  }
+/* 그림자 */
+.shadow-primary {
+  box-shadow: 0 10px 15px -3px rgb(59 130 246 / 0.25), 0 4px 6px -4px rgb(59 130 246 / 0.25);
+}
 
-  .rounded-glass-lg {
-    @apply rounded-2xl;
-  }
+/* 테두리 반경 */
+.rounded-glass {
+  border-radius: 0.75rem;
+}
 
-  /* 간격 */
-  .space-section {
-    @apply mb-8;
-  }
+.rounded-glass-lg {
+  border-radius: 1rem;
+}
 
-  .space-card {
-    @apply mb-6;
-  }
+/* 간격 */
+.space-section {
+  margin-bottom: 2rem;
+}
 
-  .space-item {
-    @apply mb-4;
-  }
+.space-card {
+  margin-bottom: 1.5rem;
+}
 
-  .space-small {
-    @apply mb-2;
-  }
+.space-item {
+  margin-bottom: 1rem;
+}
 
-  /* FullCalendar 커스텀 스타일 */
-  .calendar-container {
-    @apply w-full;
-  }
+.space-small {
+  margin-bottom: 0.5rem;
+}
 
-  .fc {
-    @apply font-sans;
-  }
+/* FullCalendar 커스텀 스타일 */
+.calendar-container {
+  width: 100%;
+}
 
-  .fc .fc-toolbar {
-    @apply mb-4;
-  }
+.fc {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
 
-  .fc .fc-button {
-    @apply bg-blue-500 hover:bg-blue-600 border-blue-500 hover:border-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors;
-  }
+.fc .fc-toolbar {
+  margin-bottom: 1rem;
+}
 
-  .fc .fc-button:focus {
-    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
-  }
+.fc .fc-button {
+  background-color: rgb(59 130 246);
+  border-color: rgb(59 130 246);
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
 
-  .fc .fc-button-primary:not(:disabled).fc-button-active,
-  .fc .fc-button-primary:not(:disabled):active {
-    @apply bg-blue-600 border-blue-600;
-  }
+.fc .fc-button:hover {
+  background-color: rgb(37 99 235);
+  border-color: rgb(37 99 235);
+}
 
-  .fc .fc-daygrid-day.fc-day-today {
-    @apply bg-blue-50/50;
-  }
+.fc .fc-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(59 130 246), 0 0 0 4px white;
+}
 
-  .fc .fc-timegrid-slot.fc-slot-today {
-    @apply bg-blue-50/30;
-  }
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: rgb(37 99 235);
+  border-color: rgb(37 99 235);
+}
 
-  .fc .fc-event {
-    @apply border-0 shadow-sm cursor-pointer transition-all duration-200;
-  }
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgb(239 246 255 / 0.5);
+}
 
-  .fc .fc-event:hover {
-    @apply shadow-md transform scale-105;
-  }
+.fc .fc-timegrid-slot.fc-slot-today {
+  background-color: rgb(239 246 255 / 0.3);
+}
 
-  .fc .fc-event-main {
-    @apply font-semibold;
-  }
+.fc .fc-event {
+  border: none;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  .fc .fc-timegrid-slot-label {
-    @apply text-sm font-medium text-gray-600;
-  }
+.fc .fc-event:hover {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  transform: scale(1.05);
+}
 
-  .fc .fc-col-header-cell {
-    @apply bg-gray-50/50 border-gray-200;
-  }
+.fc .fc-event-main {
+  font-weight: 600;
+}
 
-  .fc .fc-col-header-cell-cushion {
-    @apply text-gray-800 font-semibold;
-  }
+.fc .fc-timegrid-slot-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(75 85 99);
+}
 
-  .fc .fc-timegrid-axis {
-    @apply bg-gray-50/50 border-gray-200;
-  }
+.fc .fc-col-header-cell {
+  background-color: rgb(249 250 251 / 0.5);
+  border-color: rgb(229 231 235);
+}
 
-  .fc .fc-timegrid-slot {
-    @apply border-gray-100;
-  }
+.fc .fc-col-header-cell-cushion {
+  color: rgb(31 41 55);
+  font-weight: 600;
+}
 
-  .fc .fc-timegrid-now-indicator-line {
-    @apply border-red-500;
-  }
+.fc .fc-timegrid-axis {
+  background-color: rgb(249 250 251 / 0.5);
+  border-color: rgb(229 231 235);
+}
 
-  .fc .fc-timegrid-now-indicator-arrow {
-    @apply border-red-500;
-  }
+.fc .fc-timegrid-slot {
+  border-color: rgb(243 244 246);
+}
 
-  .fc .fc-daygrid-day-frame {
-    @apply border-gray-200;
-  }
+.fc .fc-timegrid-now-indicator-line {
+  border-color: rgb(239 68 68);
+}
 
-  .fc .fc-daygrid-day-events {
-    @apply min-h-[2rem];
-  }
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: rgb(239 68 68);
+}
 
-  .fc .fc-daygrid-day-number {
-    @apply text-gray-800 font-medium;
-  }
+.fc .fc-daygrid-day-frame {
+  border-color: rgb(229 231 235);
+}
 
-  .fc .fc-daygrid-day.fc-day-past {
-    @apply bg-gray-50/30;
-  }
+.fc .fc-daygrid-day-events {
+  min-height: 2rem;
+}
 
-  .fc .fc-daygrid-day.fc-day-future {
-    @apply bg-white;
-  }
+.fc .fc-daygrid-day-number {
+  color: rgb(31 41 55);
+  font-weight: 500;
+}
 
-  .fc .fc-daygrid-day.fc-day-other {
-    @apply bg-gray-100/50;
-  }
+.fc .fc-daygrid-day.fc-day-past {
+  background-color: rgb(249 250 251 / 0.3);
+}
 
-  .fc .fc-daygrid-day.fc-day-today {
-    @apply bg-blue-50/50;
-  }
+.fc .fc-daygrid-day.fc-day-future {
+  background-color: white;
+}
 
-  .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-    @apply text-blue-600 font-bold;
-  }
+.fc .fc-daygrid-day.fc-day-other {
+  background-color: rgb(243 244 246 / 0.5);
+}
 
-  .fc .fc-timegrid-slot.fc-slot-past {
-    @apply bg-gray-50/30;
-  }
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgb(239 246 255 / 0.5);
+}
 
-  .fc .fc-timegrid-slot.fc-slot-future {
-    @apply bg-white;
-  }
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: rgb(37 99 235);
+  font-weight: 700;
+}
 
-  .fc .fc-timegrid-slot.fc-slot-today {
-    @apply bg-blue-50/30;
-  }
+.fc .fc-timegrid-slot.fc-slot-past {
+  background-color: rgb(249 250 251 / 0.3);
+}
 
-  .fc .fc-event-dragging {
-    @apply opacity-75 shadow-lg;
-  }
+.fc .fc-timegrid-slot.fc-slot-future {
+  background-color: white;
+}
 
-  .fc .fc-event-resizing {
-    @apply opacity-90;
-  }
+.fc .fc-timegrid-slot.fc-slot-today {
+  background-color: rgb(239 246 255 / 0.3);
+}
 
-  .fc .fc-highlight {
-    @apply bg-blue-100/50 border-blue-300;
-  }
+.fc .fc-event-dragging {
+  opacity: 0.75;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
 
-  .fc .fc-daygrid-day.fc-day-disabled {
-    @apply bg-gray-100/50;
-  }
+.fc .fc-event-resizing {
+  opacity: 0.9;
+}
 
-  .fc .fc-daygrid-day.fc-day-disabled .fc-daygrid-day-number {
-    @apply text-gray-400;
-  }
+.fc .fc-highlight {
+  background-color: rgb(219 234 254 / 0.5);
+  border-color: rgb(147 197 253);
+}
+
+.fc .fc-daygrid-day.fc-day-disabled {
+  background-color: rgb(243 244 246 / 0.5);
+}
+
+.fc .fc-daygrid-day.fc-day-disabled .fc-daygrid-day-number {
+  color: rgb(156 163 175);
 }

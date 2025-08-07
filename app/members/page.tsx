@@ -144,9 +144,9 @@ export default function MembersPage() {
     },
   ]
 
-  return (
+    return (
     <MainLayout>
-      {/* Page Title */}
+      {/* 페이지 헤더 */}
       <div className="mb-8">
         <h1 className={`${typography.h1} text-gray-800 mb-2`}>구성원 관리</h1>
         <p className="text-gray-600">조직의 구성원 정보를 확인하고 관리하세요</p>
@@ -245,7 +245,7 @@ export default function MembersPage() {
               <GradientButton variant="secondary" size="sm" className="flex-1">
                 상세보기
               </GradientButton>
-              <GradientButton variant="outline" size="sm">
+              <GradientButton variant="secondary" size="sm">
                 편집
               </GradientButton>
             </div>
