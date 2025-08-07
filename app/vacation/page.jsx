@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import React from "react";
 import {
   Bell,
   User,
@@ -31,12 +32,14 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { colors, typography } from "@/lib/design-tokens";
 import VacationModal from "./vacationmodal";
+import StyledPaging from "@/components/paging/styled-paging";
 
 export default function VacationPage() {
   const [selectedPeriod, setSelectedPeriod] = useState("2025.10~2025.12");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // 1년을 3개월씩 나눈 기간들
   const periods = [
@@ -284,21 +287,41 @@ export default function VacationPage() {
     if (!startDate || !endDate) {
       return vacationRecords;
     }
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
-    return vacationRecords.filter(record => {
-      const recordStartDate = new Date(record.startDate.replace(/\./g, '-'));
-      const recordEndDate = new Date(record.endDate.replace(/\./g, '-'));
-      
+
+    return vacationRecords.filter((record) => {
+      const recordStartDate = new Date(record.startDate.replace(/\./g, "-"));
+      const recordEndDate = new Date(record.endDate.replace(/\./g, "-"));
+
       // 휴가 기간이 선택된 날짜 범위와 겹치는지 확인
       return recordStartDate <= end && recordEndDate >= start;
     });
   };
-  
+
   // 필터링된 연차 기록
   const filteredVacationRecords = filterVacationRecords();
+
+  // 페이징을 위한 설정
+  const itemsPerPage = 10;
+  const totalItems = filteredVacationRecords.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // 현재 페이지의 아이템들 계산
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentPageItems = filteredVacationRecords.slice(startIndex, endIndex);
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // 필터링이 변경될 때 페이지를 1로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate, selectedPeriod]);
 
   const vacationStats = [
     {
@@ -443,7 +466,7 @@ export default function VacationPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredVacationRecords.map((record) => (
+                {currentPageItems.map((record) => (
                   <tr
                     key={record.id}
                     className="border-b border-gray-200/30 hover:bg-gray-50/50 transition-colors"
@@ -483,6 +506,18 @@ export default function VacationPage() {
             </table>
           </div>
         </GlassCard>
+
+        {/* 페이징 컴포넌트 */}
+        {totalPages > 1 && (
+          <div className="mt-6">
+            <StyledPaging
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Vacation Modal */}
