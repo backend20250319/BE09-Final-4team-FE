@@ -208,19 +208,19 @@ export default function LoginPage() {
               </div>
             </div>
             
-                         <Button 
-               type="submit" 
-               className="w-full h-12 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg login-button"
-               disabled={isLoading}
-             >
+            <Button 
+              type="submit" 
+              className="w-full h-12 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 hover:from-gray-800 hover:to-gray-700 text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg login-button"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>로그인 중...</span>
                 </div>
-                             ) : (
-                 'Login'
-               )}
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
           

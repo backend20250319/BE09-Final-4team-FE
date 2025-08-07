@@ -1,77 +1,65 @@
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+"use client"
+
+import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
 interface User {
-  email: string
+  id: string
   name: string
+  email: string
   isAdmin: boolean
-  needsPasswordReset: boolean
 }
 
-export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+interface AuthContextType {
+  user: User | null
+  isAuthenticated: boolean
+  isAdmin: boolean
+  login: (user: User) => void
+  logout: () => void
+}
 
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+
+  // 데모 목적으로 자동 로그인
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn')
-    const userData = localStorage.getItem('currentUser')
-    
-    if (isLoggedIn && userData) {
-      try {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
-      } catch (error) {
-        console.error('사용자 데이터 파싱 오류:', error)
-        logout()
-      }
-    } else {
-      const defaultUser: User = {
-        email: 'demo@hermesai.com',
-        name: '데모 사용자',
-        isAdmin: false,
-        needsPasswordReset: false
-      }
-      setUser(defaultUser)
+    const demoUser: User = {
+      id: "1",
+      name: "데모 사용자",
+      email: "demo@example.com",
+      isAdmin: true
     }
-    
-    setIsLoading(false)
+    setUser(demoUser)
   }, [])
 
   const login = (userData: User) => {
-    localStorage.setItem('currentUser', JSON.stringify(userData))
-    localStorage.setItem('isLoggedIn', 'true')
     setUser(userData)
   }
 
   const logout = () => {
-    localStorage.removeItem('currentUser')
-    localStorage.removeItem('isLoggedIn')
     setUser(null)
-    router.push('/login')
   }
 
-  const requireAuth = () => {
-    return true
-  }
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isAdmin: user?.isAdmin || false,
+        login,
+        logout
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+}
 
-  const requireAdmin = () => {
-    if (!requireAuth()) return false
-    if (!user?.isAdmin) {
-      router.push('/')
-      return false
-    }
-    return true
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
   }
-
-  return {
-    user,
-    isLoading,
-    login,
-    logout,
-    requireAuth,
-    requireAdmin,
-    isAuthenticated: !!user,
-    isAdmin: user?.isAdmin || false
-  }
-} 
+  return context
+}

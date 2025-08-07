@@ -1,10 +1,11 @@
-import { ReactNode } from "react"
+import { ReactNode, CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { backgrounds, shadows, animations, borderRadius } from "@/lib/design-tokens"
 
 interface GlassCardProps {
   children: ReactNode
   className?: string
+  style?: CSSProperties
   hover?: boolean
   shadow?: keyof typeof shadows
   radius?: keyof typeof borderRadius
@@ -14,6 +15,7 @@ interface GlassCardProps {
 export function GlassCard({ 
   children, 
   className, 
+  style,
   hover = true,
   shadow = "lg",
   radius = "md",
@@ -31,6 +33,7 @@ export function GlassCard({
         onClick && "cursor-pointer",
         className
       )}
+      style={style}
       onClick={onClick}
     >
       {children}
