@@ -91,11 +91,9 @@ export default function ScheduleMePage() {
   ]
 
   const handlePreviousWeek = () => {
-    // 이전 주 로직
   }
 
   const handleNextWeek = () => {
-    // 다음 주 로직
   }
 
   return (

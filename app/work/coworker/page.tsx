@@ -86,7 +86,6 @@ export default function CoworkerSchedulePage() {
     { date: 30, day: "수", isWeekend: false },
   ]
 
-  // 직원별 스케줄 데이터
   const scheduleData: Record<number, Record<string, Array<{
     employee: string
     type: string
@@ -136,11 +135,9 @@ export default function CoworkerSchedulePage() {
   ]
 
   const handlePreviousWeek = () => {
-    // 이전 주 로직
   }
 
   const handleNextWeek = () => {
-    // 다음 주 로직
   }
 
   return (

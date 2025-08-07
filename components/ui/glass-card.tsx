@@ -1,4 +1,4 @@
-import { ReactNode } from "react"
+import { ReactNode, CSSProperties } from "react"
 import { cn } from "@/lib/utils"
 import { backgrounds, shadows, animations, borderRadius } from "@/lib/design-tokens"
 
@@ -9,6 +9,7 @@ interface GlassCardProps {
   shadow?: keyof typeof shadows
   radius?: keyof typeof borderRadius
   onClick?: () => void
+  style?: CSSProperties
 }
 
 export function GlassCard({ 
@@ -17,7 +18,8 @@ export function GlassCard({
   hover = true,
   shadow = "lg",
   radius = "md",
-  onClick
+  onClick,
+  style
 }: GlassCardProps) {
   return (
     <div
@@ -32,6 +34,7 @@ export function GlassCard({
         className
       )}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>
