@@ -31,10 +31,6 @@ export default function NoticeWritePage() {
     // router.push("/announcements");
   };
 
-  const handleTempSave = () => {
-    // TODO: 임시저장 API 연동
-    alert("임시저장 (API 연동 필요)");
-  };
 
   return (
     <MainLayout>
@@ -77,13 +73,6 @@ export default function NoticeWritePage() {
               취소
             </button>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className="px-6 py-2 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
-                onClick={handleTempSave}
-              >
-                임시저장
-              </button>
               <GradientButton type="submit" variant="primary">
                 게시하기
               </GradientButton>
