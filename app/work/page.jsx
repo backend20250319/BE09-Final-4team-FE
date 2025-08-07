@@ -12,18 +12,18 @@ import dynamic from "next/dynamic";
 
 // ScheduleCalendar를 클라이언트에서만 로드
 const ScheduleCalendar = dynamic(
-  () => import("@/components/calendar/schedule-calendar"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">스케줄 로딩 중...</p>
-        </div>
-      </div>
-    ),
-  }
+    () => import("@/components/calendar/schedule-calendar"),
+    {
+      ssr: false,
+      loading: () => (
+          <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">스케줄 로딩 중...</p>
+            </div>
+          </div>
+      ),
+    }
 );
 
 export default function SchedulePage() {
@@ -163,13 +163,13 @@ export default function SchedulePage() {
           {
             startTime: timePattern[0].start,
             endTime: timePattern[0].end,
-            title: "주간 회의",
+            title: "근무",
             color: colors.schedule.meeting,
           },
           {
             startTime: timePattern[1].start,
             endTime: timePattern[1].end,
-            title: "프로젝트 기획",
+            title: "근무",
             color: colors.schedule.project,
           },
         ];
@@ -180,13 +180,13 @@ export default function SchedulePage() {
           {
             startTime: timePattern[0].start,
             endTime: timePattern[0].end,
-            title: "팀 미팅",
+            title: "근무",
             color: colors.schedule.meeting,
           },
           {
             startTime: timePattern[1].start,
             endTime: timePattern[1].end,
-            title: "코드 리뷰",
+            title: "근무",
             color: colors.schedule.education,
           },
         ];
@@ -197,7 +197,7 @@ export default function SchedulePage() {
           {
             startTime: timePattern[0].start,
             endTime: timePattern[0].end,
-            title: "고객 미팅",
+            title: "근무",
             color: colors.schedule.customer,
           },
         ];
@@ -208,13 +208,13 @@ export default function SchedulePage() {
           {
             startTime: timePattern[0].start,
             endTime: timePattern[0].end,
-            title: "프로젝트 발표",
+            title: "근무",
             color: colors.schedule.project,
           },
           {
             startTime: timePattern[1].start,
             endTime: timePattern[1].end,
-            title: "팀 워크샵",
+            title: "근무",
             color: colors.schedule.education,
           },
         ];
@@ -225,13 +225,13 @@ export default function SchedulePage() {
           {
             startTime: timePattern[0].start,
             endTime: timePattern[0].end,
-            title: "주간 정리",
+            title: "근무",
             color: colors.schedule.report,
           },
           {
             startTime: timePattern[1].start,
             endTime: timePattern[1].end,
-            title: "다음 주 계획",
+            title: "근무",
             color: colors.schedule.project,
           },
         ];
@@ -409,7 +409,7 @@ export default function SchedulePage() {
     if (confirm("이 일정을 삭제하시겠습니까?")) {
       clickInfo.event.remove();
       setEvents((prevEvents) =>
-        prevEvents.filter((event) => event.id !== clickInfo.event.id)
+          prevEvents.filter((event) => event.id !== clickInfo.event.id)
       );
       setHasPendingChanges(true);
     }
@@ -482,143 +482,143 @@ export default function SchedulePage() {
     };
 
     return (
-      <div
-        style={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
-        {/* 시간 표시 */}
         <div
-          style={{
-            fontSize: "10px",
-            color: "rgba(255, 255, 255, 0.8)",
-            marginBottom: "2px",
-          }}
+            style={{
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
         >
-          {new Date(event.start).toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}{" "}
-          -{" "}
-          {new Date(event.end).toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}
-        </div>
-
-        {/* 제목 (인라인 수정 가능) */}
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              fontSize: "inherit",
-              fontWeight: "inherit",
-              width: "100%",
-              outline: "none",
-              padding: "0",
-              margin: "0",
-            }}
-          />
-        ) : (
+          {/* 시간 표시 */}
           <div
-            onDoubleClick={handleDoubleClick}
-            style={{
-              cursor: "pointer",
-              fontSize: "inherit",
-              fontWeight: "inherit",
-              color: "white",
-            }}
+              style={{
+                fontSize: "10px",
+                color: "rgba(255, 255, 255, 0.8)",
+                marginBottom: "2px",
+              }}
           >
-            {event.title}
+            {new Date(event.start).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}{" "}
+            -{" "}
+            {new Date(event.end).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
           </div>
-        )}
-      </div>
+
+          {/* 제목 (인라인 수정 가능) */}
+          {isEditing ? (
+              <input
+                  ref={inputRef}
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={handleBlur}
+                  onKeyDown={handleKeyDown}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "white",
+                    fontSize: "inherit",
+                    fontWeight: "inherit",
+                    width: "100%",
+                    outline: "none",
+                    padding: "0",
+                    margin: "0",
+                  }}
+              />
+          ) : (
+              <div
+                  onDoubleClick={handleDoubleClick}
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "inherit",
+                    fontWeight: "inherit",
+                    color: "white",
+                  }}
+              >
+                {event.title}
+              </div>
+          )}
+        </div>
     );
   };
 
   const eventContent = (arg) => {
     return (
-      <EditableEvent event={arg.event} onTitleChange={handleEventTitleEdit} />
+        <EditableEvent event={arg.event} onTitleChange={handleEventTitleEdit} />
     );
   };
 
   return (
-    <MainLayout>
-      {/* Tabs */}
-      <TabGroup
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId);
-          const clickedTab = tabs.find((t) => t.id === tabId);
-          if (clickedTab?.onClick) clickedTab.onClick(); // 해당 탭의 라우팅 실행
-        }}
-        className="mb-8"
-      />
+      <MainLayout>
+        {/* Tabs */}
+        <TabGroup
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tabId) => {
+              setActiveTab(tabId);
+              const clickedTab = tabs.find((t) => t.id === tabId);
+              if (clickedTab?.onClick) clickedTab.onClick(); // 해당 탭의 라우팅 실행
+            }}
+            className="mb-8"
+        />
 
-      {/* Date Navigation */}
-      <DateNavigation
-        currentPeriod={currentWeek}
-        onPrevious={handlePreviousWeek}
-        onNext={handleNextWeek}
-        className="mb-8"
-      />
+        {/* Date Navigation */}
+        <DateNavigation
+            currentPeriod={currentWeek}
+            onPrevious={handlePreviousWeek}
+            onNext={handleNextWeek}
+            className="mb-8"
+        />
 
-      {/* FullCalendar Schedule */}
-      <GlassCard className="p-6">
-        <div className="calendar-container">
-          {isClient && (
-            <ScheduleCalendar
-              events={events}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              onSelect={handleSelect}
-              onEventClick={handleEventClick}
-              dayCellDidMount={dayCellDidMountHandler}
-              eventContent={eventContent}
-              editable={true}
-            />
-          )}
-        </div>
-      </GlassCard>
-
-      {/* 변경 사항 배너 */}
-      {hasPendingChanges && (
-        <div className="fixed bottom-0 left-0 right-0 bg-yellow-100 border-t border-yellow-200 p-4 z-50">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="text-gray-800 font-medium">
-              변경 사항이 있습니다. 근무 변경을 신청하시겠습니까?
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleCancelChanges}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleSubmitChanges}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                변경 신청
-              </button>
-            </div>
+        {/* FullCalendar Schedule */}
+        <GlassCard className="p-6">
+          <div className="calendar-container">
+            {isClient && (
+                <ScheduleCalendar
+                    events={events}
+                    onEventDrop={handleEventDrop}
+                    onEventResize={handleEventResize}
+                    onSelect={handleSelect}
+                    onEventClick={handleEventClick}
+                    dayCellDidMount={dayCellDidMountHandler}
+                    eventContent={eventContent}
+                    editable={true}
+                />
+            )}
           </div>
-        </div>
-      )}
-    </MainLayout>
+        </GlassCard>
+
+        {/* 변경 사항 배너 */}
+        {hasPendingChanges && (
+            <div className="fixed bottom-0 left-0 right-0 bg-yellow-100 border-t border-yellow-200 p-4 z-50">
+              <div className="flex items-center justify-between max-w-7xl mx-auto">
+                <div className="text-gray-800 font-medium">
+                  변경 사항이 있습니다. 근무 변경을 신청하시겠습니까?
+                </div>
+                <div className="flex gap-2">
+                  <button
+                      onClick={handleCancelChanges}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                      onClick={handleSubmitChanges}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    변경 신청
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+      </MainLayout>
   );
 }
