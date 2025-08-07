@@ -3,7 +3,8 @@
 import { ReactNode, useState, useEffect } from "react"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useAuth } from "@/hooks/use-auth"
+import { useRouter } from "next/navigation"
 
 interface MainLayoutProps {
   children: ReactNode
@@ -11,6 +12,8 @@ interface MainLayoutProps {
   showNotifications?: boolean
   showUserProfile?: boolean
   onMenuItemClick?: (index: number) => void
+  requireAuth?: boolean
+  requireAdmin?: boolean
 }
 
 export function MainLayout({
@@ -18,56 +21,51 @@ export function MainLayout({
   userName,
   showNotifications,
   showUserProfile,
-  onMenuItemClick
+  onMenuItemClick,
+  requireAuth = true,
+  requireAdmin = false
 }: MainLayoutProps) {
-  const isMobile = useIsMobile()
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { user, isLoading, requireAuth: authCheck, requireAdmin: adminCheck } = useAuth()
+  const router = useRouter()
 
-  // 모바일 상태가 변경될 때 사이드바 상태 조정
   useEffect(() => {
-    setSidebarOpen(!isMobile)
-  }, [isMobile])
+    if (!isLoading) {
+      if (requireAuth && !authCheck()) {
+        return
+      }
+      if (requireAdmin && !adminCheck()) {
+        return
+      }
+    }
+  }, [isLoading, requireAuth, requireAdmin, authCheck, adminCheck])
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
-  const closeSidebar = () => {
-    if (isMobile) {
-      setSidebarOpen(false)
-    }
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* 모바일 오버레이 */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={closeSidebar}
-        />
-      )}
-      
-      <Sidebar 
-        onMenuItemClick={onMenuItemClick} 
-        isOpen={sidebarOpen} 
-        isMobile={isMobile}
-        onClose={closeSidebar}
-      />
-      
-      <div className={`transition-all duration-300 ${
-        isMobile 
-          ? 'ml-0' 
-          : sidebarOpen ? 'ml-72' : 'ml-0'
-      }`}>
+      <Sidebar onMenuItemClick={onMenuItemClick} isOpen={sidebarOpen} />
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-72' : 'ml-0'}`}>
         <Header 
           userName={userName}
           showNotifications={showNotifications}
           showUserProfile={showUserProfile}
           onToggleSidebar={toggleSidebar}
-          isMobile={isMobile}
         />
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-8">
           {children}
         </div>
       </div>
