@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { colors, typography } from "@/lib/design-tokens"
 import {
   Calendar,
@@ -22,6 +23,13 @@ import {
   Check,
   X,
   Users,
+  Edit,
+  Plus,
+  Send,
+  History,
+  FileEdit,
+  UserPlus,
+  UserMinus,
 } from "lucide-react"
 
 interface ApprovalModalProps {
@@ -30,6 +38,7 @@ interface ApprovalModalProps {
   approval: any
   onApprove?: (approvalId: number, comment?: string) => void
   onReject?: (approvalId: number, comment?: string) => void
+  onAddComment?: (approvalId: number, comment: string) => void
 }
 
 export function ApprovalModal({ 
@@ -37,10 +46,13 @@ export function ApprovalModal({
   onClose, 
   approval, 
   onApprove, 
-  onReject 
+  onReject,
+  onAddComment
 }: ApprovalModalProps) {
   const [comment, setComment] = useState("")
+  const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [activeTab, setActiveTab] = useState<"history" | "comments">("history")
 
   if (!approval) return null
 
@@ -83,6 +95,75 @@ export function ApprovalModal({
     }
   }
 
+  const getHistoryIcon = (action: string) => {
+    switch (action) {
+      case "created":
+        return Plus
+      case "updated":
+        return Edit
+      case "approved":
+        return CheckCircle
+      case "rejected":
+        return XCircle
+      case "comment":
+        return MessageSquare
+      case "approver_added":
+        return UserPlus
+      case "approver_removed":
+        return UserMinus
+      case "file_attached":
+        return Download
+      default:
+        return History
+    }
+  }
+
+  const getHistoryColor = (action: string) => {
+    switch (action) {
+      case "created":
+        return "bg-blue-100 text-blue-600"
+      case "updated":
+        return "bg-yellow-100 text-yellow-600"
+      case "approved":
+        return "bg-green-100 text-green-600"
+      case "rejected":
+        return "bg-red-100 text-red-600"
+      case "comment":
+        return "bg-purple-100 text-purple-600"
+      case "approver_added":
+        return "bg-indigo-100 text-indigo-600"
+      case "approver_removed":
+        return "bg-gray-100 text-gray-600"
+      case "file_attached":
+        return "bg-orange-100 text-orange-600"
+      default:
+        return "bg-gray-100 text-gray-600"
+    }
+  }
+
+  const getHistoryText = (action: string) => {
+    switch (action) {
+      case "created":
+        return "문서 생성"
+      case "updated":
+        return "문서 수정"
+      case "approved":
+        return "승인"
+      case "rejected":
+        return "반려"
+      case "comment":
+        return "댓글 작성"
+      case "approver_added":
+        return "승인권자 추가"
+      case "approver_removed":
+        return "승인권자 제거"
+      case "file_attached":
+        return "첨부파일 추가"
+      default:
+        return action
+    }
+  }
+
   const handleApprove = async () => {
     if (!onApprove) return
     setIsSubmitting(true)
@@ -109,6 +190,19 @@ export function ApprovalModal({
     }
   }
 
+  const handleAddComment = async () => {
+    if (!onAddComment || !newComment.trim()) return
+    setIsSubmitting(true)
+    try {
+      await onAddComment(approval.id, newComment)
+      setNewComment("")
+    } catch (error) {
+      console.error("댓글 작성 중 오류:", error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const getCurrentStage = () => {
     if (!approval.approvalStages) return null
     return approval.approvalStages.find((stage: any) => 
@@ -125,8 +219,23 @@ export function ApprovalModal({
     )
   }
 
+  const canComment = () => {
+    // 문서를 볼 수 있는 권한이 있는 사용자는 댓글을 달 수 있음
+    return true // 실제로는 권한 체크 로직 필요
+  }
+
   const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
   const statusColor = getStatusColor(approval.status, approval.isMyApproval)
+
+  // 히스토리와 댓글을 합친 타임라인 생성
+  const timeline = [
+    ...(approval.history || []),
+    ...(approval.comments || []).map((comment: any) => ({
+      ...comment,
+      action: "comment",
+      type: "comment"
+    }))
+  ].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -288,36 +397,119 @@ export function ApprovalModal({
               </GlassCard>
             )}
 
-            {/* 처리 이력 (예시) */}
-            {approval.history && approval.history.length > 0 && (
+            {/* 댓글 작성 */}
+            {canComment() && (
               <GlassCard className="p-6">
-                <h3 className={`${typography.h3} text-gray-800 mb-4`}>처리 이력</h3>
-                <div className="space-y-3">
-                  {approval.history.map((item: any, index: number) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        item.action === 'approved' ? 'bg-green-100' : 
-                        item.action === 'rejected' ? 'bg-red-100' : 'bg-blue-100'
-                      }`}>
-                        {item.action === 'approved' ? (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        ) : item.action === 'rejected' ? (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        ) : (
-                          <Clock className="w-4 h-4 text-blue-600" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium text-gray-800">{item.user}</span>
-                          <span className="text-sm text-gray-500">{item.date}</span>
+                <h3 className={`${typography.h3} text-gray-800 mb-4 flex items-center gap-2`}>
+                  <MessageSquare className="w-5 h-5" />
+                  댓글 작성
+                </h3>
+                <div className="flex gap-3">
+                  <Textarea
+                    placeholder="댓글을 입력하세요..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="flex-1"
+                    rows={2}
+                  />
+                  <Button
+                    onClick={handleAddComment}
+                    disabled={isSubmitting || !newComment.trim()}
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    작성
+                  </Button>
+                </div>
+              </GlassCard>
+            )}
+
+            {/* 히스토리 및 댓글 타임라인 */}
+            {timeline.length > 0 && (
+              <GlassCard className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`${typography.h3} text-gray-800 flex items-center gap-2`}>
+                    <History className="w-5 h-5" />
+                    타임라인
+                  </h3>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={activeTab === "history" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setActiveTab("history")}
+                    >
+                      전체
+                    </Button>
+                    <Button
+                      variant={activeTab === "comments" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setActiveTab("comments")}
+                    >
+                      댓글만
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {timeline
+                    .filter((item: any) => 
+                      activeTab === "history" || 
+                      (activeTab === "comments" && item.action === "comment")
+                    )
+                    .map((item: any, index: number) => {
+                      const HistoryIcon = getHistoryIcon(item.action)
+                      const historyColor = getHistoryColor(item.action)
+                      
+                      return (
+                        <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${historyColor}`}>
+                            <HistoryIcon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src={item.user?.avatar} alt={item.user?.name} />
+                                <AvatarFallback className="text-xs">
+                                  {item.user?.name?.charAt(0) || "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-gray-800">{item.user?.name || item.user}</span>
+                              <span className="text-sm text-gray-500">{item.date}</span>
+                              {item.action !== "comment" && (
+                                <span className="text-sm text-gray-600">
+                                  {getHistoryText(item.action)}
+                                </span>
+                              )}
+                            </div>
+                            
+
+                            
+                            {item.changes && (
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <p className="text-sm text-gray-600 mb-2">변경 사항:</p>
+                                <ul className="text-sm text-gray-700 space-y-1">
+                                  {item.changes.map((change: any, changeIndex: number) => (
+                                    <li key={changeIndex} className="flex items-center gap-2">
+                                      <span className="text-gray-500">•</span>
+                                      <span>{change.field}: </span>
+                                      <span className="text-red-500 line-through">{change.oldValue}</span>
+                                      <ArrowRight className="w-3 h-3 text-gray-400" />
+                                      <span className="text-green-600">{change.newValue}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {item.action === "comment" && (
+                              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                <p className="text-sm text-gray-700">{item.content}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        {item.comment && (
-                          <p className="text-sm text-gray-600">{item.comment}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      )
+                    })}
                 </div>
               </GlassCard>
             )}
@@ -402,9 +594,7 @@ export function ApprovalModal({
                                    approver.status === "pending" ? "대기중" : "반려됨"}
                                 </p>
                               </div>
-                              {approver.comment && (
-                                <p className="text-xs text-gray-600">{approver.comment}</p>
-                              )}
+
                             </div>
                           </div>
                         ))}
