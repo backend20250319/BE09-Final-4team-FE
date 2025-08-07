@@ -53,6 +53,7 @@ function EditorInitializer({ json }) {
         root.clear();
         const paragraph = $createParagraphNode();
         root.append(paragraph);
+        paragraph.select(); // 첫번째 block 선택
       });
     }
   }, [json, editor]);
