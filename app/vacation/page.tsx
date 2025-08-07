@@ -31,7 +31,7 @@ export default function VacationPage() {
   const vacationStats = [
     {
       title: "기본 연차",
-      count: 12,
+      count: 11,
       unit: "일",
       description: "3일 사용됨",
       icon: CalendarDays,
