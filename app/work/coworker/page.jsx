@@ -31,18 +31,18 @@ import dynamic from "next/dynamic";
 
 // ScheduleCalendar를 클라이언트에서만 로드
 const ScheduleCalendar = dynamic(
-  () => import("@/components/calendar/schedule-calendar"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">스케줄 로딩 중...</p>
-        </div>
-      </div>
-    ),
-  }
+    () => import("@/components/calendar/schedule-calendar"),
+    {
+      ssr: false,
+      loading: () => (
+          <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">스케줄 로딩 중...</p>
+            </div>
+          </div>
+      ),
+    }
 );
 
 // EditableEvent 컴포넌트
@@ -80,77 +80,77 @@ const EditableEvent = ({ event, onTitleChange }) => {
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-start",
-        padding: "4px",
-      }}
-    >
-      {/* 시간 표시 */}
       <div
-        style={{
-          fontSize: "10px",
-          color: "rgba(255, 255, 255, 0.8)",
-          marginBottom: "1px", // 간격을 최소화
-          fontWeight: "normal",
-          lineHeight: "1",
-        }}
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            padding: "4px",
+          }}
       >
-        {new Date(event.start).toLocaleTimeString("ko-KR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}{" "}
-        -{" "}
-        {new Date(event.end).toLocaleTimeString("ko-KR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}
-      </div>
-
-      {/* 제목 (인라인 수정 가능) */}
-      <div>
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
+        {/* 시간 표시 */}
+        <div
             style={{
-              background: "transparent",
-              border: "none",
-              color: "white",
-              fontSize: "inherit",
-              fontWeight: "inherit",
-              width: "100%",
-              outline: "none",
-              padding: "0",
-              margin: "0",
-            }}
-          />
-        ) : (
-          <div
-            onDoubleClick={handleDoubleClick}
-            style={{
-              cursor: "pointer",
-              fontSize: "inherit",
-              fontWeight: "inherit",
-              color: "white",
-              width: "100%",
+              fontSize: "10px",
+              color: "rgba(255, 255, 255, 0.8)",
+              marginBottom: "1px", // 간격을 최소화
+              fontWeight: "normal",
               lineHeight: "1",
             }}
-          >
-            {event.title}
-          </div>
-        )}
+        >
+          {new Date(event.start).toLocaleTimeString("ko-KR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })}{" "}
+          -{" "}
+          {new Date(event.end).toLocaleTimeString("ko-KR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })}
+        </div>
+
+        {/* 제목 (인라인 수정 가능) */}
+        <div>
+          {isEditing ? (
+              <input
+                  ref={inputRef}
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={handleBlur}
+                  onKeyDown={handleKeyDown}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "white",
+                    fontSize: "inherit",
+                    fontWeight: "inherit",
+                    width: "100%",
+                    outline: "none",
+                    padding: "0",
+                    margin: "0",
+                  }}
+              />
+          ) : (
+              <div
+                  onDoubleClick={handleDoubleClick}
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "inherit",
+                    fontWeight: "inherit",
+                    color: "white",
+                    width: "100%",
+                    lineHeight: "1",
+                  }}
+              >
+                {event.title}
+              </div>
+          )}
+        </div>
       </div>
-    </div>
   );
 };
 
@@ -161,8 +161,7 @@ export default function CoworkerSchedulePage() {
   const [events, setEvents] = useState([]);
   const [weekDates, setWeekDates] = useState({});
   const [isClient, setIsClient] = useState(false);
-  const [nameQuery, setNameQuery] = useState("");
-  const [teamQuery, setTeamQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [baseDate, setBaseDate] = useState(new Date());
   const router = useRouter();
 
@@ -207,47 +206,47 @@ export default function CoworkerSchedulePage() {
       color: colors.employee.ceo,
       scheduleData: {
         [getDateKey(0)]: isSunday(0)
-          ? []
-          : [
+            ? []
+            : [
               // 월요일
               {
                 startTime: "09:00",
                 endTime: "11:00",
-                title: "경영진 회의",
+                title: "외근",
                 color: colors.schedule.meeting,
               },
               {
                 startTime: "14:00",
                 endTime: "16:00",
-                title: "투자자 미팅",
+                title: "근무",
                 color: colors.schedule.customer,
               },
             ],
         [getDateKey(1)]: isSunday(1)
-          ? []
-          : [
+            ? []
+            : [
               // 화요일
               {
                 startTime: "10:00",
-                endTime: "12:00",
-                title: "전략 기획",
+                endTime: "18:00",
+                title: "출장",
                 color: colors.schedule.project,
               },
             ],
         [getDateKey(2)]: isSunday(2)
-          ? []
-          : [
+            ? []
+            : [
               // 수요일
               {
                 startTime: "13:00",
                 endTime: "15:00",
-                title: "팀 리더 미팅",
+                title: "근무",
                 color: colors.schedule.meeting,
               },
               {
                 startTime: "16:30",
                 endTime: "18:00",
-                title: "재무 검토",
+                title: "출장",
                 color: colors.schedule.report,
               },
             ],
@@ -264,47 +263,47 @@ export default function CoworkerSchedulePage() {
       color: colors.employee.developer,
       scheduleData: {
         [getDateKey(0)]: isSunday(0)
-          ? []
-          : [
+            ? []
+            : [
               // 월요일
               {
                 startTime: "09:00",
-                endTime: "11:00",
-                title: "코딩 세션",
+                endTime: "12:00",
+                title: "근무",
                 color: colors.schedule.project,
               },
               {
-                startTime: "15:30",
+                startTime: "13:00",
                 endTime: "17:00",
-                title: "코드 리뷰",
+                title: "근무",
                 color: colors.schedule.education,
               },
             ],
         [getDateKey(1)]: isSunday(1)
-          ? []
-          : [
+            ? []
+            : [
               // 화요일
               {
                 startTime: "14:00",
                 endTime: "16:00",
-                title: "버그 수정",
+                title: "출장",
                 color: colors.schedule.project,
               },
             ],
         [getDateKey(2)]: isSunday(2)
-          ? []
-          : [
+            ? []
+            : [
               // 수요일
               {
                 startTime: "10:00",
                 endTime: "12:00",
-                title: "기능 개발",
+                title: "근무",
                 color: colors.schedule.project,
               },
               {
-                startTime: "16:30",
+                startTime: "13:00",
                 endTime: "18:00",
-                title: "테스트",
+                title: "반차",
                 color: colors.schedule.education,
               },
             ],
@@ -321,47 +320,41 @@ export default function CoworkerSchedulePage() {
       color: colors.employee.senior,
       scheduleData: {
         [getDateKey(0)]: isSunday(0)
-          ? []
-          : [
+            ? []
+            : [
               // 월요일
               {
-                startTime: "10:00",
-                endTime: "12:00",
-                title: "아키텍처 설계",
+                startTime: "09:00",
+                endTime: "18:00",
+                title: "근무",
                 color: colors.schedule.project,
               },
             ],
         [getDateKey(1)]: isSunday(1)
-          ? []
-          : [
+            ? []
+            : [
               // 화요일
               {
                 startTime: "09:00",
-                endTime: "11:00",
-                title: "시스템 점검",
+                endTime: "18:00",
+                title: "출장",
                 color: colors.schedule.report,
-              },
-              {
-                startTime: "15:30",
-                endTime: "17:00",
-                title: "성능 최적화",
-                color: colors.schedule.project,
               },
             ],
         [getDateKey(2)]: isSunday(2)
-          ? []
-          : [
+            ? []
+            : [
               // 수요일
               {
-                startTime: "13:00",
-                endTime: "15:00",
-                title: "데이터베이스 설계",
+                startTime: "09:00",
+                endTime: "13:00",
+                title: "근무",
                 color: colors.schedule.project,
               },
               {
-                startTime: "16:30",
+                startTime: "14:00",
                 endTime: "18:00",
-                title: "보안 검토",
+                title: "출장",
                 color: colors.schedule.report,
               },
             ],
@@ -371,9 +364,11 @@ export default function CoworkerSchedulePage() {
 
   // 검색 조건에 맞는 직원들만 필터링
   const filteredEmployees = employees.filter((emp) => {
-    const nameMatch = emp.name.toLowerCase().includes(nameQuery.toLowerCase());
-    const teamMatch = emp.team.toLowerCase().includes(teamQuery.toLowerCase());
-    return nameMatch && teamMatch; // AND 조건
+    const query = searchQuery.toLowerCase();
+    const nameMatch = emp.name.toLowerCase().includes(query);
+    const teamMatch = emp.team.toLowerCase().includes(query);
+    const positionMatch = emp.position.toLowerCase().includes(query);
+    return nameMatch || teamMatch || positionMatch; // OR 조건으로 변경
   });
 
   const tabs = [
@@ -540,11 +535,11 @@ export default function CoworkerSchedulePage() {
       return;
 
     const selectedEmployeeData = employees.find(
-      (emp) => emp.id === selectedEmployee
+        (emp) => emp.id === selectedEmployee
     );
     if (selectedEmployeeData && selectedEmployeeData.scheduleData) {
       const convertedEvents = convertScheduleDataToEvents(
-        selectedEmployeeData.scheduleData
+          selectedEmployeeData.scheduleData
       );
       setEvents(convertedEvents);
     } else {
@@ -571,113 +566,104 @@ export default function CoworkerSchedulePage() {
   };
 
   return (
-    <MainLayout>
-      {/* Tabs */}
-      <TabGroup
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          setActiveTab(tabId);
-          const clickedTab = tabs.find((t) => t.id === tabId);
-          if (clickedTab?.onClick) clickedTab.onClick(); // 해당 탭의 라우팅 실행
-        }}
-        className="mb-8"
-      />
+      <MainLayout>
+        {/* Tabs */}
+        <TabGroup
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tabId) => {
+              setActiveTab(tabId);
+              const clickedTab = tabs.find((t) => t.id === tabId);
+              if (clickedTab?.onClick) clickedTab.onClick(); // 해당 탭의 라우팅 실행
+            }}
+            className="mb-8"
+        />
 
-      <div className="grid grid-cols-12 gap-8">
-        {/* Employee List */}
-        <div className="col-span-4 space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="직원명 검색하기"
-              value={nameQuery}
-              onChange={(e) => setNameQuery(e.target.value)}
-              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-            />
-          </div>
+        <div className="grid grid-cols-12 gap-8">
+          {/* Employee List */}
+          <div className="col-span-4 space-y-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                  placeholder="직원명, 조직, 직책 검색하기"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
+              />
+            </div>
 
-          <div className="relative">
-            <Input
-              placeholder="조직 검색"
-              value={teamQuery}
-              onChange={(e) => setTeamQuery(e.target.value)}
-              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-            />
-          </div>
-
-          {/* Employee Cards */}
-          <div className="space-y-4">
-            {filteredEmployees.map((employee) => (
-              <GlassCard
-                key={employee.id}
-                className={`p-4 cursor-pointer transition-all duration-200 ${
-                  selectedEmployee === employee.id
-                    ? "ring-2 ring-blue-500 bg-blue-50/50"
-                    : "hover:bg-gray-50/50"
-                }`}
-                onClick={() => setSelectedEmployee(employee.id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 bg-gradient-to-r ${employee.color} rounded-xl flex items-center justify-center text-white text-lg shadow-lg`}
+            {/* Employee Cards */}
+            <div className="space-y-4">
+              {filteredEmployees.map((employee) => (
+                  <GlassCard
+                      key={employee.id}
+                      className={`p-4 cursor-pointer transition-all duration-200 ${
+                          selectedEmployee === employee.id
+                              ? "ring-2 ring-blue-500 bg-blue-50/50"
+                              : "hover:bg-gray-50/50"
+                      }`}
+                      onClick={() => setSelectedEmployee(employee.id)}
                   >
-                    {employee.avatar}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-4">
+                      <div
+                          className={`w-12 h-12 bg-gradient-to-r ${employee.color} rounded-xl flex items-center justify-center text-white text-lg shadow-lg`}
+                      >
+                        {employee.avatar}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-gray-800">
                         {employee.name}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
                         {employee.position}
                       </span>
+                        </div>
+                        <div className="text-xs text-gray-600 space-y-1">
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            {employee.email}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {employee.phone}
+                          </div>
+                          <div className="text-blue-600 font-medium">
+                            {employee.team}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 space-y-1">
-                      <div className="flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {employee.email}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {employee.phone}
-                      </div>
-                      <div className="text-blue-600 font-medium">
-                        {employee.team}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
+                  </GlassCard>
+              ))}
+            </div>
+          </div>
+
+          {/* Schedule Calendar */}
+          <div className="col-span-8">
+            {/* Date Navigation */}
+            <DateNavigation
+                currentPeriod={currentWeek}
+                onPrevious={handlePreviousWeek}
+                onNext={handleNextWeek}
+                className="mb-6"
+            />
+
+            {/* FullCalendar Schedule */}
+            <GlassCard className="p-6">
+              <div className="calendar-container">
+                {isClient && (
+                    <ScheduleCalendar
+                        events={events}
+                        editable={false}
+                        dayCellDidMount={dayCellDidMountHandler}
+                    />
+                )}
+              </div>
+            </GlassCard>
           </div>
         </div>
-
-        {/* Schedule Calendar */}
-        <div className="col-span-8">
-          {/* Date Navigation */}
-          <DateNavigation
-            currentPeriod={currentWeek}
-            onPrevious={handlePreviousWeek}
-            onNext={handleNextWeek}
-            className="mb-6"
-          />
-
-          {/* FullCalendar Schedule */}
-          <GlassCard className="p-6">
-            <div className="calendar-container">
-              {isClient && (
-                <ScheduleCalendar
-                  events={events}
-                  editable={false}
-                  dayCellDidMount={dayCellDidMountHandler}
-                />
-              )}
-            </div>
-          </GlassCard>
-        </div>
-      </div>
-    </MainLayout>
+      </MainLayout>
   );
 }
