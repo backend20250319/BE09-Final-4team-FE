@@ -16,9 +16,9 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { TRANSFORMERS } from "@lexical/markdown";
-
 import CodeHighlightPlugin from "./plugins/CodeHighlightPlugin";
 import "./style.css";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 
 function Placeholder() {
   return (
@@ -27,6 +27,7 @@ function Placeholder() {
     </div>
   );
 }
+
 
 function EditorInitializer({ json }) {
   const [editor] = useLexicalComposerContext();
@@ -81,9 +82,13 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor({ jsonData: json }) {
+export default function Editor({ jsonData: json, onChange }) {
   const [mounted, setMounted] = useState(false);
-
+  function handleChange(editorState) {
+    const jsonString = JSON.stringify(editorState.toJSON());
+    onChange?.(jsonString);  // 상위에서 내려온 콜백에 전달
+  }
+  
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -117,6 +122,7 @@ export default function Editor({ jsonData: json }) {
           <CodeHighlightPlugin />
           <EditorInitializer json={json} />
         </div>
+        <OnChangePlugin onChange={handleChange} />
       </div>
     </LexicalComposer>
   );

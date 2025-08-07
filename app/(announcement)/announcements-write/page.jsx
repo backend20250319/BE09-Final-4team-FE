@@ -27,8 +27,11 @@ export default function NoticeWritePage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     // TODO: API 연동
-    alert("게시 완료 (API 연동 필요)");
-    // router.push("/announcements");
+    console.log("제목:", title);
+    console.log("작성자:", author);
+    console.log("내용(JSON):", content);
+    alert("공지사항이 게시되었습니다.");
+    router.push("/announcements");
   };
 
 
@@ -62,7 +65,7 @@ export default function NoticeWritePage() {
           </div>
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold props">내용</label>
-            <Editor json={null}/>
+            <Editor json={null} onChange={setContent}/>
           </div>
           <div className="flex justify-between items-center mt-8">
             <button
