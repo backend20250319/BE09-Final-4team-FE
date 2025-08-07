@@ -39,6 +39,7 @@ export function GradientButton({
         "font-medium",
         animations.transition,
         "flex items-center gap-2",
+        "cursor-pointer",
         className
       )}
       {...props}

@@ -5,7 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ApprovalModal } from "@/components/ui/approval-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import {
   Search,
@@ -19,18 +19,24 @@ import {
   Calendar,
   FileText,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
 
 export default function ApprovalsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState("all")
+  const [activeTab, setActiveTab] = useState<"inProgress" | "completed">("inProgress")
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    myPending: false,
+    inProgress: false,
+    approved: false,
+    rejected: false,
+  })
+  const [selectedApproval, setSelectedApproval] = useState<any>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const statuses = [
-    { id: "all", name: "전체" },
-    { id: "pending", name: "대기중" },
-    { id: "approved", name: "승인됨" },
-    { id: "rejected", name: "반려됨" },
-  ]
+  // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
+  const currentUser = "김철수"
 
   const approvals = [
     {
@@ -45,6 +51,54 @@ export default function ApprovalsPage() {
       content: "8월 1일 연차 사용 신청합니다.",
       icon: Calendar,
       color: colors.status.warning.gradient,
+      approver: "김인사", // 기존 호환성을 위한 필드
+      isMyApproval: true, // 내가 승인해야 하는지
+              approvalStages: [
+          {
+            id: 1,
+            status: "completed",
+            approvers: [
+              {
+                userId: "team-leader-1",
+                name: "박팀장",
+                position: "개발팀장",
+                status: "completed",
+                comment: "승인합니다.",
+                date: "2025.07.26"
+              }
+            ]
+          },
+          {
+            id: 2,
+            status: "current",
+          approvers: [
+            {
+              userId: "current-user-id", // 현재 사용자
+              name: "김인사",
+              position: "인사팀장",
+              status: "pending"
+            },
+            {
+              userId: "hr-manager-1",
+              name: "이인사",
+              position: "인사팀원",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-1",
+          name: "정수민",
+          position: "경영지원팀장"
+        },
+        {
+          userId: "ref-2", 
+          name: "최지영",
+          position: "인사팀원"
+        }
+      ]
     },
     {
       id: 2,
@@ -58,6 +112,59 @@ export default function ApprovalsPage() {
       content: "디자인 작업용 태블릿 구매 신청",
       icon: FileText,
       color: colors.status.success.gradient,
+      approver: "김철수",
+      isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "design-leader-1",
+              name: "최디자인",
+              position: "디자인팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "completed",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        },
+        {
+          id: 3,
+          status: "completed",
+          approvers: [
+            {
+              userId: "support-manager-1",
+              name: "정수민",
+              position: "경영지원팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.26"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-3",
+          name: "박민수",
+          position: "마케팅팀장"
+        }
+      ]
     },
     {
       id: 3,
@@ -71,6 +178,45 @@ export default function ApprovalsPage() {
       content: "고객사 방문을 위한 출장 신청",
       icon: ArrowRight,
       color: colors.status.error.gradient,
+      approver: "김철수",
+      isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "marketing-leader-1",
+              name: "김마케팅",
+              position: "마케팅팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.24"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "rejected",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김철수",
+              position: "개발팀장",
+              status: "rejected",
+              comment: "예산 부족으로 반려합니다.",
+              date: "2025.07.25"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-4",
+          name: "이영희",
+          position: "디자인팀장"
+        }
+      ]
     },
     {
       id: 4,
@@ -84,6 +230,49 @@ export default function ApprovalsPage() {
       content: "HR 전문가 과정 교육 참석 신청",
       icon: User,
       color: colors.status.info.gradient,
+      approver: "김인사",
+      isMyApproval: true,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "hr-leader-1",
+              name: "김인사",
+              position: "인사팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.23"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "current-user-id",
+              name: "김인사",
+              position: "인사팀장",
+              status: "pending"
+            },
+            {
+              userId: "executive-1",
+              name: "박대표",
+              position: "대표이사",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-5",
+          name: "정수민",
+          position: "경영지원팀장"
+        }
+      ]
     },
     {
       id: 5,
@@ -97,51 +286,173 @@ export default function ApprovalsPage() {
       content: "다음 주 월요일 대회의실 예약 신청",
       icon: FileText,
       color: colors.status.success.gradient,
+      approver: "박민수",
+      isMyApproval: false,
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "support-leader-1",
+              name: "정수민",
+              position: "경영지원팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.22"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-6",
+          name: "박민수",
+          position: "마케팅팀장"
+        }
+      ]
+    },
+    {
+      id: 6,
+      title: "프로젝트 예산 신청",
+      type: "예산",
+      requester: "김철수",
+      department: "개발팀",
+      date: "2025.07.20",
+      status: "pending",
+      priority: "high",
+      content: "신규 프로젝트 개발 예산 신청",
+      icon: FileText,
+      color: colors.status.info.gradient,
+      approver: "이영희",
+      isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "dev-leader-1",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.21"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "design-leader-1",
+              name: "이영희",
+              position: "디자인팀장",
+              status: "pending"
+            }
+          ]
+        },
+        {
+          id: 3,
+          status: "pending",
+          approvers: [
+            {
+              userId: "executive-1",
+              name: "박대표",
+              position: "대표이사",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-7",
+          name: "정수민",
+          position: "경영지원팀장"
+        },
+        {
+          userId: "ref-8",
+          name: "최지영",
+          position: "인사팀장"
+        }
+      ]
+    },
+    {
+      id: 7,
+      title: "외부 교육 신청",
+      type: "교육",
+      requester: "김철수",
+      department: "개발팀",
+      date: "2025.07.19",
+      status: "pending",
+      priority: "normal",
+      content: "React 고급 과정 교육 신청",
+      icon: User,
+      color: colors.status.info.gradient,
+      approver: "박민수",
+      isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      approvalStages: [
+        {
+          id: 1,
+          status: "completed",
+          approvers: [
+            {
+              userId: "dev-leader-1",
+              name: "김철수",
+              position: "개발팀장",
+              status: "completed",
+              comment: "승인합니다.",
+              date: "2025.07.20"
+            }
+          ]
+        },
+        {
+          id: 2,
+          status: "current",
+          approvers: [
+            {
+              userId: "hr-manager-1",
+              name: "박민수",
+              position: "인사팀원",
+              status: "pending"
+            }
+          ]
+        }
+      ],
+      references: [
+        {
+          userId: "ref-9",
+          name: "최지영",
+          position: "인사팀장"
+        }
+      ]
     },
   ]
 
   const filteredApprovals = approvals.filter(approval => {
     const matchesSearch = approval.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          approval.requester.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === "all" || approval.status === selectedStatus
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
-  const stats = [
-    {
-      title: "전체 결재",
-      value: approvals.length,
-      unit: "건",
-      icon: ClipboardList,
-      color: colors.primary.blue,
-    },
-    {
-      title: "대기중",
-      value: approvals.filter(a => a.status === "pending").length,
-      unit: "건",
-      icon: Clock,
-      color: colors.status.warning.gradient,
-    },
-    {
-      title: "승인됨",
-      value: approvals.filter(a => a.status === "approved").length,
-      unit: "건",
-      icon: CheckCircle,
-      color: colors.status.success.gradient,
-    },
-    {
-      title: "반려됨",
-      value: approvals.filter(a => a.status === "rejected").length,
-      unit: "건",
-      icon: XCircle,
-      color: colors.status.error.gradient,
-    },
-  ]
+  // 섹션별로 결재 분류
+  const myPendingApprovals = filteredApprovals.filter(a => 
+    a.status === "pending" && a.isMyApproval === true
+  )
+  const inProgressApprovals = filteredApprovals.filter(a => 
+    a.status === "pending" && a.isMyApproval === false
+  )
+  // approved와 rejected를 구분하지 않고, 기존 approvals 배열의 순서를 유지하여 완료된 결재를 필터링
+  const inProgressData = [...myPendingApprovals, ...inProgressApprovals]
+  const completedData = filteredApprovals.filter(a => a.status === "approved" || a.status === "rejected")
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return Clock
+        // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
+        return isMyApproval ? AlertCircle : Clock
       case "approved":
         return CheckCircle
       case "rejected":
@@ -151,51 +462,172 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBgColor = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return colors.status.warning.gradient
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.bg : colors.status.info.bg
       case "approved":
-        return colors.status.success.gradient
+        return colors.status.success.bg
       case "rejected":
-        return colors.status.error.gradient
+        return colors.status.error.bg
       default:
-        return colors.status.info.gradient
+        return colors.status.info.bg
     }
+  }
+
+  const getStatusTextColor = (status: string, isMyApproval?: boolean) => {
+    switch (status) {
+      case "pending":
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.text : colors.status.info.text
+      case "approved":
+        return colors.status.success.text
+      case "rejected":
+        return colors.status.error.text
+      default:
+        return colors.status.info.text
+    }
+  }
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const handleApprovalClick = (approval: any) => {
+    setSelectedApproval(approval)
+    setIsModalOpen(true)
+  }
+
+  const handleApprove = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 승인 처리
+    console.log("승인 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  const handleReject = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 반려 처리
+    console.log("반려 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  const renderApprovalCard = (approval: any) => {
+    const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
+    const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
+    const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
+    
+    return (
+      <GlassCard 
+        key={approval.id} 
+        className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden"
+        onClick={() => handleApprovalClick(approval)}
+      >
+        <div className="flex items-center gap-4 h-full">
+          <div
+            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
+          >
+            <approval.icon className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 flex flex-col justify-center h-full">
+            <div className="flex items-center gap-3 mb-1 min-w-0">
+              <h3 className={`${typography.h3} text-gray-800 truncate flex-shrink-0`}>{approval.requester}</h3>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm text-gray-500">{approval.date}</span>
+              </div>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
+                <StatusIcon className="w-3 h-3" />
+                {approval.status === "pending" ? 
+                  (approval.isMyApproval ? "승인 필요" : "진행중") :
+                 approval.status === "approved" ? "승인됨" :
+                 approval.status === "rejected" ? "반려됨" : approval.status}
+              </div>
+              {approval.priority === "high" && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex-shrink-0">
+                  긴급
+                </span>
+              )}
+              {approval.status === "pending" && (
+                <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm text-gray-500 truncate">승인자: {approval.approver}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
+              <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
+              <div className="flex gap-2 flex-shrink-0">
+                {approval.status === "pending" && approval.isMyApproval && (
+                  <>
+                    <GradientButton 
+                      variant="success" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleApprovalClick(approval)
+                      }}
+                    >
+                      승인
+                    </GradientButton>
+                    <GradientButton 
+                      variant="error" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleApprovalClick(approval)
+                      }}
+                    >
+                      반려
+                    </GradientButton>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+    )
+  }
+
+  const renderSection = (title: string, approvals: any[], status: string, IconComponent: any, color: string) => {
+    if (approvals.length === 0) return null
+
+    return (
+      <div className="space-y-4">
+        <div 
+          className="flex items-center gap-3 p-4 bg-white/40 backdrop-blur-sm rounded-xl cursor-pointer hover:bg-white/60 transition-colors"
+          onClick={() => toggleSection(status)}
+        >
+          <div className={`w-8 h-8 bg-gradient-to-r ${color} rounded-lg flex items-center justify-center`}>
+            <IconComponent className="w-4 h-4 text-white" />
+          </div>
+          <h2 className={`${typography.h3} text-gray-800 flex-1`}>
+            {title} ({approvals.length}건)
+          </h2>
+          {collapsedSections[status] ? (
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </div>
+        
+        {!collapsedSections[status] && (
+          <div className="space-y-4 pl-4">
+            {approvals.map(renderApprovalCard)}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
     <MainLayout>
-      {/* Page Title */}
-      <div className="mb-8">
-        <h1 className={`${typography.h1} text-gray-800 mb-2`}>결재 관리</h1>
-        <p className="text-gray-600">결재 요청을 확인하고 처리하세요</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <GlassCard key={index} className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}
-              >
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className={`${typography.h4} text-gray-800 mb-1`}>{stat.title}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
-                  <span className="text-lg text-gray-600">{stat.unit}</span>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      {/* Search and Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -205,90 +637,82 @@ export default function ApprovalsPage() {
             className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
           />
         </div>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-48 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statuses.map((status) => (
-              <SelectItem key={status.id} value={status.id}>
-                {status.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <GradientButton variant="primary">
           <Plus className="w-4 h-4 mr-2" />
           결재 신청
         </GradientButton>
       </div>
 
-      {/* Approvals List */}
-      <div className="space-y-4">
-        {filteredApprovals.map((approval) => {
-          const StatusIcon = getStatusIcon(approval.status)
-          const statusColor = getStatusColor(approval.status)
-          
-          return (
-            <GlassCard key={approval.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="flex items-start gap-4">
-                <div
-                  className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg`}
-                >
-                  <approval.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className={`${typography.h4} text-gray-800`}>{approval.title}</h3>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                      {approval.type}
-                    </span>
-                    {approval.priority === "high" && (
-                      <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                        긴급
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 mb-4">{approval.content}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        {approval.requester} ({approval.department})
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {approval.date}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <StatusIcon className="w-4 h-4" style={{ color: statusColor.replace('from-', '').replace('-to-', ' ') }} />
-                        {approval.status === "pending" ? "대기중" :
-                         approval.status === "approved" ? "승인됨" :
-                         approval.status === "rejected" ? "반려됨" : approval.status}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {approval.status === "pending" && (
-                        <>
-                          <GradientButton variant="success" size="sm">
-                            승인
-                          </GradientButton>
-                          <GradientButton variant="error" size="sm">
-                            반려
-                          </GradientButton>
-                        </>
-                      )}
-                      <GradientButton variant="secondary" size="sm">
-                        상세보기
-                      </GradientButton>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-          )
-        })}
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab("inProgress")}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${
+            activeTab === "inProgress"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          진행중
+        </button>
+        <button
+          onClick={() => setActiveTab("completed")}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${
+            activeTab === "completed"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          완료
+        </button>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "inProgress" && (
+        <div className="space-y-6">
+          {/* 승인 필요 - 가장 우선적으로 표시 */}
+          {renderSection("승인 필요", myPendingApprovals, "myPending", AlertCircle, colors.status.warning.gradient)}
+          
+          {/* 진행중 - 타인의 승인을 기다리는 결재 */}
+          {renderSection("진행중", inProgressApprovals, "inProgress", Clock, colors.status.info.gradient)}
+          
+          {/* 검색 결과가 없을 때 */}
+          {inProgressData.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">진행중인 결재가 없습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "completed" && (
+        <div className="space-y-6">
+          {/* 완료된 결재들 */}
+          {completedData.length > 0 && (
+            <div className="space-y-4">
+              {completedData.map(renderApprovalCard)}
+            </div>
+          )}
+          
+          {/* 검색 결과가 없을 때 */}
+          {completedData.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">완료된 결재가 없습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 결재 문서 모달 */}
+      <ApprovalModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        approval={selectedApproval}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </MainLayout>
   )
 } 
