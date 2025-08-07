@@ -1,0 +1,10 @@
+[33m00bfd9d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/members[m[33m)[m duplicate page.jsx file has been deleted
+[33m7aa61e0[m[33m ([m[1;31morigin/feature/members[m[33m)[m feat: disable mandatory login
+[33m303c871[m feat: login/page.tsx a comment has been added
+[33md02c3f3[m resolve: merge conflict with main
+[33m414fc10[m fix: merging
+[33m2e42425[m Merge branch 'main' of https://github.com/backend20250319/BE09-Final-4team-FE into feature/members fix: Tailwind CSS v3으로 복원하여 디자인 UI 문제 해결
+[33maaec547[m[33m ([m[1;31morigin/feature/vacation[m[33m)[m feat: 휴가 기록 테이블에 페이징 기능 구현 및 UI 개선
+[33m9ceff03[m feat: implement login system, dashboard, and member management
+[33m835c100[m Merge branch 'main' into feature/vacation
+[33me824af8[m Merge branch 'feature/work'
