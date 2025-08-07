@@ -60,7 +60,7 @@ export default function LoginPage() {
           
           const existingEmployees = JSON.parse(localStorage.getItem('employees') || '[]')
           const biniExists = existingEmployees.find((emp: any) => emp.email === 'bini@hermesai.com')
-          
+          // login 전용 관리자 DB
           if (!biniExists) {
             const newBini = {
               id: Date.now().toString(),
