@@ -177,133 +177,302 @@
 
 /* 공통 디자인 시스템 클래스들 */
 @layer components {
-  /* 글래스모피즘 효과 */
   .glass {
     @apply bg-white/60 backdrop-blur-sm;
   }
-  
-  .glass-strong {
-    @apply bg-white/80 backdrop-blur-xl;
-  }
-  
-  /* 그라데이션 배경 */
-  .gradient-bg {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50;
-  }
-  
-  /* 기본 그라데이션 */
-  .gradient-primary {
-    @apply bg-gradient-to-r from-blue-500 to-indigo-600;
-  }
-  
-  .gradient-primary-hover {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-700;
-  }
-  
-  /* 상태별 그라데이션 */
-  .gradient-success {
-    @apply bg-gradient-to-r from-emerald-400 to-emerald-500;
-  }
-  
-  .gradient-warning {
-    @apply bg-gradient-to-r from-amber-400 to-amber-500;
-  }
-  
-  .gradient-error {
-    @apply bg-gradient-to-r from-red-400 to-red-500;
-  }
-  
-  .gradient-info {
-    @apply bg-gradient-to-r from-blue-400 to-blue-500;
-  }
-  
-  /* 스케줄 타입별 스타일 */
-  .schedule-meeting {
-    @apply bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200;
-  }
-  
-  .schedule-project {
-    @apply bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-emerald-200;
-  }
-  
-  .schedule-education {
-    @apply bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200;
-  }
-  
-  .schedule-customer {
-    @apply bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200;
-  }
-  
-  .schedule-report {
-    @apply bg-gradient-to-r from-teal-50 to-teal-100 text-teal-700 border-teal-200;
-  }
-  
-  .schedule-vacation {
-    @apply bg-gradient-to-r from-rose-50 to-rose-100 text-rose-700 border-rose-200;
-  }
-  
-  .schedule-return {
-    @apply bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 border-indigo-200;
-  }
-  
-  /* 직원별 아바타 색상 */
-  .avatar-ceo {
-    @apply bg-gradient-to-r from-purple-500 to-pink-500;
-  }
-  
-  .avatar-developer {
-    @apply bg-gradient-to-r from-blue-500 to-cyan-500;
-  }
-  
-  .avatar-senior {
-    @apply bg-gradient-to-r from-green-500 to-teal-500;
-  }
-  
-  .avatar-designer {
-    @apply bg-gradient-to-r from-orange-500 to-red-500;
-  }
-  
-  /* 애니메이션 */
-  .transition-smooth {
-    @apply transition-all duration-200;
-  }
-  
-  .hover-lift {
-    @apply hover:-translate-y-1 hover:shadow-xl;
-  }
-  
-  .hover-scale {
-    @apply hover:scale-105;
-  }
-  
-  /* 그림자 */
-  .shadow-primary {
-    @apply shadow-lg shadow-blue-500/25;
-  }
-  
-  /* 테두리 반경 */
-  .rounded-glass {
-    @apply rounded-xl;
-  }
-  
-  .rounded-glass-lg {
-    @apply rounded-2xl;
-  }
-  
-  /* 간격 */
-  .space-section {
-    @apply mb-8;
-  }
-  
-  .space-card {
-    @apply mb-6;
-  }
-  
-  .space-item {
-    @apply mb-4;
-  }
-  
-  .space-small {
-    @apply mb-2;
-  }
+
+.glass-strong {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px);
+}
+
+.gradient-bg {
+  background: linear-gradient(to bottom right, rgb(248 250 252), rgb(239 246 255), rgb(238 242 255));
+}
+
+.gradient-primary {
+  background: linear-gradient(to right, rgb(59 130 246), rgb(99 102 241));
+}
+
+.gradient-primary-hover {
+  background: linear-gradient(to right, rgb(37 99 235), rgb(79 70 229));
+}
+
+.gradient-success {
+  background: linear-gradient(to right, rgb(52 211 153), rgb(16 185 129));
+}
+
+.gradient-warning {
+  background: linear-gradient(to right, rgb(251 191 36), rgb(245 158 11));
+}
+
+.gradient-error {
+  background: linear-gradient(to right, rgb(248 113 113), rgb(239 68 68));
+}
+
+.gradient-info {
+  background: linear-gradient(to right, rgb(96 165 250), rgb(59 130 246));
+}
+
+.schedule-meeting {
+  background: linear-gradient(to right, rgb(239 246 255), rgb(219 234 254));
+  color: rgb(29 78 216);
+  border-color: rgb(191 219 254);
+}
+
+.schedule-project {
+  background: linear-gradient(to right, rgb(236 253 245), rgb(209 250 229));
+  color: rgb(21 128 61);
+  border-color: rgb(167 243 208);
+}
+
+.schedule-education {
+  background: linear-gradient(to right, rgb(255 251 235), rgb(254 243 199));
+  color: rgb(146 64 14);
+  border-color: rgb(253 230 138);
+}
+
+.schedule-customer {
+  background: linear-gradient(to right, rgb(250 245 255), rgb(243 232 255));
+  color: rgb(126 34 206);
+  border-color: rgb(233 213 255);
+}
+
+.schedule-report {
+  background: linear-gradient(to right, rgb(240 253 250), rgb(204 251 241));
+  color: rgb(15 118 110);
+  border-color: rgb(153 246 228);
+}
+
+.schedule-vacation {
+  background: linear-gradient(to right, rgb(255 241 242), rgb(254 228 226));
+  color: rgb(190 18 60);
+  border-color: rgb(252 165 165);
+}
+
+.schedule-return {
+  background: linear-gradient(to right, rgb(238 242 255), rgb(224 231 255));
+  color: rgb(67 56 202);
+  border-color: rgb(199 210 254);
+}
+
+.avatar-ceo {
+  background: linear-gradient(to right, rgb(168 85 247), rgb(236 72 153));
+}
+
+.avatar-developer {
+  background: linear-gradient(to right, rgb(59 130 246), rgb(34 211 238));
+}
+
+.avatar-senior {
+  background: linear-gradient(to right, rgb(34 197 94), rgb(20 184 166));
+}
+
+.avatar-designer {
+  background: linear-gradient(to right, rgb(249 115 22), rgb(239 68 68));
+}
+
+.transition-smooth {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.shadow-primary {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+.rounded-glass {
+  border-radius: 0.75rem;
+}
+
+.rounded-glass-lg {
+  border-radius: 1rem;
+}
+
+.space-section {
+  margin-bottom: 2rem;
+}
+
+.space-card {
+  margin-bottom: 1.5rem;
+}
+
+.space-item {
+  margin-bottom: 1rem;
+}
+
+.space-small {
+  margin-bottom: 0.5rem;
+}
+
+.calendar-container {
+  width: 100%;
+}
+
+.fc {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.fc .fc-toolbar {
+  margin-bottom: 1rem;
+}
+
+.fc .fc-button {
+  background-color: rgb(59 130 246);
+  border-color: rgb(59 130 246);
+  color: white;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: colors 0.2s ease-in-out;
+}
+
+.fc .fc-button:hover {
+  background-color: rgb(37 99 235);
+  border-color: rgb(37 99 235);
+}
+
+.fc .fc-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(59 130 246), 0 0 0 4px white;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: rgb(37 99 235);
+  border-color: rgb(37 99 235);
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(239, 246, 255, 0.5);
+}
+
+.fc .fc-timegrid-slot.fc-slot-today {
+  background-color: rgba(239, 246, 255, 0.3);
+}
+
+.fc .fc-event {
+  border: none;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.fc .fc-event:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.fc .fc-event-main {
+  font-weight: 600;
+}
+
+.fc .fc-timegrid-slot-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(75 85 99);
+}
+
+.fc .fc-col-header-cell {
+  background-color: rgba(249, 250, 251, 0.5);
+  border-color: rgb(229 231 235);
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: rgb(31 41 55);
+  font-weight: 600;
+}
+
+.fc .fc-timegrid-axis {
+  background-color: rgba(249, 250, 251, 0.5);
+  border-color: rgb(229 231 235);
+}
+
+.fc .fc-timegrid-slot {
+  border-color: rgb(243 244 246);
+}
+
+.fc .fc-timegrid-now-indicator-line {
+  border-color: rgb(239 68 68);
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: rgb(239 68 68);
+}
+
+.fc .fc-daygrid-day-frame {
+  border-color: rgb(229 231 235);
+}
+
+.fc .fc-daygrid-day-events {
+  min-height: 2rem;
+}
+
+.fc .fc-daygrid-day-number {
+  color: rgb(31 41 55);
+  font-weight: 500;
+}
+
+.fc .fc-daygrid-day.fc-day-past {
+  background-color: rgba(249, 250, 251, 0.3);
+}
+
+.fc .fc-daygrid-day.fc-day-future {
+  background-color: white;
+}
+
+.fc .fc-daygrid-day.fc-day-other {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(239, 246, 255, 0.5);
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: rgb(37 99 235);
+  font-weight: 700;
+}
+
+.fc .fc-timegrid-slot.fc-slot-past {
+  background-color: rgba(249, 250, 251, 0.3);
+}
+
+.fc .fc-timegrid-slot.fc-slot-future {
+  background-color: white;
+}
+
+.fc .fc-timegrid-slot.fc-slot-today {
+  background-color: rgba(239, 246, 255, 0.3);
+}
+
+.fc .fc-event-dragging {
+  opacity: 0.75;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.fc .fc-event-resizing {
+  opacity: 0.9;
+}
+
+.fc .fc-highlight {
+  background-color: rgba(219, 234, 254, 0.5);
+  border-color: rgb(147 197 253);
+}
+
+.fc .fc-daygrid-day.fc-day-disabled {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+.fc .fc-daygrid-day.fc-day-disabled .fc-daygrid-day-number {
+  color: rgb(156 163 175);
+}
 }

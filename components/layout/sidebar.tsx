@@ -31,9 +31,11 @@ const iconMap: Record<string, LucideIcon> = {
 interface SidebarProps {
   onMenuItemClick?: (index: number) => void
   isOpen?: boolean
+  isMobile?: boolean
+  onClose?: () => void
 }
 
-export function Sidebar({ onMenuItemClick, isOpen = true }: SidebarProps) {
+export function Sidebar({ onMenuItemClick, isOpen = true, isMobile = false, onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
 
@@ -42,6 +44,10 @@ export function Sidebar({ onMenuItemClick, isOpen = true }: SidebarProps) {
       router.push(item.href)
     }
     onMenuItemClick?.(index)
+    // 모바일에서 메뉴 클릭 시 사이드바 닫기
+    if (isMobile) {
+      onClose?.()
+    }
   }
 
   const isActive = (href: string) => {
@@ -52,13 +58,15 @@ export function Sidebar({ onMenuItemClick, isOpen = true }: SidebarProps) {
   }
 
   return (
-    <div className={`fixed left-0 top-0 h-full w-72 bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50 transition-all duration-300 ${
-      isOpen ? 'translate-x-0' : '-translate-x-full'
+    <div className={`fixed left-0 top-0 h-full bg-white/80 backdrop-blur-xl shadow-xl border-r border-gray-200/50 transition-all duration-300 ${
+      isMobile 
+        ? `w-80 z-50 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+        : `w-72 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
     }`}>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Hermes Logo */}
         <div className="flex flex-col items-center mb-6">
-          <span className="mt-2 text-2xl font-extrabold text-gray-800 tracking-wide">Hermes</span>
+          <span className="mt-2 text-xl sm:text-2xl font-extrabold text-gray-800 tracking-wide">Hermes</span>
         </div>
         {/* Company Info */}
         <div className="flex items-center gap-3 mb-6 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50">

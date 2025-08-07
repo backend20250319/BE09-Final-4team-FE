@@ -2,7 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+<<<<<<< HEAD
       <module fileurl="file://$PROJECT_DIR$/.idea/BE09-Final-4team-FE1.iml" filepath="$PROJECT_DIR$/.idea/BE09-Final-4team-FE1.iml" />
+=======
+      <module fileurl="file://$PROJECT_DIR$/.idea/BE09-Final-4team-FE.iml" filepath="$PROJECT_DIR$/.idea/BE09-Final-4team-FE.iml" />
+>>>>>>> d6cd816c5a70e0c82aacd76ecc329c03a6a00526
     </modules>
   </component>
 </project>

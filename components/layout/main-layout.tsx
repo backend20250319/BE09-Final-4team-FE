@@ -44,7 +44,7 @@ export function MainLayout({
     setSidebarOpen(!sidebarOpen)
   }
 
-      if (isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">

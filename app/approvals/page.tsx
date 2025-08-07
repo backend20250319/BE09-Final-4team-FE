@@ -5,8 +5,9 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ApprovalModal } from "@/components/ui/approval-modal"
 import { colors, typography } from "@/lib/design-tokens"
+import approvals from "@/lib/mock-data/approvals"
 import {
   Search,
   Plus,
@@ -19,129 +20,67 @@ import {
   Calendar,
   FileText,
   ArrowRight,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react"
+
+// 타입 정의
+interface Approval {
+  id: number
+  title: string
+  type: string
+  requester: string
+  department: string
+  date: string
+  status: string
+  priority: string
+  content: string
+  icon: any
+  color: string
+  isMyApproval: boolean
+  approvalStages: any[]
+  references: any[]
+  history: any[]
+  comments: any[]
+}
 
 export default function ApprovalsPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState("all")
+  const [activeTab, setActiveTab] = useState<"inProgress" | "completed">("inProgress")
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    myPending: false,
+    inProgress: false,
+    approved: false,
+    rejected: false,
+  })
+  const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const statuses = [
-    { id: "all", name: "전체" },
-    { id: "pending", name: "대기중" },
-    { id: "approved", name: "승인됨" },
-    { id: "rejected", name: "반려됨" },
-  ]
+  // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
+  const currentUser = "김철수"
 
-  const approvals = [
-    {
-      id: 1,
-      title: "연차 신청",
-      type: "휴가",
-      requester: "김철수",
-      department: "개발팀",
-      date: "2025.07.25",
-      status: "pending",
-      priority: "normal",
-      content: "8월 1일 연차 사용 신청합니다.",
-      icon: Calendar,
-      color: colors.status.warning.gradient,
-    },
-    {
-      id: 2,
-      title: "업무용 장비 구매",
-      type: "구매",
-      requester: "이영희",
-      department: "디자인팀",
-      date: "2025.07.24",
-      status: "approved",
-      priority: "high",
-      content: "디자인 작업용 태블릿 구매 신청",
-      icon: FileText,
-      color: colors.status.success.gradient,
-    },
-    {
-      id: 3,
-      title: "출장 신청",
-      type: "출장",
-      requester: "박민수",
-      department: "마케팅팀",
-      date: "2025.07.23",
-      status: "rejected",
-      priority: "normal",
-      content: "고객사 방문을 위한 출장 신청",
-      icon: ArrowRight,
-      color: colors.status.error.gradient,
-    },
-    {
-      id: 4,
-      title: "교육 참석 신청",
-      type: "교육",
-      requester: "최지영",
-      department: "인사팀",
-      date: "2025.07.22",
-      status: "pending",
-      priority: "normal",
-      content: "HR 전문가 과정 교육 참석 신청",
-      icon: User,
-      color: colors.status.info.gradient,
-    },
-    {
-      id: 5,
-      title: "회의실 예약",
-      type: "시설",
-      requester: "정수민",
-      department: "경영지원팀",
-      date: "2025.07.21",
-      status: "approved",
-      priority: "low",
-      content: "다음 주 월요일 대회의실 예약 신청",
-      icon: FileText,
-      color: colors.status.success.gradient,
-    },
-  ]
-
-  const filteredApprovals = approvals.filter(approval => {
+  const filteredApprovals = approvals.filter((approval: Approval) => {
     const matchesSearch = approval.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          approval.requester.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = selectedStatus === "all" || approval.status === selectedStatus
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
-  const stats = [
-    {
-      title: "전체 결재",
-      value: approvals.length,
-      unit: "건",
-      icon: ClipboardList,
-      color: colors.primary.blue,
-    },
-    {
-      title: "대기중",
-      value: approvals.filter(a => a.status === "pending").length,
-      unit: "건",
-      icon: Clock,
-      color: colors.status.warning.gradient,
-    },
-    {
-      title: "승인됨",
-      value: approvals.filter(a => a.status === "approved").length,
-      unit: "건",
-      icon: CheckCircle,
-      color: colors.status.success.gradient,
-    },
-    {
-      title: "반려됨",
-      value: approvals.filter(a => a.status === "rejected").length,
-      unit: "건",
-      icon: XCircle,
-      color: colors.status.error.gradient,
-    },
-  ]
+  // 섹션별로 결재 분류
+  const myPendingApprovals = filteredApprovals.filter((a: Approval) => 
+    a.status === "pending" && a.isMyApproval === true
+  )
+  const inProgressApprovals = filteredApprovals.filter((a: Approval) => 
+    a.status === "pending" && a.isMyApproval === false
+  )
+  // approved와 rejected를 구분하지 않고, 기존 approvals 배열의 순서를 유지하여 완료된 결재를 필터링
+  const inProgressData = [...myPendingApprovals, ...inProgressApprovals]
+  const completedData = filteredApprovals.filter((a: Approval) => a.status === "approved" || a.status === "rejected")
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return Clock
+        // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
+        return isMyApproval ? AlertCircle : Clock
       case "approved":
         return CheckCircle
       case "rejected":
@@ -151,51 +90,185 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBgColor = (status: string, isMyApproval?: boolean) => {
     switch (status) {
       case "pending":
-        return colors.status.warning.gradient
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.bg : colors.status.info.bg
       case "approved":
-        return colors.status.success.gradient
+        return colors.status.success.bg
       case "rejected":
-        return colors.status.error.gradient
+        return colors.status.error.bg
       default:
-        return colors.status.info.gradient
+        return colors.status.info.bg
     }
+  }
+
+  const getStatusTextColor = (status: string, isMyApproval?: boolean) => {
+    switch (status) {
+      case "pending":
+        // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
+        return isMyApproval ? colors.status.warning.text : colors.status.info.text
+      case "approved":
+        return colors.status.success.text
+      case "rejected":
+        return colors.status.error.text
+      default:
+        return colors.status.info.text
+    }
+  }
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const handleApprovalClick = (approval: Approval) => {
+    setSelectedApproval(approval)
+    setIsModalOpen(true)
+  }
+
+  const handleApprove = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 승인 처리
+    console.log("승인 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  const handleReject = async (approvalId: number, comment?: string) => {
+    // 실제로는 API 호출을 통해 반려 처리
+    console.log("반려 처리:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  const handleAddComment = async (approvalId: number, comment: string) => {
+    // 실제로는 API 호출을 통해 댓글 추가
+    console.log("댓글 추가:", { approvalId, comment })
+    // 여기서 상태 업데이트 로직 추가
+  }
+
+  // 승인자 아바타 스택 컴포넌트
+  const ApproverAvatars = ({ approvers, maxVisible = 4 }: { approvers: any[], maxVisible?: number }) => {
+    const visibleApprovers = approvers.slice(0, maxVisible)
+    const remainingCount = approvers.length - maxVisible
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex -space-x-3">
+          {visibleApprovers.map((approver: any, index: number) => (
+            <div
+              key={approver.userId}
+              className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-sm font-medium shadow-sm ${
+                approver.status === 'completed' 
+                  ? 'bg-green-500 text-white' 
+                  : approver.status === 'rejected'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-300 text-gray-600'
+              }`}
+              title={`${approver.name} (${approver.position})`}
+            >
+              {approver.name.charAt(0)}
+            </div>
+          ))}
+        </div>
+        {remainingCount > 0 && (
+          <span className="text-sm text-gray-500 ml-1 font-medium">
+            +{remainingCount}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const renderApprovalCard = (approval: Approval) => {
+    const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
+    const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
+    const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
+    
+    // 모든 승인자 정보 수집
+    const allApprovers = approval.approvalStages.flatMap((stage: any) => stage.approvers)
+    
+    return (
+      <GlassCard 
+        key={approval.id} 
+        className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden"
+        onClick={() => handleApprovalClick(approval)}
+      >
+        <div className="flex items-center gap-4 h-full">
+          <div
+            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
+          >
+            <approval.icon className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 flex flex-col justify-center h-full">
+            <div className="flex items-center gap-3 mb-1 min-w-0">
+              <h3 className={`${typography.h3} text-gray-800 truncate flex-shrink-0`}>{approval.requester}</h3>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm text-gray-500">{approval.date}</span>
+              </div>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
+                <StatusIcon className="w-3 h-3" />
+                {approval.status === "pending" ? 
+                  (approval.isMyApproval ? "승인 필요" : "진행중") :
+                 approval.status === "approved" ? "승인됨" :
+                 approval.status === "rejected" ? "반려됨" : approval.status}
+              </div>
+              {approval.priority === "high" && (
+                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex-shrink-0">
+                  긴급
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
+              <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
+              <div className="flex-shrink-0">
+                <ApproverAvatars approvers={allApprovers} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </GlassCard>
+    )
+  }
+
+  const renderSection = (title: string, approvals: Approval[], status: string, IconComponent: any, color: string) => {
+    if (approvals.length === 0) return null
+
+    return (
+      <div className="space-y-4">
+        <div 
+          className="flex items-center gap-3 p-4 bg-white/40 backdrop-blur-sm rounded-xl cursor-pointer hover:bg-white/60 transition-colors"
+          onClick={() => toggleSection(status)}
+        >
+          <div className={`w-8 h-8 bg-gradient-to-r ${color} rounded-lg flex items-center justify-center`}>
+            <IconComponent className="w-4 h-4 text-white" />
+          </div>
+          <h2 className={`${typography.h3} text-gray-800 flex-1`}>
+            {title} ({approvals.length}건)
+          </h2>
+          {collapsedSections[status] ? (
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-500" />
+          )}
+        </div>
+        
+        {!collapsedSections[status] && (
+          <div className="space-y-4 pl-4">
+            {approvals.map(renderApprovalCard)}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
     <MainLayout>
-      {/* Page Title */}
-      <div className="mb-8">
-        <h1 className={`${typography.h1} text-gray-800 mb-2`}>결재 관리</h1>
-        <p className="text-gray-600">결재 요청을 확인하고 처리하세요</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <GlassCard key={index} className="p-6">
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}
-              >
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className={`${typography.h4} text-gray-800 mb-1`}>{stat.title}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
-                  <span className="text-lg text-gray-600">{stat.unit}</span>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      {/* Search and Actions */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -205,90 +278,83 @@ export default function ApprovalsPage() {
             className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
           />
         </div>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-48 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {statuses.map((status) => (
-              <SelectItem key={status.id} value={status.id}>
-                {status.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         <GradientButton variant="primary">
           <Plus className="w-4 h-4 mr-2" />
           결재 신청
         </GradientButton>
       </div>
 
-      {/* Approvals List */}
-      <div className="space-y-4">
-        {filteredApprovals.map((approval) => {
-          const StatusIcon = getStatusIcon(approval.status)
-          const statusColor = getStatusColor(approval.status)
-          
-          return (
-            <GlassCard key={approval.id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-              <div className="flex items-start gap-4">
-                <div
-                  className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg`}
-                >
-                  <approval.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className={`${typography.h4} text-gray-800`}>{approval.title}</h3>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                      {approval.type}
-                    </span>
-                    {approval.priority === "high" && (
-                      <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                        긴급
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-600 mb-4">{approval.content}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        {approval.requester} ({approval.department})
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {approval.date}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <StatusIcon className="w-4 h-4" style={{ color: statusColor.replace('from-', '').replace('-to-', ' ') }} />
-                        {approval.status === "pending" ? "대기중" :
-                         approval.status === "approved" ? "승인됨" :
-                         approval.status === "rejected" ? "반려됨" : approval.status}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {approval.status === "pending" && (
-                        <>
-                          <GradientButton variant="success" size="sm">
-                            승인
-                          </GradientButton>
-                          <GradientButton variant="error" size="sm">
-                            반려
-                          </GradientButton>
-                        </>
-                      )}
-                      <GradientButton variant="secondary" size="sm">
-                        상세보기
-                      </GradientButton>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </GlassCard>
-          )
-        })}
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        <button
+          onClick={() => setActiveTab("inProgress")}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${
+            activeTab === "inProgress"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          진행중
+        </button>
+        <button
+          onClick={() => setActiveTab("completed")}
+          className={`px-6 py-3 text-sm font-medium transition-colors ${
+            activeTab === "completed"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          완료
+        </button>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "inProgress" && (
+        <div className="space-y-6">
+          {/* 승인 필요 - 가장 우선적으로 표시 */}
+          {renderSection("승인 필요", myPendingApprovals, "myPending", AlertCircle, colors.status.warning.gradient)}
+          
+          {/* 진행중 - 타인의 승인을 기다리는 결재 */}
+          {renderSection("진행중", inProgressApprovals, "inProgress", Clock, colors.status.info.gradient)}
+          
+          {/* 검색 결과가 없을 때 */}
+          {inProgressData.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">진행중인 결재가 없습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "completed" && (
+        <div className="space-y-6">
+          {/* 완료된 결재들 */}
+          {completedData.length > 0 && (
+            <div className="space-y-4">
+              {completedData.map(renderApprovalCard)}
+            </div>
+          )}
+          
+          {/* 검색 결과가 없을 때 */}
+          {completedData.length === 0 && (
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">완료된 결재가 없습니다.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 결재 문서 모달 */}
+      <ApprovalModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        approval={selectedApproval}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onAddComment={handleAddComment}
+      />
     </MainLayout>
   )
 } 

@@ -28,7 +28,7 @@ export function GlassCard({
         shadows[shadow],
         borderRadius[radius],
         "border-0",
-        hover && animations.hoverUp,
+        hover && onClick && animations.hoverUp,
         animations.transition,
         onClick && "cursor-pointer",
         className

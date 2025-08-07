@@ -1,4 +1,3 @@
-// 색상 팔레트
 export const colors = {
   primary: {
     blue: "from-blue-500 to-indigo-600",
@@ -54,7 +53,6 @@ export const colors = {
   },
 } as const
 
-// 간격 (Spacing)
 export const spacing = {
   xs: "0.5rem", // 8px
   sm: "0.75rem", // 12px
@@ -65,7 +63,6 @@ export const spacing = {
   "3xl": "4rem", // 64px
 } as const
 
-// 타이포그래피
 export const typography = {
   h1: "text-3xl font-bold",
   h2: "text-2xl font-bold",
@@ -76,7 +73,6 @@ export const typography = {
   caption: "text-xs",
 } as const
 
-// 그림자 (Shadows)
 export const shadows = {
   sm: "shadow-sm",
   md: "shadow-md",
@@ -85,14 +81,12 @@ export const shadows = {
   primary: "shadow-lg shadow-blue-500/25",
 } as const
 
-// 애니메이션 (Animations)
 export const animations = {
   transition: "transition-all duration-200",
   hover: "hover:scale-105",
   hoverUp: "hover:-translate-y-1 hover:shadow-xl",
 } as const
 
-// 테두리 반경 (Border Radius)
 export const borderRadius = {
   sm: "rounded-lg",
   md: "rounded-xl",
@@ -100,7 +94,6 @@ export const borderRadius = {
   full: "rounded-full",
 } as const
 
-// 배경 (Backgrounds)
 export const backgrounds = {
   glass: "bg-white/60 backdrop-blur-sm",
   glassStrong: "bg-white/80 backdrop-blur-xl",

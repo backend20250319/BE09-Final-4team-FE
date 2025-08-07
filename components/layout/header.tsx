@@ -37,13 +37,15 @@ interface HeaderProps {
   showNotifications?: boolean
   showUserProfile?: boolean
   onToggleSidebar?: () => void
+  isMobile?: boolean
 }
 
 export function Header({ 
   userName = "김인사",
   showNotifications = true,
   showUserProfile = true,
-  onToggleSidebar
+  onToggleSidebar,
+  isMobile = false
 }: HeaderProps) {
   const { user, logout } = useAuth()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
@@ -96,7 +98,7 @@ export function Header({
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-8 py-2 sticky top-0 z-10">
+    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           {onToggleSidebar && (
@@ -110,7 +112,7 @@ export function Header({
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           {showNotifications && (
             <Button variant="ghost" size="sm" className="relative hover:bg-gray-100/80 transition-colors">
               <Bell className="w-5 h-5 text-gray-500" />
@@ -124,37 +126,37 @@ export function Header({
                   variant="ghost" 
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors"
                 >
-                                     <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
-                     {employeeData?.profileImage ? (
-                       <img 
-                         src={employeeData.profileImage} 
-                         alt={displayName}
-                         className="w-full h-full object-cover"
-                       />
-                     ) : (
-                       <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                         <User className="w-4 h-4 text-white" />
-                       </div>
-                     )}
-                   </div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
+                    {employeeData?.profileImage ? (
+                      <img 
+                        src={employeeData.profileImage} 
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
                   <span className="text-sm font-medium text-gray-700">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
-                                     <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
-                     {employeeData?.profileImage ? (
-                       <img 
-                         src={employeeData.profileImage} 
-                         alt={displayName}
-                         className="w-full h-full object-cover"
-                       />
-                     ) : (
-                       <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                         <User className="w-4 h-4 text-white" />
-                       </div>
-                     )}
-                   </div>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
+                    {employeeData?.profileImage ? (
+                      <img 
+                        src={employeeData.profileImage} 
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
@@ -164,15 +166,15 @@ export function Header({
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                                 <DropdownMenuItem onClick={handleMyProfileClick}>
-                   <UserIcon className="mr-2 h-4 w-4" />
-                   <span>내 프로필</span>
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onClick={logout}>
-                   <LogOut className="mr-2 h-4 w-4" />
-                   <span>로그아웃</span>
-                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleMyProfileClick}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>내 프로필</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>로그아웃</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
