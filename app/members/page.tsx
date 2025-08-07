@@ -943,7 +943,7 @@ export default function MembersPage() {
   )
 
   return (
-    <MainLayout requireAuth={true}>
+    <MainLayout requireAuth={false}>
       {/* 페이지 헤더 */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">

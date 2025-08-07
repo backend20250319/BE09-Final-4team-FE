@@ -551,7 +551,7 @@ export default function DashboardPage() {
   const dayNumber = currentDate.getDate()
 
   return (
-    <MainLayout requireAuth={true}>
+    <MainLayout requireAuth={false}>
       {/* Header with date and toggle */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

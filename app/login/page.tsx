@@ -79,7 +79,11 @@ export default function LoginPage() {
               profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
             }
             
-            const updatedEmployees = [...existingEmployees, newBini].sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate))
+            const updatedEmployees = [...existingEmployees, newBini].sort((a, b) => {
+              const dateA = new Date(b.joinDate).getTime()
+              const dateB = new Date(a.joinDate).getTime()
+              return dateA - dateB
+            })
             localStorage.setItem('employees', JSON.stringify(updatedEmployees))
           }
           

@@ -22,7 +22,7 @@ export function MainLayout({
   showNotifications,
   showUserProfile,
   onMenuItemClick,
-  requireAuth = true,
+  requireAuth = false,
   requireAdmin = false
 }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)

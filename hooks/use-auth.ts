@@ -14,7 +14,6 @@ export function useAuth() {
   const router = useRouter()
 
   useEffect(() => {
-    // 로그인 상태 확인
     const isLoggedIn = localStorage.getItem('isLoggedIn')
     const userData = localStorage.getItem('currentUser')
     
@@ -26,6 +25,14 @@ export function useAuth() {
         console.error('사용자 데이터 파싱 오류:', error)
         logout()
       }
+    } else {
+      const defaultUser: User = {
+        email: 'demo@hermesai.com',
+        name: '데모 사용자',
+        isAdmin: false,
+        needsPasswordReset: false
+      }
+      setUser(defaultUser)
     }
     
     setIsLoading(false)
@@ -45,10 +52,6 @@ export function useAuth() {
   }
 
   const requireAuth = () => {
-    if (!isLoading && !user) {
-      router.push('/login')
-      return false
-    }
     return true
   }
 
