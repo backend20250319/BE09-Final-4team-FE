@@ -246,7 +246,7 @@ function TimelineSection({
         {timeline.map((item) => (
           <div key={item.uniqueId || item.id} className="flex items-start gap-3 p-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center mb-1">
                 <span className="font-medium text-sm text-gray-900 truncate">{item.user.name}</span>
                 {item.action !== "comment" && (
                   <span className="text-sm text-gray-800">
@@ -255,7 +255,7 @@ function TimelineSection({
                 )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="text-xs text-gray-500 cursor-help">{formatSimpleDate(item.date)}</span>
+                    <span className="text-xs text-gray-500 cursor-help ml-2">{formatSimpleDate(item.date)}</span>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{item.date}</p>
@@ -277,7 +277,7 @@ function TimelineSection({
               )}
 
               {item.action === "comment" && (
-                <p className="text-sm text-gray-800 break-words bg-gray-50 rounded px-3 py-2">{item.content}</p>
+                <p className="text-sm text-gray-800 break-words bg-gray-50 rounded px-3 py-2 mb-1">{item.content}</p>
               )}
             </div>
           </div>
