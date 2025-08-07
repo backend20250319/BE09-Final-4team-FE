@@ -512,6 +512,7 @@ export default function ToolbarPlugin() {
       {supportedBlockTypes.has(blockType) && (
         <>
           <button
+            type="button"
             className="toolbar-item block-controls"
             onClick={() =>
               setShowBlockOptionsDropDown(!showBlockOptionsDropDown)
@@ -548,6 +549,7 @@ export default function ToolbarPlugin() {
       ) : (
         <>
           <button
+            type="button"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
             }}
@@ -557,6 +559,7 @@ export default function ToolbarPlugin() {
             <i className="format bold" />
           </button>
           <button
+            type="button"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic");
             }}
@@ -566,6 +569,7 @@ export default function ToolbarPlugin() {
             <i className="format italic" />
           </button>
           <button
+            type="button"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
             }}
@@ -575,6 +579,7 @@ export default function ToolbarPlugin() {
             <i className="format underline" />
           </button>
           <button
+            type="button"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough");
             }}
@@ -586,6 +591,7 @@ export default function ToolbarPlugin() {
             <i className="format strikethrough" />
           </button>
           <button
+            type="button"
             onClick={() => {
               editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code");
             }}
@@ -595,6 +601,7 @@ export default function ToolbarPlugin() {
             <i className="format code" />
           </button>
           <button
+            type="button"
             onClick={insertLink}
             className={"toolbar-item spaced " + (isLink ? "active" : "")}
             aria-label="Insert Link"
