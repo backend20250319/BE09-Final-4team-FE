@@ -7,9 +7,16 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
-import Editor from "./components/Editor";
+import dynamic from "next/dynamic";
 
-
+const Editor = dynamic(() => import("./components/Editor"), { 
+  ssr: false,
+  loading: () => 
+    <div className="flex items-center justify-center p-8 gap-2">
+        <div className="w-5 h-5 border-2 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+        <span>에디터 로딩 중...</span>
+      </div>
+});
 
 export default function NoticeWritePage() {
   const router = useRouter();
@@ -21,7 +28,7 @@ export default function NoticeWritePage() {
     e.preventDefault();
     // TODO: API 연동
     alert("게시 완료 (API 연동 필요)");
-    router.push("/announcements");
+    // router.push("/announcements");
   };
 
   const handleTempSave = () => {
@@ -59,7 +66,7 @@ export default function NoticeWritePage() {
           </div>
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold props">내용</label>
-            <Editor />
+            <Editor json={null}/>
           </div>
           <div className="flex justify-between items-center mt-8">
             <button

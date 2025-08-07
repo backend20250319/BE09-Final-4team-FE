@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from "lexical";
 import ExampleTheme from "./themes/ExampleTheme";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { AutoFocusPlugin } from "@lexical/react/LexicalAutoFocusPlugin";
@@ -16,7 +17,6 @@ import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPlugin";
 import { TRANSFORMERS } from "@lexical/markdown";
 
-import ActionsPlugin from "./plugins/ActionsPlugin";
 import CodeHighlightPlugin from "./plugins/CodeHighlightPlugin";
 import "./style.css";
 
@@ -26,6 +26,38 @@ function Placeholder() {
       내용을 입력하세요
     </div>
   );
+}
+
+function EditorInitializer({ json }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (json) {
+      try {
+        const editorState = editor.parseEditorState(json);
+        editor.setEditorState(editorState);
+      } catch (error) {
+        console.error('Failed to parse editor state:', error);
+        // Fallback to empty state
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          const paragraph = $createParagraphNode();
+          root.append(paragraph);
+        });
+      }
+    }  else {
+      // Create empty state more simply
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraph = $createParagraphNode();
+        root.append(paragraph);
+      });
+    }
+  }, [json, editor]);
+
+  return null; // 실제로 렌더링되는 UI는 없음
 }
 
 const editorConfigBase = {
@@ -48,44 +80,26 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor() {
-  const [initialEditorState, setInitialEditorState] = useState(null);
+export default function Editor({ jsonData: json }) {
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    async function fetchInitialContent() {
-      const res = await fetch("/api/editor-content");
-      // const res = {
-      //   content: "여기에 초기 에디터 텍스트가 들어갑니다. 더미 데이터예요!",
-      // };
-  
-      
-      // const data = await res.json();
-      const data = res.json();
-      // API에서 받은 텍스트(예: 마크다운 혹은 HTML, 또는 JSON 포맷 등)를 Lexical 에디터 상태로 변환 필요
-      // 간단 예시: 기본 텍스트를 paragraph 노드로 생성
-      // 더미 데이터를 Lexical 상태로 변환
-      const editorState = EditorState.createEmpty();
-      editorState.read(() => {
-        const root = $getRoot();
-        root.clear();
-        const paragraph = $createParagraphNode();
-        paragraph.append($createTextNode(data.content)); // data.content 는 API로부터 온 텍스트
-        root.append(paragraph);
-      });
-      setInitialEditorState(editorState);
-    }
-    fetchInitialContent();
+    setMounted(true);
   }, []);
 
-  // if (!initialEditorState) {
-  //   return <div>로딩 중...</div>;
-  // }
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center p-8 gap-2">
+        <div className="w-5 h-5 border-2 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+        <span>에디터 로딩 중...</span>
+      </div>
+    );
+  }
 
   return (
     <LexicalComposer
       initialConfig={{
         ...editorConfigBase,
-        editorState: initialEditorState,
       }}
     >
       <div className="editor-container">
@@ -100,6 +114,7 @@ export default function Editor() {
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <CodeHighlightPlugin />
+          <EditorInitializer json={json} />
         </div>
       </div>
     </LexicalComposer>
