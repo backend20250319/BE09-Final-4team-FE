@@ -51,7 +51,7 @@ export default function ApprovalsPage() {
       content: "8월 1일 연차 사용 신청합니다.",
       icon: Calendar,
       color: colors.status.warning.gradient,
-      approver: "김인사", // 기존 호환성을 위한 필드
+
       isMyApproval: true, // 내가 승인해야 하는지
               approvalStages: [
           {
@@ -112,7 +112,6 @@ export default function ApprovalsPage() {
       content: "디자인 작업용 태블릿 구매 신청",
       icon: FileText,
       color: colors.status.success.gradient,
-      approver: "김철수",
       isMyApproval: false,
       approvalStages: [
         {
@@ -178,7 +177,6 @@ export default function ApprovalsPage() {
       content: "고객사 방문을 위한 출장 신청",
       icon: ArrowRight,
       color: colors.status.error.gradient,
-      approver: "김철수",
       isMyApproval: false,
       approvalStages: [
         {
@@ -230,7 +228,6 @@ export default function ApprovalsPage() {
       content: "HR 전문가 과정 교육 참석 신청",
       icon: User,
       color: colors.status.info.gradient,
-      approver: "김인사",
       isMyApproval: true,
       approvalStages: [
         {
@@ -286,7 +283,6 @@ export default function ApprovalsPage() {
       content: "다음 주 월요일 대회의실 예약 신청",
       icon: FileText,
       color: colors.status.success.gradient,
-      approver: "박민수",
       isMyApproval: false,
       approvalStages: [
         {
@@ -324,7 +320,6 @@ export default function ApprovalsPage() {
       content: "신규 프로젝트 개발 예산 신청",
       icon: FileText,
       color: colors.status.info.gradient,
-      approver: "이영희",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
       approvalStages: [
         {
@@ -391,7 +386,6 @@ export default function ApprovalsPage() {
       content: "React 고급 과정 교육 신청",
       icon: User,
       color: colors.status.info.gradient,
-      approver: "박민수",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
       approvalStages: [
         {
@@ -514,10 +508,46 @@ export default function ApprovalsPage() {
     // 여기서 상태 업데이트 로직 추가
   }
 
+  // 승인자 아바타 스택 컴포넌트
+  const ApproverAvatars = ({ approvers, maxVisible = 4 }: { approvers: any[], maxVisible?: number }) => {
+    const visibleApprovers = approvers.slice(0, maxVisible)
+    const remainingCount = approvers.length - maxVisible
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex -space-x-3">
+          {visibleApprovers.map((approver: any, index: number) => (
+            <div
+              key={approver.userId}
+              className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-sm font-medium shadow-sm ${
+                approver.status === 'completed' 
+                  ? 'bg-green-500 text-white' 
+                  : approver.status === 'rejected'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-gray-300 text-gray-600'
+              }`}
+              title={`${approver.name} (${approver.position})`}
+            >
+              {approver.name.charAt(0)}
+            </div>
+          ))}
+        </div>
+        {remainingCount > 0 && (
+          <span className="text-sm text-gray-500 ml-1 font-medium">
+            +{remainingCount}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   const renderApprovalCard = (approval: any) => {
     const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
     const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
     const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
+    
+    // 모든 승인자 정보 수집
+    const allApprovers = approval.approvalStages.flatMap((stage: any) => stage.approvers)
     
     return (
       <GlassCard 
@@ -550,41 +580,12 @@ export default function ApprovalsPage() {
                   긴급
                 </span>
               )}
-              {approval.status === "pending" && (
-                <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm text-gray-500 truncate">승인자: {approval.approver}</span>
-                </div>
-              )}
             </div>
             <div className="flex items-center gap-3">
               <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
               <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
-              <div className="flex gap-2 flex-shrink-0">
-                {approval.status === "pending" && approval.isMyApproval && (
-                  <>
-                    <GradientButton 
-                      variant="success" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleApprovalClick(approval)
-                      }}
-                    >
-                      승인
-                    </GradientButton>
-                    <GradientButton 
-                      variant="error" 
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleApprovalClick(approval)
-                      }}
-                    >
-                      반려
-                    </GradientButton>
-                  </>
-                )}
+              <div className="flex-shrink-0">
+                <ApproverAvatars approvers={allApprovers} />
               </div>
             </div>
           </div>
