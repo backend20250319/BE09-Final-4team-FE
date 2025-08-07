@@ -28,7 +28,6 @@ function Placeholder() {
   );
 }
 
-
 function EditorInitializer({ json }) {
   const [editor] = useLexicalComposerContext();
 
@@ -82,7 +81,7 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor({ jsonData: json, onChange }) {
+export default function Editor({ jsonData: json, onChange, readOnly = false, showToolbar = true }) {
   const [mounted, setMounted] = useState(false);
   function handleChange(editorState) {
     const jsonString = JSON.stringify(editorState.toJSON());
@@ -106,23 +105,24 @@ export default function Editor({ jsonData: json, onChange }) {
     <LexicalComposer
       initialConfig={{
         ...editorConfigBase,
+        editable: !readOnly,
       }}
     >
       <div className="editor-container">
-        <ToolbarPlugin />
+        {showToolbar && <ToolbarPlugin />}
         <div className="editor-inner">
           <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
+            contentEditable={<ContentEditable className={`editor-input bg-transparent ${readOnly ? 'pointer-events-none' : ''}`} />}
             placeholder={<Placeholder />}
           />
-          <AutoFocusPlugin />
+          {!readOnly && <AutoFocusPlugin />}
           <ListPlugin />
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <CodeHighlightPlugin />
           <EditorInitializer json={json} />
         </div>
-        <OnChangePlugin onChange={handleChange} />
+        {!readOnly && <OnChangePlugin onChange={handleChange} />}
       </div>
     </LexicalComposer>
   );
