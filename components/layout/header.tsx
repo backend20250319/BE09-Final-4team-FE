@@ -1,36 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/useAuth"
-import ProfileModal from '@/app/members/components/ProfileModal'
-
-interface Employee {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  address?: string
-  joinDate: string
-  organization: string
-  position: string
-  role: string
-  job: string
-  rank?: string
-  isAdmin: boolean
-  teams: string[]
-  profileImage?: string
-  selfIntroduction?: string
-  remainingLeave?: number
-  weeklyWorkHours?: number
-  weeklySchedule?: Array<{
-    title: string
-    date: string
-    time?: string
-  }>
-}
+import { Bell, User, Menu } from "lucide-react"
 
 interface HeaderProps {
   userName?: string
@@ -47,56 +18,6 @@ export function Header({
   onToggleSidebar,
   isMobile = false
 }: HeaderProps) {
-  const { user, logout } = useAuth()
-  const [employeeData, setEmployeeData] = useState<Employee | null>(null)
-  const [showProfileModal, setShowProfileModal] = useState(false)
-
-      useEffect(() => {
-    if (user?.email) {
-      fetch('/api/members')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.members) {
-            const employee = data.members.find((emp: Employee) => emp.email === user.email)
-            setEmployeeData(employee || null)
-          }
-        })
-        .catch(error => {
-          console.error('직원 데이터 로드 오류:', error)
-        })
-    }
-  }, [user])
-
-      useEffect(() => {
-    const handleEmployeeUpdate = (event: CustomEvent) => {
-      const updatedEmployee = event.detail
-      if (updatedEmployee.email === user?.email) {
-        setEmployeeData(updatedEmployee)
-      }
-    }
-
-    window.addEventListener('employeeUpdated', handleEmployeeUpdate as EventListener)
-    
-    return () => {
-      window.removeEventListener('employeeUpdated', handleEmployeeUpdate as EventListener)
-    }
-  }, [user?.email])
-
-  const displayName = employeeData?.name || user?.name || userName
-  const displayEmail = user?.email || ''
-
-  const handleMyProfileClick = () => {
-    setShowProfileModal(true)
-  }
-
-  const handleProfileModalClose = () => {
-    setShowProfileModal(false)
-  }
-
-  const handleProfileUpdate = (updatedEmployee: Employee) => {
-    setEmployeeData(updatedEmployee)
-  }
-
   return (
     <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
@@ -120,74 +41,15 @@ export function Header({
             </Button>
           )}
           {showUserProfile && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors"
-                >
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
-                      <img 
-                        src={employeeData.profileImage} 
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">{displayName}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
-                      <img 
-                        src={employeeData.profileImage} 
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{displayName}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
-                    {employeeData && (
-                      <p className="text-xs leading-none text-muted-foreground">{employeeData.position} • {employeeData.organization}</p>
-                    )}
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleMyProfileClick}>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>내 프로필</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>로그아웃</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2 sm:gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-sm">
+                <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+              </div>
+              <span className="text-xs sm:text-sm font-medium text-gray-700 hidden sm:block">{userName}</span>
+            </div>
           )}
         </div>
       </div>
-
-      {/* 프로필 모달 */}
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={handleProfileModalClose}
-        employee={employeeData}
-        onUpdate={handleProfileUpdate}
-      />
     </div>
   )
 } 

@@ -17,6 +17,7 @@ import {
 import Image from "next/image"
 import { Separator } from "@/components/ui/separator"
 
+// 아이콘 매핑
 const iconMap: Record<string, LucideIcon> = {
   Home,
   Users,
