@@ -79,15 +79,14 @@ export default function DocumentsTable({ files }) {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50 h-12">
-                <TableHead className="w-[50%] text-gray-700 font-semibold px-6 py-2">문서명</TableHead>
-                <TableHead className="w-[25%] text-gray-700 font-semibold px-6 py-2 text-center">미리보기</TableHead>
-                <TableHead className="w-[25%] text-gray-700 font-semibold px-6 py-2 text-center">다운로드</TableHead>
+                <TableHead className="w-[70%] text-gray-700 font-semibold px-6 py-2">문서명</TableHead>
+                <TableHead className="w-[30%] text-gray-700 font-semibold px-6 py-2 text-center">다운로드</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.length === 0 ? (
                 <TableRow className="h-12">
-                  <TableCell colSpan={3} className="text-center py-12 text-gray-400">문서가 없습니다.</TableCell>
+                  <TableCell colSpan={2} className="text-center py-12 text-gray-400">문서가 없습니다.</TableCell>
                 </TableRow>
               ) : (
                 paged.map(file => (
@@ -105,17 +104,6 @@ export default function DocumentsTable({ files }) {
                         />
                       </div>
                       <span className="truncate">{file.filename}</span>
-                    </TableCell>
-                    <TableCell className="text-center px-6 py-2 h-12">
-                      <a
-                        href={`/files/${file.filename}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-gray-100 transition"
-                        title="미리보기"
-                      >
-                        <svg width="22" height="22" fill="none" stroke="#2563eb" strokeWidth="2" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                      </a>
                     </TableCell>
                     <TableCell className="text-center px-6 py-2 h-12">
                       <a
