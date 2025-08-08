@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/hooks/use-auth"
 import ProfileModal from '@/app/members/components/ProfileModal'
 
 interface Employee {
@@ -185,7 +185,20 @@ export function Header({
       <ProfileModal
         isOpen={showProfileModal}
         onClose={handleProfileModalClose}
-        employee={employeeData}
+        employee={employeeData || {
+          id: 'temp',
+          name: user?.name || '사용자',
+          email: user?.email || '',
+          phone: '',
+          address: '',
+          joinDate: new Date().toISOString().split('T')[0],
+          organization: '기본 조직',
+          position: '직원',
+          role: '사용자',
+          job: '일반',
+          isAdmin: user?.isAdmin || false,
+          teams: ['기본팀']
+        }}
         onUpdate={handleProfileUpdate}
       />
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -216,6 +216,9 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           <DialogTitle className="text-2xl font-bold text-gray-900">
             프로필
           </DialogTitle>
+          <DialogDescription>
+            사용자의 프로필 정보를 확인하고 수정할 수 있습니다.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
