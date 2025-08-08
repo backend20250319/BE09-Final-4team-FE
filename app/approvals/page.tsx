@@ -5,7 +5,9 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
-import { ApprovalModal } from "@/components/ui/approval-modal"
+import { ApprovalModal } from "@/app/approvals/components/approval-modal"
+import { FormSelectionModal, FormTemplate } from "@/app/approvals/components/form-selection-modal"
+import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import approvals from "@/lib/mock-data/approvals"
 import {
@@ -55,6 +57,11 @@ export default function ApprovalsPage() {
   })
   const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  
+  // 결재 신청 관련 상태
+  const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
+  const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
+  const [selectedFormTemplate, setSelectedFormTemplate] = useState<FormTemplate | null>(null)
 
   // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
   const currentUser = "김철수"
@@ -146,6 +153,29 @@ export default function ApprovalsPage() {
     // 실제로는 API 호출을 통해 댓글 추가
     console.log("댓글 추가:", { approvalId, comment })
     // 여기서 상태 업데이트 로직 추가
+  }
+
+  // 결재 신청 관련 핸들러
+  const handleNewApprovalClick = () => {
+    setIsFormSelectionOpen(true)
+  }
+
+  const handleFormSelect = (form: FormTemplate) => {
+    setSelectedFormTemplate(form)
+    setIsFormWriterOpen(true)
+  }
+
+  const handleFormSubmit = async (data: {
+    title: string
+    content: string
+    attachments: any[]
+    approvalStages: any[]
+    references: any[]
+  }) => {
+    // 실제로는 API 호출을 통해 결재 신청
+    console.log("결재 신청:", data)
+    // 여기서 상태 업데이트 로직 추가
+    alert("결재가 성공적으로 요청되었습니다.")
   }
 
   // 승인자 아바타 스택 컴포넌트
@@ -278,7 +308,7 @@ export default function ApprovalsPage() {
             className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
           />
         </div>
-        <GradientButton variant="primary">
+        <GradientButton variant="primary" onClick={handleNewApprovalClick}>
           <Plus className="w-4 h-4 mr-2" />
           결재 신청
         </GradientButton>
@@ -350,10 +380,25 @@ export default function ApprovalsPage() {
       <ApprovalModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        approval={selectedApproval}
+        approval={selectedApproval as any}
         onApprove={handleApprove}
         onReject={handleReject}
         onAddComment={handleAddComment}
+      />
+
+      {/* 문서 양식 선택 모달 */}
+      <FormSelectionModal
+        isOpen={isFormSelectionOpen}
+        onClose={() => setIsFormSelectionOpen(false)}
+        onSelectForm={handleFormSelect}
+      />
+
+      {/* 문서 작성 모달 */}
+      <FormWriterModal
+        isOpen={isFormWriterOpen}
+        onClose={() => setIsFormWriterOpen(false)}
+        formTemplate={selectedFormTemplate}
+        onSubmit={handleFormSubmit}
       />
     </MainLayout>
   )

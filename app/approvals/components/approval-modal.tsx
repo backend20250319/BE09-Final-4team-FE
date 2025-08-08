@@ -39,7 +39,7 @@ import {
 } from "lucide-react"
 
 // 타입 정의
-interface User {
+export interface User {
   id: string
   name: string
   avatar?: string
@@ -89,7 +89,7 @@ interface Reference {
   position: string
 }
 
-interface Approval {
+export interface Approval {
   id: number
   title: string
   content: string
