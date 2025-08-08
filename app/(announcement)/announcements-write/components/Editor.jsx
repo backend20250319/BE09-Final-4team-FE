@@ -81,7 +81,7 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor({ jsonData: json, onChange, readOnly = false, showToolbar = true }) {
+export default function Editor({ jsonData: json, onChange, readOnly = false, showToolbar = true, backgroundColor }) {
   const [mounted, setMounted] = useState(false);
   function handleChange(editorState) {
     const jsonString = JSON.stringify(editorState.toJSON());
@@ -101,6 +101,9 @@ export default function Editor({ jsonData: json, onChange, readOnly = false, sho
     );
   }
 
+  // 배경색 결정: prop > readOnly > 기본값
+  const resolvedBg = backgroundColor !== undefined ? backgroundColor : (readOnly ? "transparent" : "#fff");
+
   return (
     <LexicalComposer
       initialConfig={{
@@ -110,9 +113,17 @@ export default function Editor({ jsonData: json, onChange, readOnly = false, sho
     >
       <div className="editor-container">
         {showToolbar && <ToolbarPlugin />}
-        <div className="editor-inner">
+        <div
+          className="editor-inner"
+          style={{ background: resolvedBg }}
+        >
           <RichTextPlugin
-            contentEditable={<ContentEditable className={`editor-input bg-transparent ${readOnly ? 'pointer-events-none' : ''}`} />}
+            contentEditable={
+              <ContentEditable
+                className={`editor-input ${readOnly ? 'pointer-events-none' : ''}`}
+                style={{ background: resolvedBg }}
+              />
+            }
             placeholder={<Placeholder />}
           />
           {!readOnly && <AutoFocusPlugin />}
