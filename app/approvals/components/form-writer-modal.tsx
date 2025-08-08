@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Textarea } from "@/components/ui/textarea"
@@ -110,6 +110,7 @@ function ApprovalStagesManager({
   onStagesChange: (stages: ApprovalStage[]) => void
   availableUsers: User[]
 }) {
+  const [selectedApprover, setSelectedApprover] = useState<{[stageId: string]: string}>({});
   const addStage = () => {
     if (stages.length >= 5) return
     const newStage: ApprovalStage = {
@@ -121,7 +122,13 @@ function ApprovalStagesManager({
   }
 
   const removeStage = (stageId: string) => {
-    onStagesChange(stages.filter(stage => stage.id !== stageId))
+    const filteredStages = stages.filter(stage => stage.id !== stageId)
+    // 삭제 후 남은 단계들의 이름을 순서대로 재정렬
+    const reorderedStages = filteredStages.map((stage, index) => ({
+      ...stage,
+      name: `${index + 1}단계`
+    }))
+    onStagesChange(reorderedStages)
   }
 
   const addApprover = (stageId: string, user: User) => {
@@ -187,34 +194,50 @@ function ApprovalStagesManager({
           </div>
 
           {/* 승인자 추가 */}
-          <Select onValueChange={(userId) => {
-            const user = availableUsers.find(u => u.id === userId)
-            if (user) addApprover(stage.id, user)
-          }}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="승인자 추가" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableUsers
-                .filter(user => !stage.approvers.some(approver => approver.id === user.id))
-                .map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    <div className="flex items-center gap-2">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="text-xs">
-                          {user.name?.charAt(0) || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.position}</p>
+          {(() => {
+            const availableApprovers = availableUsers.filter(user => 
+              !stage.approvers.some(approver => approver.id === user.id)
+            );
+            
+            return availableApprovers.length > 0 ? (
+              <Select 
+                value={selectedApprover[stage.id] || ""} 
+                onValueChange={(userId) => {
+                  const user = availableUsers.find(u => u.id === userId)
+                  if (user) {
+                    addApprover(stage.id, user)
+                    setSelectedApprover(prev => ({ ...prev, [stage.id]: "" }))
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="승인자 추가" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableApprovers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-6 h-6">
+                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarFallback className="text-xs">
+                            {user.name?.charAt(0) || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">{user.name}</p>
+                          <p className="text-xs text-gray-500">{user.position}</p>
+                        </div>
                       </div>
-                    </div>
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="w-full p-3 text-center text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
+                추가할 수 있는 승인자가 없습니다
+              </div>
+            )
+          })()}
         </div>
       ))}
 
@@ -242,6 +265,7 @@ function ReferencesManager({
   onReferencesChange: (references: Reference[]) => void
   availableUsers: User[]
 }) {
+  const [selectedReference, setSelectedReference] = useState("");
   const addReference = (user: User) => {
     const reference: Reference = {
       id: user.id,
@@ -287,34 +311,50 @@ function ReferencesManager({
       </div>
 
       {/* 참조자 추가 */}
-      <Select onValueChange={(userId) => {
-        const user = availableUsers.find(u => u.id === userId)
-        if (user) addReference(user)
-      }}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="참조자 추가" />
-        </SelectTrigger>
-        <SelectContent>
-          {availableUsers
-            .filter(user => !references.some(ref => ref.id === user.id))
-            .map((user) => (
-              <SelectItem key={user.id} value={user.id}>
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                    <AvatarFallback className="text-xs">
-                      {user.name?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.position}</p>
+      {(() => {
+        const availableReferences = availableUsers.filter(user => 
+          !references.some(ref => ref.id === user.id)
+        );
+        
+        return availableReferences.length > 0 ? (
+          <Select 
+            value={selectedReference} 
+            onValueChange={(userId) => {
+              const user = availableUsers.find(u => u.id === userId)
+              if (user) {
+                addReference(user)
+                setSelectedReference("")
+              }
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="참조자 추가" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableReferences.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="text-xs">
+                        {user.name?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.position}</p>
+                    </div>
                   </div>
-                </div>
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="w-full p-3 text-center text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
+            추가할 수 있는 참조자가 없습니다
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -339,6 +379,22 @@ export function FormWriterModal({
   ])
   const [references, setReferences] = useState<Reference[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 모달이 닫힐 때 상태 초기화
+  useEffect(() => {
+    if (!isOpen) {
+      setContent("")
+      setAttachments([])
+      setApprovalStages([
+        {
+          id: "stage-1",
+          name: "1단계",
+          approvers: []
+        }
+      ])
+      setReferences([])
+    }
+  }, [isOpen])
 
   // 사용 가능한 사용자 목록 (실제로는 API에서 가져옴)
   const availableUsers: User[] = [
