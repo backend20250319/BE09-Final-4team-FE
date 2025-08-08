@@ -166,14 +166,16 @@ export default function ApprovalsPage() {
   }
 
   const handleFormSubmit = async (data: {
-    title: string
     content: string
     attachments: any[]
     approvalStages: any[]
     references: any[]
   }) => {
     // 실제로는 API 호출을 통해 결재 신청
-    console.log("결재 신청:", data)
+    console.log("결재 신청:", {
+      title: selectedFormTemplate?.title || "문서",
+      ...data
+    })
     // 여기서 상태 업데이트 로직 추가
     alert("결재가 성공적으로 요청되었습니다.")
   }
@@ -397,6 +399,10 @@ export default function ApprovalsPage() {
       <FormWriterModal
         isOpen={isFormWriterOpen}
         onClose={() => setIsFormWriterOpen(false)}
+        onBack={() => {
+          setIsFormWriterOpen(false)
+          setIsFormSelectionOpen(true)
+        }}
         formTemplate={selectedFormTemplate}
         onSubmit={handleFormSubmit}
       />

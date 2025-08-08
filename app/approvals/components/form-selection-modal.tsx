@@ -157,8 +157,8 @@ export function FormSelectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-4xl !w-[95vw] max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="pb-4 px-6 pt-6">
+      <DialogContent className="!max-w-4xl !w-[95vw] h-[80vh] flex flex-col p-0">
+        <DialogHeader className="pb-4 px-6 pt-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className={`${typography.h2} text-gray-800`}>
               문서 양식 선택
@@ -174,9 +174,9 @@ export function FormSelectionModal({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {/* 검색 및 필터 */}
-          <div className="px-6 pb-4">
+          <div className="px-6 pb-4 flex-shrink-0">
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -208,7 +208,7 @@ export function FormSelectionModal({
           </div>
 
           {/* 양식 목록 */}
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
             {filteredForms.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredForms.map((form) => {

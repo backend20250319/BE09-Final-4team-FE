@@ -63,9 +63,9 @@ import { FormTemplate } from "./form-selection-modal"
 interface FormWriterModalProps {
   isOpen: boolean
   onClose: () => void
+  onBack: () => void
   formTemplate: FormTemplate | null
   onSubmit: (data: {
-    title: string
     content: string
     attachments: Attachment[]
     approvalStages: ApprovalStage[]
@@ -132,16 +132,16 @@ function ApprovalStagesManager({
   }
 
   const addApprover = (stageId: string, user: User) => {
-    onStagesChange(stages.map(stage => 
-      stage.id === stageId 
+    onStagesChange(stages.map(stage =>
+      stage.id === stageId
         ? { ...stage, approvers: [...stage.approvers, user] }
         : stage
     ))
   }
 
   const removeApprover = (stageId: string, userId: string) => {
-    onStagesChange(stages.map(stage => 
-      stage.id === stageId 
+    onStagesChange(stages.map(stage =>
+      stage.id === stageId
         ? { ...stage, approvers: stage.approvers.filter(approver => approver.id !== userId) }
         : stage
     ))
@@ -411,10 +411,10 @@ function AttachmentsManager({
 export function FormWriterModal({
   isOpen,
   onClose,
+  onBack,
   formTemplate,
   onSubmit
 }: FormWriterModalProps) {
-  const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [approvalStages, setApprovalStages] = useState<ApprovalStage[]>([
@@ -437,8 +437,8 @@ export function FormWriterModal({
   ]
 
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim()) {
-      alert("제목과 내용을 입력해주세요.")
+    if (!content.trim()) {
+      alert("내용을 입력해주세요.")
       return
     }
 
@@ -450,7 +450,6 @@ export function FormWriterModal({
     setIsSubmitting(true)
     try {
       await onSubmit({
-        title,
         content,
         attachments,
         approvalStages,
@@ -471,14 +470,14 @@ export function FormWriterModal({
   return (
     <TooltipProvider>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="!max-w-6xl !w-[95vw] max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="pb-4 px-6 pt-6">
+        <DialogContent className="!max-w-6xl !w-[95vw] h-[85vh] flex flex-col p-0">
+          <DialogHeader className="pb-0 px-6 pt-6 flex-shrink-0">
             <DialogTitle className="sr-only">{formTemplate.title}</DialogTitle>
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
+                onClick={onBack}
                 className="h-8 w-8 p-0"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -496,38 +495,22 @@ export function FormWriterModal({
           </DialogHeader>
 
           {/* 데스크톱 레이아웃 */}
-          <div className="hidden lg:flex flex-1 overflow-hidden gap-4">
+          <div className="hidden lg:flex flex-1 overflow-hidden gap-6 px-6 pb-6 min-h-0 mt-2">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 pl-2">
-              {/* 제목 입력 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">제목</label>
-                <Input
-                  placeholder="문서 제목을 입력하세요"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-lg font-medium"
-                />
-              </div>
-
-              <Separator />
+            <div className="flex-1 flex flex-col min-h-0">
 
               {/* 본문 작성 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">내용</label>
+              <div className="space-y-2 flex-1 flex flex-col min-h-0">
                 <Textarea
                   placeholder="문서 내용을 작성하세요..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[300px] resize-none"
+                  className="flex-1 min-h-0 resize-none overflow-y-auto"
                 />
               </div>
 
-              <Separator />
-
               {/* 첨부파일 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">첨부파일</label>
+              <div className="space-y-2 flex-shrink-0 mt-4">
                 <AttachmentsManager
                   attachments={attachments}
                   onAttachmentsChange={setAttachments}
@@ -536,8 +519,8 @@ export function FormWriterModal({
             </div>
 
             {/* 오른쪽 컬럼 - 승인 단계 및 참조자 */}
-            <div className="w-80 flex-shrink-0 flex flex-col p-0">
-              <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50 rounded-lg p-4">
+            <div className="w-80 flex-shrink-0 flex flex-col min-h-0">
+              <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50 rounded-lg p-4 min-h-0">
                 {/* 승인 단계 */}
                 <div className="space-y-3">
                   <h3 className={`${typography.h4} text-gray-800`}>승인 단계</h3>
@@ -562,7 +545,7 @@ export function FormWriterModal({
               </div>
 
               {/* 결재 요청 버튼 */}
-              <div className="mt-4">
+              <div className="mt-4 flex-shrink-0">
                 <GradientButton
                   variant="primary"
                   onClick={handleSubmit}
@@ -581,19 +564,8 @@ export function FormWriterModal({
           </div>
 
           {/* 모바일 레이아웃 */}
-          <div className="lg:hidden flex-1 overflow-y-auto">
-            <div className="space-y-4 p-4">
-              {/* 제목 입력 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">제목</label>
-                <Input
-                  placeholder="문서 제목을 입력하세요"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-lg font-medium"
-                />
-              </div>
-
+          <div className="lg:hidden flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-6 px-6 py-4">
               {/* 본문 작성 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">내용</label>
