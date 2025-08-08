@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const [todayAttendance, setTodayAttendance] = useState(0)
   const [thisWeekVacation, setThisWeekVacation] = useState(0)
   const [pendingApprovals, setPendingApprovals] = useState(0)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(true)
   const [currentTime, setCurrentTime] = useState('')
   const [currentIP, setCurrentIP] = useState('')
   const [attendanceState, setAttendanceState] = useState<AttendanceState>({
@@ -302,153 +302,11 @@ export default function DashboardPage() {
     },
   ]
 
-  const renderEmployeeMode = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* 출퇴근 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">출퇴근</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">{currentTime}</div>
-            <div className="text-sm text-gray-500">IP: {currentIP}</div>
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={handleCheckIn}
-              disabled={attendanceState.isCheckedIn}
-            >
-              {attendanceState.isCheckedIn ? (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-              ) : (
-                <Timer className="w-4 h-4 mr-2" />
-              )}
-              출근 {attendanceState.checkInTime || currentTime}
-            </Button>
-            <Button 
-              className="flex-1 bg-red-600 hover:bg-red-700"
-              onClick={handleCheckOut}
-              disabled={!attendanceState.isCheckedIn || attendanceState.isCheckedOut}
-            >
-              {attendanceState.isCheckedOut ? (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-              ) : (
-                <XCircle className="w-4 h-4 mr-2" />
-              )}
-              퇴근 {attendanceState.checkOutTime || (attendanceState.isCheckedIn ? currentTime : '')}
-            </Button>
-          </div>
-        </CardContent>
-      </GlassCard>
 
-      {/* 이번 주 근로시간 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">이번 주 근로시간</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
-            <div className="text-3xl font-bold mb-2">{employeeData.workHoursData.weekly}h</div>
-            <div className="text-sm opacity-90">이번 주 근무시간</div>
-          </div>
-          <div className="flex justify-center gap-6 text-sm text-gray-600">
-            <span>일 평균 {employeeData.workHoursData.dailyAverage}h</span>
-            <span className="text-red-600 font-medium">초과근무 {employeeData.workHoursData.overtime}h</span>
-          </div>
-        </CardContent>
-      </GlassCard>
 
-      {/* 나의 연차 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">나의 연차</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
-            <div className="text-3xl font-bold mb-2">{employeeData.leaveData.remaining}일</div>
-            <div className="text-sm opacity-90">남은 연차</div>
-          </div>
-          <div className="flex justify-center gap-6 text-sm text-gray-600">
-            <span>총 연차 {employeeData.leaveData.total}일</span>
-            <span>사용 연차 {employeeData.leaveData.used}일</span>
-          </div>
-        </CardContent>
-      </GlassCard>
-
-      {/* 결재 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">결재</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {employeeData.approvals.map((item, index) => (
-            <div key={index} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
-              <span className="font-medium text-gray-800">{item.title}</span>
-              <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white' }}>
-                {item.status}
-              </Badge>
-      </div>
-          ))}
-        </CardContent>
-      </GlassCard>
-
-      {/* 뉴스 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">뉴스</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {adminData.news.map((item, index) => (
-            <a
-              key={index}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Globe className="w-4 h-4 text-gray-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-gray-800 text-sm">{item.title}</h4>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">{item.source}</Badge>
-                  <span className="text-xs text-gray-500">{item.time}</span>
-                </div>
-              </div>
-              <ExternalLink className="w-4 h-4 text-gray-400" />
-            </a>
-          ))}
-        </CardContent>
-      </GlassCard>
-
-      {/* 공지 Card */}
-      <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">공지</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {employeeData.notices.map((item, index) => (
-            <div key={index} className="p-3 rounded-lg border-l-4" style={{ 
-              backgroundColor: item.bgColor,
-              borderLeftColor: item.borderColor 
-            }}>
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium text-gray-800">{item.title}</h4>
-                <span className="text-xs text-gray-500">{item.date}</span>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </GlassCard>
-    </div>
-  )
-
-  const renderAdminMode = () => (
+  const renderUnifiedDashboard = () => (
     <>
-      {/* Metrics Cards */}
+      {/* 출석 통계 카드 (관리자 정보) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {adminData.attendanceStats.map((metric, index) => (
           <GlassCard key={index} className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: `${0.1 + index * 0.1}s` }}>
@@ -470,19 +328,93 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 결재 Card */}
+      {/* 개인 업무 + 관리자 정보 통합 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        {/* 출퇴근 Card (개인) */}
         <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">결재</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900">내 출퇴근</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-blue-600 mb-2">{currentTime}</div>
+              <div className="text-sm text-gray-500">IP: {currentIP}</div>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={handleCheckIn}
+                disabled={attendanceState.isCheckedIn}
+              >
+                {attendanceState.isCheckedIn ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                ) : (
+                  <Timer className="w-4 h-4 mr-2" />
+                )}
+                출근 {attendanceState.checkInTime || currentTime}
+              </Button>
+              <Button 
+                className="flex-1 bg-red-600 hover:bg-red-700"
+                onClick={handleCheckOut}
+                disabled={!attendanceState.isCheckedIn || attendanceState.isCheckedOut}
+              >
+                {attendanceState.isCheckedOut ? (
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                ) : (
+                  <XCircle className="w-4 h-4 mr-2" />
+                )}
+                퇴근 {attendanceState.checkOutTime || (attendanceState.isCheckedIn ? currentTime : '')}
+              </Button>
+            </div>
+          </CardContent>
+        </GlassCard>
+
+        {/* 이번 주 근로시간 Card (개인) */}
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-gray-900">이번 주 근로시간</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+              <div className="text-3xl font-bold mb-2">{employeeData.workHoursData.weekly}h</div>
+              <div className="text-sm opacity-90">이번 주 근무시간</div>
+            </div>
+            <div className="flex justify-center gap-6 text-sm text-gray-600">
+              <span>일 평균 {employeeData.workHoursData.dailyAverage}h</span>
+              <span className="text-red-600 font-medium">초과근무 {employeeData.workHoursData.overtime}h</span>
+            </div>
+          </CardContent>
+        </GlassCard>
+
+        {/* 나의 연차 Card (개인) */}
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-gray-900">나의 연차</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+              <div className="text-3xl font-bold mb-2">{employeeData.leaveData.remaining}일</div>
+              <div className="text-sm opacity-90">남은 연차</div>
+            </div>
+            <div className="flex justify-center gap-6 text-sm text-gray-600">
+              <span>총 연차 {employeeData.leaveData.total}일</span>
+              <span>사용 연차 {employeeData.leaveData.used}일</span>
+            </div>
+          </CardContent>
+        </GlassCard>
+      </div>
+
+      {/* 결재, 뉴스, 공지 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* 결재 Card */}
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.7s' }}>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold text-gray-900">결재 현황</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {adminData.approvals.map((item, index) => (
+            {employeeData.approvals.map((item, index) => (
               <div key={index} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
-                <div>
-                  <div className="font-medium text-gray-800">{item.title}</div>
-                  <div className="text-xs text-gray-500">{item.date}</div>
-                </div>
+                <span className="font-medium text-gray-800">{item.title}</span>
                 <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white' }}>
                   {item.status}
                 </Badge>
@@ -492,7 +424,7 @@ export default function DashboardPage() {
         </GlassCard>
 
         {/* 뉴스 Card */}
-        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">뉴스</CardTitle>
           </CardHeader>
@@ -522,12 +454,12 @@ export default function DashboardPage() {
         </GlassCard>
 
         {/* 공지 Card */}
-        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.6s' }}>
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.9s' }}>
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">공지</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900">공지사항</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {adminData.notices.map((item, index) => (
+            {employeeData.notices.map((item, index) => (
               <div key={index} className="p-3 rounded-lg border-l-4" style={{ 
                 backgroundColor: item.bgColor,
                 borderLeftColor: item.borderColor 
@@ -552,7 +484,7 @@ export default function DashboardPage() {
 
   return (
     <MainLayout requireAuth={false}>
-      {/* Header with date and toggle */}
+      {/* Header with date */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
@@ -564,24 +496,15 @@ export default function DashboardPage() {
               <span className="text-lg font-semibold">{yearString}년</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">
-              {isAdmin ? '관리자 모드' : '직원 모드'}
-            </span>
-            <Switch
-              checked={isAdmin}
-              onCheckedChange={setIsAdmin}
-            />
-          </div>
         </div>
-        <p className="text-gray-600">오늘의 업무 현황을 한눈에 확인하세요</p>
+        <p className="text-gray-600">개인 업무와 전체 현황을 한눈에 확인하세요</p>
       </div>
 
-      {/* 조건부 렌더링 */}
-      {isAdmin ? renderAdminMode() : renderEmployeeMode()}
+      {/* 통합 대시보드 렌더링 */}
+      {renderUnifiedDashboard()}
 
-      {/* 최근 활동 및 알림 (FE1 기존 컴포넌트) - 직원 모드에서만 표시 */}
-      {!isAdmin && (
+      {/* 최근 활동 및 알림 */}
+      <div className="mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Recent Activities */}
           <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.7s' }}>
@@ -632,8 +555,8 @@ export default function DashboardPage() {
             ))}
           </div>
         </GlassCard>
+        </div>
       </div>
-      )}
     </MainLayout>
   )
 } 
