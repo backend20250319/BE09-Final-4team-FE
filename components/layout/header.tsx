@@ -106,7 +106,7 @@ export function Header({
               variant="ghost" 
               size="sm" 
               onClick={onToggleSidebar}
-              className="hover:bg-gray-100/80 transition-colors"
+              className="hover:bg-gray-100/80 transition-colors cursor-pointer"
             >
               <Menu className="w-5 h-5 text-gray-500" />
             </Button>
@@ -114,7 +114,7 @@ export function Header({
         </div>
         <div className="flex items-center gap-3 sm:gap-6">
           {showNotifications && (
-            <Button variant="ghost" size="sm" className="relative hover:bg-gray-100/80 transition-colors">
+            <Button variant="ghost" size="sm" className="relative hover:bg-gray-100/80 transition-colors cursor-pointer">
               <Bell className="w-5 h-5 text-gray-500" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </Button>
@@ -124,7 +124,7 @@ export function Header({
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors"
+                  className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
                     {employeeData?.profileImage ? (
