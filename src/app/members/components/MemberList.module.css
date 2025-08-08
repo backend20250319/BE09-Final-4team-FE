@@ -1,0 +1,153 @@
+.container {
+  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  overflow: hidden;
+}
+
+.searchContainer {
+  margin-bottom: 24px;
+  flex-shrink: 0;
+  padding: 0 4px; /* 검색바가 잘리지 않도록 패딩 추가 */
+}
+
+.memberList {
+  flex: 1;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 8px;
+  
+  /* Firefox 스크롤바 */
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Webkit 브라우저 스크롤바 */
+.memberList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.memberList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.memberList::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.memberList::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.memberList::-webkit-scrollbar-thumb:active {
+  background: #6b7280;
+}
+
+/* 모든 스크롤바 버튼과 화살표 완전히 숨기기 */
+.memberList::-webkit-scrollbar-button,
+.memberList::-webkit-scrollbar-button:start,
+.memberList::-webkit-scrollbar-button:end,
+.memberList::-webkit-scrollbar-button:single-button,
+.memberList::-webkit-scrollbar-button:double-button,
+.memberList::-webkit-scrollbar-corner {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 추가적인 강력한 숨김 방법 */
+.memberList::-webkit-scrollbar-button:vertical {
+  display: none !important;
+}
+
+.memberList::-webkit-scrollbar-button:horizontal {
+  display: none !important;
+}
+
+/* 로딩 인디케이터 */
+.loadingIndicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.loadingSpinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadMoreHint {
+  color: #6b7280;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.loadMoreContainer {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.loadMoreButton {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 20px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.loadMoreButton:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #6b7280;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.emptyStateHint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: 8px;
+} 
