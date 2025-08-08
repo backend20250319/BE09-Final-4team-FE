@@ -5,21 +5,21 @@ import { backgrounds, shadows, animations, borderRadius } from "@/lib/design-tok
 interface GlassCardProps {
   children: ReactNode
   className?: string
-  style?: CSSProperties
   hover?: boolean
   shadow?: keyof typeof shadows
   radius?: keyof typeof borderRadius
   onClick?: () => void
+  style?: CSSProperties
 }
 
 export function GlassCard({ 
   children, 
   className, 
-  style,
   hover = true,
   shadow = "lg",
   radius = "md",
-  onClick
+  onClick,
+  style
 }: GlassCardProps) {
   return (
     <div
@@ -33,8 +33,8 @@ export function GlassCard({
         onClick && "cursor-pointer",
         className
       )}
-      style={style}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>

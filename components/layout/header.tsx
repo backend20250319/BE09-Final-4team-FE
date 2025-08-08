@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/useAuth"
 import ProfileModal from '@/app/members/components/ProfileModal'
 
 interface Employee {
@@ -51,7 +51,7 @@ export function Header({
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
 
-  useEffect(() => {
+      useEffect(() => {
     if (user?.email) {
       fetch('/api/members')
         .then(response => response.json())
@@ -67,7 +67,7 @@ export function Header({
     }
   }, [user])
 
-  useEffect(() => {
+      useEffect(() => {
     const handleEmployeeUpdate = (event: CustomEvent) => {
       const updatedEmployee = event.detail
       if (updatedEmployee.email === user?.email) {
@@ -98,19 +98,19 @@ export function Header({
   }
 
   return (
-    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-40">
+    <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
-                     {onToggleSidebar && (
-             <Button 
-               variant="ghost" 
-               size="sm" 
-               onClick={onToggleSidebar}
-               className="hover:bg-gray-100/80 transition-colors cursor-pointer"
-             >
-               <Menu className="w-5 h-5 text-gray-500" />
-             </Button>
-           )}
+          {onToggleSidebar && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onToggleSidebar}
+              className="hover:bg-gray-100/80 transition-colors"
+            >
+              <Menu className="w-5 h-5 text-gray-500" />
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-3 sm:gap-6">
           {showNotifications && (
@@ -122,10 +122,10 @@ export function Header({
           {showUserProfile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                                 <Button 
-                   variant="ghost" 
-                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl hover:bg-gray-200/80 transition-colors cursor-pointer"
-                 >
+                <Button 
+                  variant="ghost" 
+                  className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors"
+                >
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
                     {employeeData?.profileImage ? (
                       <img 
@@ -142,63 +142,40 @@ export function Header({
                   <span className="text-sm font-medium text-gray-700">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
-                             <DropdownMenuContent align="end" className="w-72 z-50 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-2xl p-4">
-                 {/* 프로필 헤더 */}
-                 <div className="flex items-center gap-4 p-4 mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-                   <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-white shadow-lg">
-                     {employeeData?.profileImage ? (
-                       <img 
-                         src={employeeData.profileImage} 
-                         alt={displayName}
-                         className="w-full h-full object-cover"
-                       />
-                     ) : (
-                       <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                         <User className="w-6 h-6 text-white" />
-                       </div>
-                     )}
-                   </div>
-                   <div className="flex flex-col">
-                     <p className="text-sm font-semibold text-gray-900 leading-tight">{displayName}</p>
-                     <p className="text-xs text-gray-500 leading-tight">{displayEmail}</p>
-                     {employeeData && (
-                       <div className="flex items-center gap-1 mt-1">
-                         <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                         <p className="text-xs text-gray-600">{employeeData.position} • {employeeData.organization}</p>
-                       </div>
-                     )}
-                   </div>
-                 </div>
-
-                 {/* 메뉴 아이템들 */}
-                 <div className="space-y-2">
-                   <DropdownMenuItem 
-                     onClick={handleMyProfileClick} 
-                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all duration-200 group"
-                   >
-                     <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                       <UserIcon className="w-4 h-4 text-white" />
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-sm font-medium text-gray-900">내 프로필</span>
-                       <span className="text-xs text-gray-500">프로필 정보 관리</span>
-                     </div>
-                   </DropdownMenuItem>
-                   
-                   <DropdownMenuItem 
-                     onClick={logout} 
-                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 cursor-pointer transition-all duration-200 group"
-                   >
-                     <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-red-500 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                       <LogOut className="w-4 h-4 text-white" />
-                     </div>
-                     <div className="flex flex-col">
-                       <span className="text-sm font-medium text-gray-900">로그아웃</span>
-                       <span className="text-xs text-gray-500">계정에서 로그아웃</span>
-                     </div>
-                   </DropdownMenuItem>
-                 </div>
-               </DropdownMenuContent>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
+                    {employeeData?.profileImage ? (
+                      <img 
+                        src={employeeData.profileImage} 
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
+                    {employeeData && (
+                      <p className="text-xs leading-none text-muted-foreground">{employeeData.position} • {employeeData.organization}</p>
+                    )}
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleMyProfileClick}>
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>내 프로필</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>로그아웃</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>

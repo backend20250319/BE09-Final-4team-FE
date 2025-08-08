@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
-import { Toaster } from 'sonner'
 import './globals.css'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'Hermes'
@@ -26,7 +26,12 @@ html {
       </head>
       <body>
         {children}
-        <Toaster />
+        <Toaster 
+          position="top-center"
+          richColors
+          closeButton
+          duration={4000}
+        />
       </body>
     </html>
   )
