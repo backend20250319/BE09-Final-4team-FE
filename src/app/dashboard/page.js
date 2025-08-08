@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { IoPeople, IoTime, IoCalendar, IoDocument, IoNotifications, IoNewspaper, IoSettings, IoFolder, IoGlobeOutline } from 'react-icons/io5';
+import { IoPeople, IoTime, IoCalendar, IoDocument, IoNotifications, IoNewspaper, IoSettings, IoFolder, IoGlobeOutline, IoCheckmarkCircle, IoClock, IoDocumentText } from 'react-icons/io5';
 import styles from '../dashboard.module.css';
 
 export default function Dashboard() {
@@ -46,7 +46,7 @@ export default function Dashboard() {
         const data = await response.json();
         setCurrentIP(data.ip);
       } catch (error) {
-        setCurrentIP('123.456.789.123'); // 기본값
+        setCurrentIP('000.000.000.000'); // 기본값
       }
     };
     
@@ -96,6 +96,8 @@ export default function Dashboard() {
     });
   };
 
+
+
   // 직원 모드 데이터
   const employeeData = {
     // 출퇴근 데이터
@@ -105,13 +107,6 @@ export default function Dashboard() {
       checkInTime: '09:00',
       checkOutTime: '18:00'
     },
-
-    // 결재 데이터
-    approvals: [
-      { title: '연차 신청서', status: '대기', bgColor: '#E3F0FF', statusColor: '#007BFF' },
-      { title: '출장 신청서', status: '검토', bgColor: '#FFF5CC', statusColor: '#EA580C' },
-      { title: '지출 결의서', status: '승인', bgColor: '#E8FFF2', statusColor: '#00C56B' }
-    ],
 
     // 연차 데이터
     leaveData: {
@@ -184,13 +179,6 @@ export default function Dashboard() {
       }
     ],
 
-    // 결재 데이터
-    approvals: [
-      { title: '연차 신청서', date: '2023.09.21', status: '대기', bgColor: '#E3F0FF', statusColor: '#007BFF' },
-      { title: '출장 신청서', date: '2023.07.30', status: '검토', bgColor: '#FFF5CC', statusColor: '#EA580C' },
-      { title: '지출 결의서', date: '2023.07.28', status: '승인', bgColor: '#E8FFF2', statusColor: '#00C56B' }
-    ],
-
     // 공지 데이터
     notices: [
       { title: '2025년 하반기 인사발령', date: '2025.08.01', borderColor: '#007BFF', bgColor: '#EEF6FC' },
@@ -238,20 +226,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 결재 Card */}
+
+
+      {/* 결재 현황 Card */}
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <h3 className={styles.cardTitle}>결재</h3>
+          <h3 className={styles.cardTitle}>결재 현황</h3>
         </div>
         <div className={styles.cardContent}>
-          {employeeData.approvals.map((item, index) => (
-            <div key={index} className={styles.approvalItem} style={{ backgroundColor: item.bgColor }}>
-              <span className={styles.approvalTitle}>{item.title}</span>
-              <span className={styles.approvalStatus} style={{ color: item.statusColor }}>
-                {item.status}
-              </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '12px', backgroundColor: '#FFF5CC', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#EA580C' }}>5건</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>내가 결재해야 할 문서</div>
             </div>
-          ))}
+            <div style={{ padding: '12px', backgroundColor: '#E3F0FF', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#007BFF' }}>3건</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>내가 신청한 문서</div>
+            </div>
+            <div style={{ padding: '12px', backgroundColor: '#E8FFF2', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#00C56B' }}>12건</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>결재 완료된 문서</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -385,20 +381,32 @@ export default function Dashboard() {
 
       {/* Content Sections */}
       <div className={styles.contentGrid}>
-        {/* 결재 Card */}
+
+
+        {/* 결재 현황 Card */}
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <h3 className={styles.cardTitle}>결재</h3>
+            <h3 className={styles.cardTitle}>결재 현황</h3>
           </div>
           <div className={styles.cardContent}>
-            {adminData.approvals.map((item, index) => (
-              <div key={index} className={styles.approvalItem} style={{ backgroundColor: item.bgColor }}>
-                <span className={styles.approvalTitle}>{item.title}</span>
-                <span className={styles.approvalStatus} style={{ color: item.statusColor }}>
-                  {item.status}
-                </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              <div style={{ padding: '12px', backgroundColor: '#FFF5CC', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#EA580C' }}>23건</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>대기 중인 결재</div>
               </div>
-            ))}
+              <div style={{ padding: '12px', backgroundColor: '#E3F0FF', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#007BFF' }}>8건</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>검토 중인 결재</div>
+              </div>
+              <div style={{ padding: '12px', backgroundColor: '#E8FFF2', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#00C56B' }}>45건</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>승인된 결재</div>
+              </div>
+              <div style={{ padding: '12px', backgroundColor: '#FFE8E8', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#FF4D4F' }}>3건</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>반려된 결재</div>
+              </div>
+            </div>
           </div>
         </div>
 

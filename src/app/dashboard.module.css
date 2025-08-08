@@ -37,7 +37,7 @@
   display: flex;
   align-items: center;
   position: relative;
-  z-index: 1;image.png
+  z-index: 1;
 }
 
 .mainDate {
@@ -380,35 +380,6 @@
   background: #DC2626;
 }
 
-/* 결재 Card */
-.approvalItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 6px;
-}
-
-.approvalItem:last-child {
-  margin-bottom: 0;
-}
-
-.approvalTitle {
-  font-family: 'Noto Sans KR', -apple-system, Roboto, Helvetica, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1F2937;
-}
-
-.approvalStatus {
-  font-family: 'Noto Sans KR', -apple-system, Roboto, Helvetica, sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: white;
-}
 
 /* 나의 연차 Card */
 .leaveDisplay {
@@ -832,7 +803,9 @@
   opacity: 1;
 }
 
-/* 반응형 디자인 */
+
+
+/* 모바일 반응형 */
 @media (max-width: 768px) {
   .dashboardHeader {
     padding: 20px 24px;
@@ -900,6 +873,8 @@
   .switch input:checked + .slider:before {
     transform: translateX(22px);
   }
+
+
 }
 
 @media (max-width: 480px) {

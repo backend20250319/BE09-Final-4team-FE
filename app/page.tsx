@@ -6,7 +6,6 @@ import { GradientButton } from "@/components/ui/gradient-button"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { colors, typography } from "@/lib/design-tokens"
 import {
   Users,
@@ -304,6 +303,26 @@ export default function DashboardPage() {
 
   const renderEmployeeMode = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {adminData.attendanceStats.map((metric, index) => (
+            <GlassCard key={index} className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: `${0.1 + index * 0.1}s` }}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: metric.iconColor }}>
+                  <metric.icon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-800 mb-1">{metric.title}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold" style={{ color: metric.iconColor }}>
+                      {metric.total ? `${metric.value} / ${metric.total}` : metric.value}
+                    </span>
+                    <span className="text-sm text-gray-600">{metric.unit}</span>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+        </div>
       {/* 출퇴근 Card */}
       <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
         <CardHeader className="pb-4">
@@ -377,20 +396,30 @@ export default function DashboardPage() {
         </CardContent>
       </GlassCard>
 
-      {/* 결재 Card */}
+            {/* 결재 현황 Card */}
       <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
         <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-semibold text-gray-900">결재</CardTitle>
+          <CardTitle className="text-xl font-semibold text-gray-900">결재 현황</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {employeeData.approvals.map((item, index) => (
-            <div key={index} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
-              <span className="font-medium text-gray-800">{item.title}</span>
-              <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white' }}>
-                {item.status}
-              </Badge>
-      </div>
-          ))}
+        <CardContent>
+          <div className="space-y-3">
+             <div className="flex justify-between items-center p-3 rounded-lg bg-yellow-50">
+               <span className="font-medium text-gray-800">내가 결재해야 할 문서</span>
+               <span className="text-xl font-bold text-orange-600">5건</span>
+             </div>
+             <div className="flex justify-between items-center p-3 rounded-lg bg-blue-50">
+               <span className="font-medium text-gray-800">내가 신청한 문서</span>
+               <span className="text-xl font-bold text-blue-600">3건</span>
+             </div>
+             <div className="flex justify-between items-center p-3 rounded-lg bg-green-50">
+               <span className="font-medium text-gray-800">결재 완료된 문서</span>
+               <span className="text-xl font-bold text-green-600">12건</span>
+             </div>
+             <div className="flex justify-between items-center p-3 rounded-lg bg-red-50">
+               <span className="font-medium text-gray-800">반려된 문서</span>
+               <span className="text-xl font-bold text-red-600">2건</span>
+             </div>
+           </div>
         </CardContent>
       </GlassCard>
 
@@ -471,23 +500,30 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 결재 Card */}
+        {/* 결재 현황 Card */}
         <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">결재</CardTitle>
+            <CardTitle className="text-xl font-semibold text-gray-900">결재 현황</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {adminData.approvals.map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
-                <div>
-                  <div className="font-medium text-gray-800">{item.title}</div>
-                  <div className="text-xs text-gray-500">{item.date}</div>
-                </div>
-                <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white' }}>
-                  {item.status}
-                </Badge>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center p-3 rounded-lg bg-yellow-50">
+                <span className="font-medium text-gray-800">대기 중인 결재</span>
+                <span className="text-xl font-bold text-orange-600">23건</span>
               </div>
-            ))}
+              <div className="flex justify-between items-center p-3 rounded-lg bg-blue-50">
+                <span className="font-medium text-gray-800">검토 중인 결재</span>
+                <span className="text-xl font-bold text-blue-600">8건</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-green-50">
+                <span className="font-medium text-gray-800">승인된 결재</span>
+                <span className="text-xl font-bold text-green-600">45건</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-red-50">
+                <span className="font-medium text-gray-800">반려된 결재</span>
+                <span className="text-xl font-bold text-red-600">3건</span>
+              </div>
+            </div>
           </CardContent>
         </GlassCard>
 
@@ -564,24 +600,15 @@ export default function DashboardPage() {
               <span className="text-lg font-semibold">{yearString}년</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">
-              {isAdmin ? '관리자 모드' : '직원 모드'}
-            </span>
-            <Switch
-              checked={isAdmin}
-              onCheckedChange={setIsAdmin}
-            />
-          </div>
+
         </div>
         <p className="text-gray-600">오늘의 업무 현황을 한눈에 확인하세요</p>
       </div>
 
-      {/* 조건부 렌더링 */}
-      {isAdmin ? renderAdminMode() : renderEmployeeMode()}
+      {/* 대시보드 본문 */}
+      {renderEmployeeMode()}
 
       {/* 최근 활동 및 알림 (FE1 기존 컴포넌트) - 직원 모드에서만 표시 */}
-      {!isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Recent Activities */}
           <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.7s' }}>
@@ -633,7 +660,6 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
       </div>
-      )}
     </MainLayout>
   )
 } 
