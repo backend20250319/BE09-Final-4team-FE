@@ -22,7 +22,10 @@ import {
   RefreshCw,
   ArrowLeft,
   Save,
-  X
+  X,
+  Clock,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { toast } from 'sonner';
 
@@ -45,7 +48,8 @@ const initialFormData = {
   job: '',
   rank: '',
   tempPassword: '',
-  isAdmin: false
+  isAdmin: false,
+  workPolicies: [] as string[]
 };
 
 const organizations = [
@@ -69,12 +73,21 @@ const ranks = [
   '사원', '대리', '과장', '차장', '부장', '팀장', '이사', '대표'
 ];
 
+const workPolicies = [
+  { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무' },
+  { id: 'flexible', label: '유연근무', description: '코어타임 내 자유로운 출퇴근' },
+  { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무' },
+  { id: 'remote', label: '재택근무', description: '원격 근무 가능' },
+  { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무' }
+];
+
 export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddMemberModalProps) {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validFields, setValidFields] = useState<Record<string, boolean>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
+  const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -83,8 +96,25 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       setValidFields({});
       setShowSaveConfirm(false);
       setShowBackConfirm(false);
+      setWorkPolicyDropdownOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (workPolicyDropdownOpen) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.work-policy-dropdown')) {
+          setWorkPolicyDropdownOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [workPolicyDropdownOpen]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -103,6 +133,29 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       setValidFields(prev => ({ ...prev, [field]: true }));
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const handleWorkPolicyToggle = (policyId: string) => {
+    setFormData(prev => {
+      const currentPolicies = prev.workPolicies || [];
+      const isSelected = currentPolicies.includes(policyId);
+      
+      let newPolicies;
+      if (isSelected) {
+        newPolicies = currentPolicies.filter(id => id !== policyId);
+      } else {
+        newPolicies = [...currentPolicies, policyId];
+      }
+      
+      setTimeout(() => {
+        validateField('workPolicies', '');
+      }, 0);
+      
+      return {
+        ...prev,
+        workPolicies: newPolicies
+      };
+    });
   };
 
   const validateField = (field: string, value: string) => {
@@ -138,6 +191,10 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       case 'joinDate':
         isValid = value.trim().length > 0;
         errorMessage = isValid ? '' : '입사일을 선택해주세요.';
+        break;
+      case 'workPolicies':
+        isValid = Array.isArray(formData.workPolicies) && formData.workPolicies.length > 0;
+        errorMessage = isValid ? '' : '최소 1개 이상의 근무 정책을 선택해주세요.';
         break;
       default:
         isValid = true;
@@ -183,6 +240,12 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         newErrors[field] = errors[field] || '필수 항목입니다.';
       }
     });
+
+    // 근무 정책 필수 검사
+    if (!formData.workPolicies || formData.workPolicies.length === 0) {
+      isValid = false;
+      newErrors['workPolicies'] = '최소 1개 이상의 근무 정책을 선택해주세요.';
+    }
 
     setErrors(newErrors);
     return isValid;
@@ -231,7 +294,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[75vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -239,15 +302,14 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* 기본 정보 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   기본 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">이름 *</Label>
                     <Input
@@ -297,15 +359,13 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                 </div>
               </CardContent>
             </Card>
-
-            {/* 조직 정보 */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   조직 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="organization">조직 *</Label>
                     <Select value={formData.organization} onValueChange={(value) => handleInputChange('organization', value)}>
@@ -369,14 +429,14 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
               </CardContent>
             </Card>
 
-            {/* 계정 정보 */}
+            {/* 세 번째 컬럼 - 계정 정보 */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   계정 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="joinDate">입사일 *</Label>
                     <Input
@@ -399,6 +459,73 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       />
                       <span className="text-sm text-gray-600">관리자 권한 부여</span>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>근무 정책 *</Label>
+                    <div className="relative work-policy-dropdown">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.workPolicies ? 'border-red-500' : ''}`}
+                        onClick={() => setWorkPolicyDropdownOpen(!workPolicyDropdownOpen)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {formData.workPolicies?.length > 0 
+                            ? `${formData.workPolicies.length}개 정책 선택됨`
+                            : '근무 정책을 선택하세요'
+                          }
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                      
+                      {workPolicyDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                          {workPolicies.map((policy) => (
+                            <div
+                              key={policy.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleWorkPolicyToggle(policy.id)}
+                            >
+                              <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
+                                {formData.workPolicies?.includes(policy.id) && (
+                                  <Check className="w-3 h-3 text-blue-600" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{policy.label}</div>
+                                <div className="text-sm text-gray-500">{policy.description}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {formData.workPolicies?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {formData.workPolicies.map((policyId) => {
+                          const policy = workPolicies.find(p => p.id === policyId);
+                          return policy ? (
+                            <Badge 
+                              key={policyId} 
+                              variant="secondary" 
+                              className="flex items-center gap-1"
+                            >
+                              {policy.label}
+                              <X 
+                                className="w-3 h-3 cursor-pointer" 
+                                onClick={() => handleWorkPolicyToggle(policyId)}
+                              />
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                    
+                    {errors.workPolicies && (
+                      <p className="text-sm text-red-500">{errors.workPolicies}</p>
+                    )}
                   </div>
                 </div>
 
@@ -438,8 +565,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             </Card>
           </div>
 
-          {/* 버튼 */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-center gap-2 pt-6 border-t">
             {onBack && (
               <Button variant="outline" onClick={onBack}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -450,7 +576,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
               <X className="w-4 h-4 mr-2" />
               취소
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
               <Save className="w-4 h-4 mr-2" />
               저장
             </Button>
@@ -458,7 +584,6 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         </DialogContent>
       </Dialog>
 
-      {/* 저장 확인 모달 */}
       <Dialog open={showSaveConfirm} onOpenChange={setShowSaveConfirm}>
         <DialogContent>
           <DialogHeader>
@@ -476,7 +601,6 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         </DialogContent>
       </Dialog>
 
-      {/* 뒤로가기 확인 모달 */}
       <Dialog open={showBackConfirm} onOpenChange={setShowBackConfirm}>
         <DialogContent>
           <DialogHeader>

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { 
   User, 
   Mail, 
@@ -18,7 +19,11 @@ import {
   Copy,
   RefreshCw,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Clock,
+  ChevronDown,
+  Check,
+  X
 } from "lucide-react"
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
@@ -46,6 +51,7 @@ interface Employee {
     date: string
     time?: string
   }>
+  workPolicies?: string[]
 }
 
 interface EditModalProps {
@@ -61,18 +67,44 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
   const [tempPassword, setTempPassword] = useState<string>('')
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false)
+  const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false)
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = isOwnProfile || user?.isAdmin
   const canDelete = user?.isAdmin
   const canResetPassword = user?.isAdmin
 
+  const workPolicies = [
+    { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무', color: 'bg-blue-100 text-blue-800' },
+    { id: 'flexible', label: '유연근무', description: '코어타임 내 자유로운 출퇴근', color: 'bg-green-100 text-green-800' },
+    { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무', color: 'bg-purple-100 text-purple-800' },
+    { id: 'remote', label: '재택근무', description: '원격 근무 가능', color: 'bg-orange-100 text-orange-800' },
+    { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무', color: 'bg-indigo-100 text-indigo-800' }
+  ]
+
   useEffect(() => {
     if (employee) {
-      setEditedEmployee(employee)
+      setEditedEmployee({
+        ...employee,
+        workPolicies: employee.workPolicies || []
+      })
       setTempPassword('')
     }
   }, [employee])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('.work-policy-dropdown')) {
+        setWorkPolicyDropdownOpen(false)
+      }
+    }
+
+    if (workPolicyDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [workPolicyDropdownOpen])
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
@@ -165,6 +197,24 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     })
   }
 
+  const handleWorkPolicyToggle = (policyId: string) => {
+    if (!editedEmployee) return
+    const currentPolicies = editedEmployee.workPolicies || []
+    const isSelected = currentPolicies.includes(policyId)
+    let newPolicies: string[]
+    
+    if (isSelected) {
+      newPolicies = currentPolicies.filter(id => id !== policyId)
+    } else {
+      newPolicies = [...currentPolicies, policyId]
+    }
+    
+    setEditedEmployee({
+      ...editedEmployee,
+      workPolicies: newPolicies
+    })
+  }
+
 
 
   if (!employee || !canEdit) return null
@@ -176,10 +226,12 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
           <DialogTitle className="text-2xl font-bold text-gray-900">
             구성원 정보 수정
           </DialogTitle>
+          <DialogDescription>
+            구성원의 개인정보, 회사정보, 근무정책을 수정할 수 있습니다.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* 기본 정보 */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -211,19 +263,18 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                   placeholder="전화번호를 입력하세요"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">주소</Label>
-                <Input
-                  id="address"
-                  value={editedEmployee?.address || ''}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="주소를 입력하세요"
-                />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">주소</Label>
+              <Input
+                id="address"
+                value={editedEmployee?.address || ''}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="주소를 입력하세요"
+              />
             </div>
           </div>
 
-          {/* 회사 정보 */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">회사 정보</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -311,7 +362,72 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
             </div>
           </div>
 
-          {/* 임시 비밀번호 재설정 (관리자만) */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              근무 정책
+            </h3>
+            <div className="space-y-2">
+              <Label>근무 정책 선택</Label>
+              <div className="relative work-policy-dropdown">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => setWorkPolicyDropdownOpen(!workPolicyDropdownOpen)}
+                >
+                  <div className="flex items-center gap-2">
+                    {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
+                      ? `${editedEmployee.workPolicies.length}개 정책 선택됨`
+                      : '근무 정책을 선택하세요'
+                    }
+                  </div>
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+                {workPolicyDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {workPolicies.map((policy) => (
+                      <div
+                        key={policy.id}
+                        className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleWorkPolicyToggle(policy.id)}
+                      >
+                        <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
+                          {editedEmployee?.workPolicies?.includes(policy.id) && (
+                            <Check className="w-3 h-3 text-blue-600" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{policy.label}</div>
+                          <div className="text-sm text-gray-500">{policy.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {editedEmployee.workPolicies.map((policyId) => {
+                    const policy = workPolicies.find(p => p.id === policyId);
+                    return policy ? (
+                      <Badge
+                        key={policyId}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {policy.label}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => handleWorkPolicyToggle(policyId)}
+                        />
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
           {canResetPassword && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">임시 비밀번호 재설정</h3>
@@ -350,7 +466,6 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
             </div>
           )}
 
-          {/* 버튼들 */}
           <div className="flex justify-between pt-6">
             <div className="flex gap-2">
               <Button variant="outline" onClick={onClose}>
