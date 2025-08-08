@@ -56,6 +56,7 @@ async function fetchAnnouncements({ page, search }) {
 }
 
 export default function AnnouncementsPage() {
+  const router = useRouter();
   const [inputText, setInputText] = useState("");
   const [searchTerm, setSearchTerm] = useState("")
   const itemsPerPage = 10;
@@ -109,15 +110,12 @@ export default function AnnouncementsPage() {
 
   // 공지사항 클릭 핸들러
   const handleGlassCardClick = (id) => {
-    alert(id+"번 공지사항 조회 미완성");
-    // id 상세 조회 페이지로 라우팅
-    // useRouter.push("/announcements/details")
+    router.push("/announcements-detail")
   }
 
   // 글쓰기 클릭 핸들러
   const handleWriteAnnouncement = () => {
-    alert("글쓰기 미완성")
-    // useRouter.push("announcement/write");
+    router.push("/announcements-write")
   }
 
   
