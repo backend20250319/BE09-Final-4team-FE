@@ -9,6 +9,7 @@ import { colors, typography } from "@/lib/design-tokens"
 import { Search, Plus, Megaphone, Calendar, User, Eye, MessageSquare } from "lucide-react"
 import { useEffect } from "react"
 import { useRouter } from 'next/navigation'
+import StyledPaging from "@/components/paging/styled-paging";
 
 
 // 더미 데이터 생성 함수
@@ -230,25 +231,16 @@ export default function AnnouncementsPage() {
         )}
       </div>
       {/* Pagination */}
-      <div className="flex justify-center items-center gap-4 mt-8">
-        <button
-          className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1 || loading}
-        >
-          이전
-        </button>
-        <span className="text-gray-700 font-semibold">
-          {page} / {totalPages}
-        </span>
-        <button
-          className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages || loading}
-        >
-          다음
-        </button>
-      </div>
+      {totalPages > 1 && (
+        <div className="mt-8">
+          <StyledPaging
+            currentPage={page}
+            totalItems={total}
+            itemsPerPage={itemsPerPage}
+            onPageChange={(pageNumber) => setPage(pageNumber)}
+          />
+        </div>
+      )}
     </MainLayout>
   )
 } 
