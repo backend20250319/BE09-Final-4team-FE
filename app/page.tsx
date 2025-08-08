@@ -170,10 +170,11 @@ export default function DashboardPage() {
   }
 
   const employeeData = {
-    approvals: [
-      { title: '연차 신청서', status: '대기', bgColor: '#E3F0FF', statusColor: '#007BFF' },
-      { title: '출장 신청서', status: '검토', bgColor: '#FFF5CC', statusColor: '#EA580C' },
-      { title: '지출 결의서', status: '승인', bgColor: '#E8FFF2', statusColor: '#00C56B' }
+    approvalStats: [
+      { title: '내가 결재할 문서', count: 3, bgColor: '#FFF5CC', statusColor: '#EA580C', icon: FileText },
+      { title: '내가 신청한 문서', count: 2, bgColor: '#E3F0FF', statusColor: '#007BFF', icon: User },
+      { title: '결재 반려된 문서', count: 1, bgColor: '#FFE8E8', statusColor: '#FF4D4F', icon: XCircle },
+      { title: '결재 완료된 문서', count: 8, bgColor: '#E8FFF2', statusColor: '#00C56B', icon: CheckCircle }
     ],
 
     leaveData: {
@@ -412,11 +413,16 @@ export default function DashboardPage() {
             <CardTitle className="text-xl font-semibold text-gray-900">결재 현황</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {employeeData.approvals.map((item, index) => (
-              <div key={index} className="flex justify-between items-center p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
-                <span className="font-medium text-gray-800">{item.title}</span>
-                <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white' }}>
-                  {item.status}
+            {employeeData.approvalStats.map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: item.bgColor }}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: item.statusColor }}>
+                    <item.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-medium text-gray-800">{item.title}</span>
+                </div>
+                <Badge variant="secondary" style={{ color: item.statusColor, backgroundColor: 'white', fontWeight: 'bold' }}>
+                  {item.count}건
                 </Badge>
               </div>
             ))}
