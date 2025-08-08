@@ -10,12 +10,14 @@ import StyledPaging from '@/components/paging/styled-paging';
 import { typography } from '@/lib/design-tokens';
 import { GradientButton } from '@/components/ui/gradient-button';
 import { FileIcon, defaultStyles } from 'react-file-icon';
+import { useRouter } from 'next/navigation';
 
 export default function DocumentsTable({ files }) {
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const itemsPerPage = 7;
+  const router = useRouter();
 
   // 파일 메타데이터 생성
   const fileRows = files.map(filename => {
@@ -71,7 +73,7 @@ export default function DocumentsTable({ files }) {
               </Button>
             </div>
             <Button type="button" size="icon" variant="secondary" className="bg-white/60 border border-gray-200/50 text-gray-400 hover:text-gray-600" aria-label="필터"><Filter /></Button>
-            <GradientButton type="button" variant="primary" className="h-10 px-4" onClick={() => alert('업로드 페이지 이동! (구현 필요)')}><Plus className="w-4 h-4 mr-2" />업로드</GradientButton>
+            <GradientButton type="button" variant="primary" className="h-10 px-4" onClick={() => router.push('/documents-write')}><Plus className="w-4 h-4 mr-2" />업로드</GradientButton>
           </div>
         </div>
         {/* 테이블 */}
