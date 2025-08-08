@@ -16,18 +16,16 @@ import {
   X,
   Plus,
   Trash2,
-  Upload,
-  FileText,
   Users,
-  Eye,
-  Download,
   UserPlus,
   UserMinus,
   Loader2,
   ChevronDown,
   ChevronUp,
   ArrowLeft,
+  Send,
 } from "lucide-react"
+import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 
 // 타입 정의
 interface User {
@@ -38,12 +36,7 @@ interface User {
   department?: string
 }
 
-interface Attachment {
-  id: string
-  name: string
-  size?: string
-  url?: string
-}
+
 
 interface ApprovalStage {
   id: string
@@ -326,87 +319,7 @@ function ReferencesManager({
   )
 }
 
-// 첨부파일 관리 컴포넌트
-function AttachmentsManager({
-  attachments,
-  onAttachmentsChange
-}: {
-  attachments: Attachment[]
-  onAttachmentsChange: (attachments: Attachment[]) => void
-}) {
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files) return
 
-    const newAttachments: Attachment[] = Array.from(files).map((file, index) => ({
-      id: `file-${Date.now()}-${index}`,
-      name: file.name,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      url: URL.createObjectURL(file)
-    }))
-
-    onAttachmentsChange([...attachments, ...newAttachments])
-  }
-
-  const removeAttachment = (attachmentId: string) => {
-    onAttachmentsChange(attachments.filter(attachment => attachment.id !== attachmentId))
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* 파일 업로드 */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-        <input
-          type="file"
-          multiple
-          onChange={handleFileUpload}
-          className="hidden"
-          id="file-upload"
-        />
-        <label htmlFor="file-upload" className="cursor-pointer">
-          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <p className="text-sm text-gray-600">파일을 선택하거나 여기로 드래그하세요</p>
-          <p className="text-xs text-gray-500 mt-1">최대 10개 파일, 각 파일 최대 10MB</p>
-        </label>
-      </div>
-
-      {/* 첨부파일 목록 */}
-      {attachments.length > 0 && (
-        <div className="space-y-2">
-          {attachments.map((attachment) => (
-            <div key={attachment.id} className="flex items-center justify-between p-2 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800 truncate">{attachment.name}</p>
-                  {attachment.size && <p className="text-xs text-gray-500">{attachment.size}</p>}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Download className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeAttachment(attachment.id)}
-                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export function FormWriterModal({
   isOpen,
@@ -495,9 +408,9 @@ export function FormWriterModal({
           </DialogHeader>
 
           {/* 데스크톱 레이아웃 */}
-          <div className="hidden lg:flex flex-1 overflow-hidden gap-6 px-6 pb-6 min-h-0 mt-2">
+          <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0 min-w-0">
 
               {/* 본문 작성 */}
               <div className="space-y-2 flex-1 flex flex-col min-h-0">
@@ -555,7 +468,7 @@ export function FormWriterModal({
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <FileText className="w-4 h-4" />
+                    <Send className="w-4 h-4" />
                   )}
                   결재 요청하기
                 </GradientButton>
@@ -597,10 +510,12 @@ export function FormWriterModal({
 
               {/* 첨부파일 */}
               <CollapsibleSection title="첨부파일">
-                <AttachmentsManager
-                  attachments={attachments}
-                  onAttachmentsChange={setAttachments}
-                />
+                <div className="max-h-64 overflow-y-auto">
+                  <AttachmentsManager
+                    attachments={attachments}
+                    onAttachmentsChange={setAttachments}
+                  />
+                </div>
               </CollapsibleSection>
 
               {/* 결재 요청 버튼 - 모바일에서는 하단 고정 */}
@@ -614,7 +529,7 @@ export function FormWriterModal({
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <FileText className="w-4 h-4" />
+                    <Send className="w-4 h-4" />
                   )}
                   결재 요청하기
                 </GradientButton>
