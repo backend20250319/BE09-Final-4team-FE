@@ -11,10 +11,7 @@ const approvals = [
       date: "2025.07.25",
       status: "pending",
       priority: "normal",
-      content: `8월 1일 연차 사용 신청합니다.
-
-개인적인 휴식과 가족과의 시간을 위해 연차를 사용하고자 합니다.
-업무에 지장이 없도록 미리 신청드립니다.`,
+      content: "8월 1일 연차 사용 신청합니다.",
       icon: Calendar,
       color: colors.status.warning.gradient,
 
@@ -112,13 +109,7 @@ const approvals = [
       date: "2025.07.24",
       status: "approved",
       priority: "high",
-      content: `디자인 작업용 태블릿 구매 신청
-
-현재 사용 중인 태블릿이 노후화되어 디자인 작업에 어려움이 있습니다.
-새로운 태블릿 구매를 통해 업무 효율성을 향상시키고자 합니다.
-
-구매 희망 모델: iPad Pro 12.9인치 256GB
-예상 비용: 150만원`,
+      content: "디자인 작업용 태블릿 구매 신청",
       icon: FileText,
       color: colors.status.success.gradient,
       isMyApproval: false,
@@ -232,13 +223,7 @@ const approvals = [
       date: "2025.07.23",
       status: "rejected",
       priority: "normal",
-      content: `고객사 방문을 위한 출장 신청
-
-주요 고객사인 ABC기업과의 계약 갱신 협상을 위해 출장이 필요합니다.
-현장에서의 직접적인 소통을 통해 더 나은 협력 관계를 구축하고자 합니다.
-
-출장 기간: 2025.08.05 ~ 2025.08.07 (2박 3일)
-방문 목적: 계약 갱신 협상 및 기술 지원`,
+      content: "고객사 방문을 위한 출장 신청",
       icon: ArrowRight,
       color: colors.status.error.gradient,
       isMyApproval: false,
@@ -337,14 +322,7 @@ const approvals = [
       date: "2025.07.22",
       status: "pending",
       priority: "normal",
-      content: `HR 전문가 과정 교육 참석 신청
-
-인사 업무의 전문성을 향상시키기 위해 HR 전문가 과정에 참석하고자 합니다.
-최신 인사 트렌드와 법규 변경사항을 학습하여 회사의 인사 정책 개선에 기여하겠습니다.
-
-교육 과정: HR 전문가 과정 (온라인)
-교육 기간: 2025.08.15 ~ 2025.09.15 (4주)
-교육 비용: 50만원`,
+      content: "HR 전문가 과정 교육 참석 신청",
       icon: User,
       color: colors.status.info.gradient,
       isMyApproval: true,
@@ -432,14 +410,7 @@ const approvals = [
       date: "2025.07.21",
       status: "approved",
       priority: "low",
-      content: `다음 주 월요일 대회의실 예약 신청
-
-분기별 전체 직원 회의를 위해 대회의실 예약을 신청합니다.
-회의를 통해 분기 성과 공유 및 다음 분기 계획을 논의할 예정입니다.
-
-예약 일시: 2025.08.04 (월) 10:00 ~ 12:00
-참석 인원: 전체 직원 (약 50명)
-회의 목적: 분기별 성과 공유 및 계획 수립`,
+      content: "다음 주 월요일 대회의실 예약 신청",
       icon: FileText,
       color: colors.status.success.gradient,
       isMyApproval: false,
@@ -497,32 +468,10 @@ const approvals = [
       date: "2025.07.20",
       status: "pending",
       priority: "high",
-      content: `신규 프로젝트 개발 예산 신청
-
-새로운 웹 애플리케이션 개발 프로젝트를 위한 예산을 신청합니다.
-고객의 요구사항을 충족하는 최신 기술 스택을 활용한 프로젝트입니다.
-
-프로젝트명: 고객 관리 시스템 (CMS) 개발
-개발 기간: 2025.08.01 ~ 2025.11.30 (4개월)
-예산 금액: 800만원
-개발 인원: 개발팀 3명, 디자인팀 1명`,
+      content: "신규 프로젝트 개발 예산 신청",
       icon: FileText,
       color: colors.status.info.gradient,
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
-      attachments: [
-        {
-          id: "att-1",
-          name: "프로젝트_예산_계획서.pdf",
-          size: "2.3MB",
-          url: "/documents/project-budget-plan.pdf"
-        },
-        {
-          id: "att-2", 
-          name: "개발_인력_배치_계획.xlsx",
-          size: "1.1MB",
-          url: "/documents/development-team-plan.xlsx"
-        }
-      ],
       approvalStages: [
         {
           id: 1,
@@ -622,26 +571,10 @@ const approvals = [
       date: "2025.07.19",
       status: "pending",
       priority: "normal",
-      content: `React 고급 과정 교육 신청
-
-개발팀의 React 기술 역량 향상을 위해 고급 과정 교육에 참석하고자 합니다.
-최신 React 패턴과 성능 최적화 기법을 학습하여 프로젝트 품질을 개선하겠습니다.
-
-교육 과정: React 고급 과정 (온라인)
-교육 기간: 2025.08.10 ~ 2025.08.24 (2주)
-교육 비용: 30만원
-학습 내용: React 18, Concurrent Features, 성능 최적화`,
+      content: "React 고급 과정 교육 신청",
       icon: User,
       color: colors.status.info.gradient,
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
-      attachments: [
-        {
-          id: "att-5",
-          name: "React_고급과정_교육안내.pdf",
-          size: "1.8MB",
-          url: "/documents/react-advanced-course.pdf"
-        }
-      ],
       approvalStages: [
         {
           id: 1,

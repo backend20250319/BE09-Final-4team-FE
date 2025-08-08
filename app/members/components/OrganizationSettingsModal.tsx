@@ -248,4 +248,4 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
       />
     </>
   )
-}
+} 

@@ -59,8 +59,8 @@ export default function AddOrganizationModal({
       setParentOrg(organization.parentId || '')
       setSelectedLeader(organization.leader || null)
       setSelectedMembers(organization.members || [])
-    } else {
-      setOrgName('')
+          } else {
+        setOrgName('')
       setParentOrg('')
       setSelectedLeader(null)
       setSelectedMembers([])
@@ -265,4 +265,4 @@ export default function AddOrganizationModal({
       />
     </>
   )
-}
+} 

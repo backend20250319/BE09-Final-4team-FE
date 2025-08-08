@@ -143,7 +143,7 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-8">
           {/* 로고 */}
           <div className="flex justify-center mb-4 login-logo">
-            <Image src="/logo.svg" alt="Hermes Logo" width={160} height={160} />
+            <Image src="/logo.png" alt="Hermes Logo" width={160} height={160} />
           </div>
           
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent tracking-wide login-title">

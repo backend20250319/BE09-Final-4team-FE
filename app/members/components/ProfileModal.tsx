@@ -20,6 +20,7 @@ import {
   Crown,
   Shield
 } from "lucide-react"
+import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 import EditModal from './EditModal'
 
@@ -56,15 +57,17 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: ProfileModalProps) {
+  const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
   const [profileImage, setProfileImage] = useState<string>('')
   const [selfIntroduction, setSelfIntroduction] = useState<string>('')
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const canEdit = true // 데모용으로 모든 사용자가 편집 가능
-  const canEditProfileImage = true
-  const canEditSelfIntroduction = true
+  const isOwnProfile = user?.email === employee?.email
+  const canEdit = isOwnProfile || user?.isAdmin
+  const canEditProfileImage = isOwnProfile
+  const canEditSelfIntroduction = isOwnProfile
 
   useEffect(() => {
     if (employee) {
@@ -123,7 +126,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
        }
     } catch (error) {
       console.error('프로필 업데이트 오류:', error)
-      toast.success('프로필이 성공적으로 업데이트되었습니다.') // 데모용으로 성공 메시지 표시
+      toast.error('프로필 업데이트 중 오류가 발생했습니다.')
     }
   }
 
@@ -176,7 +179,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
            })
           .catch(error => {
             console.error('프로필 이미지 업데이트 오류:', error)
-            toast.success('프로필 이미지가 성공적으로 업데이트되었습니다.') // 데모용으로 성공 메시지 표시
+            toast.error(`프로필 이미지 업데이트 중 오류가 발생했습니다: ${error.message}`)
           })
         } else {
           console.error('employee가 없습니다.')
@@ -409,4 +412,4 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
       />
     </Dialog>
   )
-}
+} 
