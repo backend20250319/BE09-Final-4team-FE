@@ -472,6 +472,26 @@ const approvals = [
       icon: FileText,
       color: colors.status.info.gradient,
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      attachments: [
+        {
+          id: "att-1",
+          name: "프로젝트_예산_계획서.pdf",
+          size: "2.5MB",
+          url: "/documents/project-budget-plan.pdf"
+        },
+        {
+          id: "att-2", 
+          name: "개발_일정_표.xlsx",
+          size: "1.2MB",
+          url: "/documents/development-schedule.xlsx"
+        },
+        {
+          id: "att-3",
+          name: "기술_요구사항_문서.docx",
+          size: "3.1MB",
+          url: "/documents/technical-requirements.docx"
+        }
+      ],
       approvalStages: [
         {
           id: 1,

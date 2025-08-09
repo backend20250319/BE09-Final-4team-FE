@@ -14,15 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Calendar,
   User,
-  FileText,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
   ArrowRight,
   MessageSquare,
-  Download,
-  Eye,
   Check,
   X,
   Users,
@@ -36,21 +33,17 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  Eye,
 } from "lucide-react"
+import { AttachmentsSection } from "@/components/ui/attachments-section"
+import { Attachment } from "@/components/ui/attachments-manager"
 
 // 타입 정의
-interface User {
+export interface User {
   id: string
   name: string
   avatar?: string
   position?: string
-}
-
-interface Attachment {
-  id: string
-  name: string
-  size?: string
-  url?: string
 }
 
 interface TimelineItem {
@@ -89,7 +82,7 @@ interface Reference {
   position: string
 }
 
-interface Approval {
+export interface Approval {
   id: number
   title: string
   content: string
@@ -175,35 +168,7 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
   )
 }
 
-function AttachmentsSection({ attachments }: { attachments: Attachment[] }) {
-  return (
-    <div className="space-y-2">
-      <div className="space-y-1">
-        {attachments.map((file, index) => (
-                      <div key={file.id || `attachment-${index}`} className="flex items-center justify-between p-2 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="w-4 h-4 text-blue-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                {file.size && <p className="text-xs text-gray-500">{file.size}</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Download className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+
 
 function TimelineSection({
   timeline,
