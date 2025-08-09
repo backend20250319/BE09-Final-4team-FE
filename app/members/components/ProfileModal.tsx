@@ -39,7 +39,8 @@ interface Employee {
   phone?: string
   address?: string
   joinDate: string
-  organization: string
+  organization?: string
+  organizations?: string[]
   position: string
   role: string
   job: string
@@ -218,6 +219,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
   if (!employee) return null
 
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -279,9 +281,17 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-3">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {editedEmployee?.organization || employee.organization}
-                  </Badge>
+                  {(
+                    editedEmployee?.organizations 
+                      ?? employee.organizations 
+                      ?? (editedEmployee?.organization 
+                          ? [editedEmployee.organization] 
+                          : (employee.organization ? [employee.organization] : []))
+                  ).map((org, idx) => (
+                    <Badge key={`${org}-${idx}`} variant="secondary" className="bg-blue-100 text-blue-800">
+                      {org}
+                    </Badge>
+                  ))}
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     {editedEmployee?.position || employee.position}
                   </Badge>
@@ -296,13 +306,13 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900">상세정보</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-start gap-2 md:col-span-1">
+                  <Calendar className="w-4 h-4 text-gray-500 mt-0.5" />
                   <span className="text-sm text-gray-600">입사일:</span>
                   <span className="text-sm font-medium">{editedEmployee?.joinDate || employee.joinDate}</span>
                 </div>
-                                 <div className="flex items-start gap-2">
+                                 <div className="flex items-start gap-2 md:col-span-2">
                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
                    <div className="flex-1">
                      <div className="flex items-start gap-2">
@@ -433,7 +443,11 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
       <EditModal
         isOpen={showEditModal}
         onClose={handleEditModalClose}
-        employee={employee}
+        employee={{
+          ...employee,
+          organizations:
+            employee.organizations ?? (employee.organization ? [employee.organization] : []),
+        }}
         onUpdate={handleEditUpdate}
         onDelete={handleEditDelete}
       />

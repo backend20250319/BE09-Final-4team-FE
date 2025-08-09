@@ -42,7 +42,7 @@ const initialFormData = {
   phone: '',
   address: '',
   joinDate: '',
-  organization: '',
+  organizations: [] as string[],
   position: '',
   role: '',
   job: '',
@@ -88,6 +88,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
+  const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -97,16 +98,20 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       setShowSaveConfirm(false);
       setShowBackConfirm(false);
       setWorkPolicyDropdownOpen(false);
+      setOrganizationDropdownOpen(false);
     }
   }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (workPolicyDropdownOpen) {
-        const target = event.target as HTMLElement;
-        if (!target.closest('.work-policy-dropdown')) {
-          setWorkPolicyDropdownOpen(false);
-        }
+      const target = event.target as HTMLElement;
+      
+      if (workPolicyDropdownOpen && !target.closest('.work-policy-dropdown')) {
+        setWorkPolicyDropdownOpen(false);
+      }
+      
+      if (organizationDropdownOpen && !target.closest('.organization-dropdown')) {
+        setOrganizationDropdownOpen(false);
       }
     };
 
@@ -114,7 +119,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [workPolicyDropdownOpen]);
+  }, [workPolicyDropdownOpen, organizationDropdownOpen]);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -158,6 +163,29 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
     });
   };
 
+  const handleOrganizationToggle = (orgName: string) => {
+    setFormData(prev => {
+      const currentOrgs = prev.organizations || [];
+      const isSelected = currentOrgs.includes(orgName);
+      
+      let newOrgs;
+      if (isSelected) {
+        newOrgs = currentOrgs.filter(org => org !== orgName);
+      } else {
+        newOrgs = [...currentOrgs, orgName];
+      }
+      
+      setTimeout(() => {
+        validateField('organizations', '');
+      }, 0);
+      
+      return {
+        ...prev,
+        organizations: newOrgs
+      };
+    });
+  };
+
   const validateField = (field: string, value: string) => {
     let isValid = false;
     let errorMessage = '';
@@ -172,9 +200,9 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         isValid = emailRegex.test(value);
         errorMessage = isValid ? '' : '올바른 이메일 형식을 입력해주세요.';
         break;
-      case 'organization':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '조직을 선택해주세요.';
+      case 'organizations':
+        isValid = Array.isArray(formData.organizations) && formData.organizations.length > 0;
+        errorMessage = isValid ? '' : '최소 1개 이상의 조직을 선택해주세요.';
         break;
       case 'position':
         isValid = value.trim().length > 0;
@@ -367,18 +395,64 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="organization">조직 *</Label>
-                    <Select value={formData.organization} onValueChange={(value) => handleInputChange('organization', value)}>
-                      <SelectTrigger className={errors.organization ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="조직을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {organizations.map((org) => (
-                          <SelectItem key={org} value={org}>{org}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.organization && <p className="text-sm text-red-500">{errors.organization}</p>}
+                    <Label>조직 *</Label>
+                    <div className="relative organization-dropdown">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.organizations ? 'border-red-500' : ''}`}
+                        onClick={() => setOrganizationDropdownOpen(!organizationDropdownOpen)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {formData.organizations?.length > 0 
+                            ? `${formData.organizations.length}개 조직 선택됨`
+                            : '조직을 선택하세요'
+                          }
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                      
+                      {organizationDropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                          {organizations.map((org) => (
+                            <div
+                              key={org}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleOrganizationToggle(org)}
+                            >
+                              <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
+                                {formData.organizations?.includes(org) && (
+                                  <Check className="w-3 h-3 text-blue-600" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{org}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                                         {formData.organizations?.length > 0 && (
+                       <div className="flex flex-wrap gap-2 mt-2">
+                         {formData.organizations.map((org) => (
+                           <Badge 
+                             key={org} 
+                             variant="secondary" 
+                             className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
+                             onClick={() => handleOrganizationToggle(org)}
+                           >
+                             {org}
+                             <X 
+                               className="w-3 h-3 hover:text-red-500" 
+                             />
+                           </Badge>
+                         ))}
+                       </div>
+                     )}
+                    
+                    {errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -502,26 +576,26 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       )}
                     </div>
                     
-                    {formData.workPolicies?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {formData.workPolicies.map((policyId) => {
-                          const policy = workPolicies.find(p => p.id === policyId);
-                          return policy ? (
-                            <Badge 
-                              key={policyId} 
-                              variant="secondary" 
-                              className="flex items-center gap-1"
-                            >
-                              {policy.label}
-                              <X 
-                                className="w-3 h-3 cursor-pointer" 
-                                onClick={() => handleWorkPolicyToggle(policyId)}
-                              />
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
+                                         {formData.workPolicies?.length > 0 && (
+                       <div className="flex flex-wrap gap-2 mt-2">
+                         {formData.workPolicies.map((policyId) => {
+                           const policy = workPolicies.find(p => p.id === policyId);
+                           return policy ? (
+                             <Badge 
+                               key={policyId} 
+                               variant="secondary" 
+                               className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
+                               onClick={() => handleWorkPolicyToggle(policyId)}
+                             >
+                               {policy.label}
+                               <X 
+                                 className="w-3 h-3 hover:text-red-500" 
+                               />
+                             </Badge>
+                           ) : null;
+                         })}
+                       </div>
+                     )}
                     
                     {errors.workPolicies && (
                       <p className="text-sm text-red-500">{errors.workPolicies}</p>

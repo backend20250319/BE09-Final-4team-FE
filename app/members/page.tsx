@@ -953,7 +953,7 @@ export default function MembersPage() {
               variant="default" 
               size="sm" 
               onClick={handleSettingsClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
             >
               <Settings className="w-4 h-4 mr-2" />
               설정

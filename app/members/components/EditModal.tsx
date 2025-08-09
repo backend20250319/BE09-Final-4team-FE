@@ -35,7 +35,7 @@ interface Employee {
   phone?: string
   address?: string
   joinDate: string
-  organization: string
+  organizations: string[]
   position: string
   role: string
   job: string
@@ -68,6 +68,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const [tempPassword, setTempPassword] = useState<string>('')
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false)
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false)
+  const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false)
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = isOwnProfile || user?.isAdmin
@@ -80,6 +81,10 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무', color: 'bg-purple-100 text-purple-800' },
     { id: 'remote', label: '재택근무', description: '원격 근무 가능', color: 'bg-orange-100 text-orange-800' },
     { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무', color: 'bg-indigo-100 text-indigo-800' }
+  ]
+
+  const organizations = [
+    '개발팀', '디자인팀', '마케팅팀', '인사팀', '기획팀', '영업팀'
   ]
 
   useEffect(() => {
@@ -95,16 +100,21 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
-      if (!target.closest('.work-policy-dropdown')) {
+      
+      if (workPolicyDropdownOpen && !target.closest('.work-policy-dropdown')) {
         setWorkPolicyDropdownOpen(false)
+      }
+      
+      if (organizationDropdownOpen && !target.closest('.organization-dropdown')) {
+        setOrganizationDropdownOpen(false)
       }
     }
 
-    if (workPolicyDropdownOpen) {
+    if (workPolicyDropdownOpen || organizationDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [workPolicyDropdownOpen])
+  }, [workPolicyDropdownOpen, organizationDropdownOpen])
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
@@ -215,6 +225,24 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     })
   }
 
+  const handleOrganizationToggle = (orgName: string) => {
+    if (!editedEmployee) return
+    const currentOrgs = editedEmployee.organizations || []
+    const isSelected = currentOrgs.includes(orgName)
+    let newOrgs: string[]
+    
+    if (isSelected) {
+      newOrgs = currentOrgs.filter(org => org !== orgName)
+    } else {
+      newOrgs = [...currentOrgs, orgName]
+    }
+    
+    setEditedEmployee({
+      ...editedEmployee,
+      organizations: newOrgs
+    })
+  }
+
 
 
   if (!employee || !canEdit) return null
@@ -288,23 +316,66 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="organization">조직</Label>
-                <Select
-                  value={editedEmployee?.organization || ''}
-                  onValueChange={(value) => handleInputChange('organization', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="조직을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="경영진">경영진</SelectItem>
-                    <SelectItem value="개발본부">개발본부</SelectItem>
-                    <SelectItem value="마케팅팀">마케팅팀</SelectItem>
-                    <SelectItem value="영업팀">영업팀</SelectItem>
-                    <SelectItem value="인사팀">인사팀</SelectItem>
-                    <SelectItem value="경영팀">경영팀</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>조직</Label>
+                <div className="relative organization-dropdown">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => setOrganizationDropdownOpen(!organizationDropdownOpen)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {editedEmployee?.organizations?.length && editedEmployee.organizations.length > 0 
+                        ? `${editedEmployee.organizations?.length ?? 0}개 조직 선택됨`
+                        : '조직을 선택하세요'
+                      }
+                    </div>
+                    <ChevronDown className="w-4 h-4" />
+                  </Button>
+                  
+                  {organizationDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                      {organizations.map((org) => (
+                        <div
+                          key={org}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleOrganizationToggle(org)}
+                        >
+                          <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
+                            {editedEmployee?.organizations?.includes(org) && (
+                              <Check className="w-3 h-3 text-blue-600" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{org}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {editedEmployee?.organizations && editedEmployee.organizations.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {editedEmployee.organizations.map((org) => (
+                      <Badge 
+                        key={org} 
+                        variant="secondary" 
+                        className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
+                        onClick={() => handleOrganizationToggle(org)}
+                      >
+                        {org}
+                        <X 
+                          className="w-3 h-3 cursor-pointer hover:text-red-500" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOrganizationToggle(org);
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="position">직위</Label>
@@ -413,12 +484,22 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       <Badge
                         key={policyId}
                         variant="secondary"
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
+                        onClick={() => {
+                          setWorkPolicyDropdownOpen(false)
+                          handleWorkPolicyToggle(policyId)
+                        }}
+                        role="button"
+                        aria-label={`${policy.label} 정책 제거`}
                       >
                         {policy.label}
                         <X
-                          className="w-3 h-3 cursor-pointer"
-                          onClick={() => handleWorkPolicyToggle(policyId)}
+                          className="w-3 h-3 cursor-pointer hover:text-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWorkPolicyDropdownOpen(false)
+                            handleWorkPolicyToggle(policyId)
+                          }}
                         />
                       </Badge>
                     ) : null;
