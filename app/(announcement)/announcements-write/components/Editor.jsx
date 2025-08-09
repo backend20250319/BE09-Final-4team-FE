@@ -28,7 +28,6 @@ function Placeholder() {
   );
 }
 
-
 function EditorInitializer({ json }) {
   const [editor] = useLexicalComposerContext();
 
@@ -82,7 +81,7 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor({ jsonData: json, onChange }) {
+export default function Editor({ jsonData: json, onChange, readOnly = false, showToolbar = true, backgroundColor }) {
   const [mounted, setMounted] = useState(false);
   function handleChange(editorState) {
     const jsonString = JSON.stringify(editorState.toJSON());
@@ -102,27 +101,39 @@ export default function Editor({ jsonData: json, onChange }) {
     );
   }
 
+  // 배경색 결정: prop > readOnly > 기본값
+  const resolvedBg = backgroundColor !== undefined ? backgroundColor : (readOnly ? "transparent" : "#fff");
+
   return (
     <LexicalComposer
       initialConfig={{
         ...editorConfigBase,
+        editable: !readOnly,
       }}
     >
       <div className="editor-container">
-        <ToolbarPlugin />
-        <div className="editor-inner">
+        {showToolbar && <ToolbarPlugin />}
+        <div
+          className="editor-inner"
+          style={{ background: resolvedBg }}
+        >
           <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
+            contentEditable={
+              <ContentEditable
+                className={`editor-input ${readOnly ? 'pointer-events-none' : ''}`}
+                style={{ background: resolvedBg }}
+              />
+            }
             placeholder={<Placeholder />}
           />
-          <AutoFocusPlugin />
+          {!readOnly && <AutoFocusPlugin />}
           <ListPlugin />
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <CodeHighlightPlugin />
           <EditorInitializer json={json} />
         </div>
-        <OnChangePlugin onChange={handleChange} />
+        {!readOnly && <OnChangePlugin onChange={handleChange} />}
       </div>
     </LexicalComposer>
   );

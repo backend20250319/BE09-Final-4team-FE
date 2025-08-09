@@ -2,10 +2,11 @@
 
 // 메뉴 아이템 타입
 export interface MenuItem {
-  icon: string
-  label: string
-  active: boolean
-  href?: string
+  icon: string;
+  label: string;
+  active: boolean;
+  href?: string;
+  children?: MenuItem[]; // 하위 메뉴 아이템
 }
 
 // 기본 메뉴 아이템들
@@ -17,8 +18,13 @@ export const defaultMenuItems: MenuItem[] = [
   { icon: "Megaphone", label: "공지", active: false, href: "/announcements" },
   { icon: "ClipboardList", label: "결재", active: false, href: "/approvals" },
   { icon: "FileText", label: "문서", active: false, href: "/documents" },
-  { icon: "Settings", label: "설정", active: false, href: "/settings" },
-]
+  {
+    icon: "Settings", label: "설정", active: false, href: "/settings", children: [
+      {icon: "Building", label: "회사 정보 설정", active: false, href: "/settings/companyinfo"},
+      {icon: "Clock", label: "근무 정책 설정", active: false, href: "/settings/workpolicies"},
+    ],
+  },
+];
 
 // 라우트 상수
 export const ROUTES = {
@@ -32,7 +38,9 @@ export const ROUTES = {
   APPROVALS: "/approvals",
   DOCUMENTS: "/documents",
   SETTINGS: "/settings",
-} as const
+  SETTINGS_COMPANY_INFO: "/settings/companyinfo",
+  SETTINGS_WORK_POLICIES: "/settings/workpolicies",
+} as const;
 
 // 메뉴 아이템별 권한 (필요시 확장)
 export const MENU_PERMISSIONS = {
@@ -44,4 +52,4 @@ export const MENU_PERMISSIONS = {
   APPROVALS: ["admin", "manager"],
   DOCUMENTS: ["all"],
   SETTINGS: ["admin"],
-} as const 
+} as const;
