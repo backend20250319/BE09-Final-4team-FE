@@ -72,7 +72,6 @@ export default function LeaderSelectionModal({
     return () => clearTimeout(id)
   }, [searchTerm])
 
-  // 부모에서 조직장 뱃지를 제거/변경하면 모달 선택 상태도 동기화
   useEffect(() => {
     setSelectedMember(selectedLeader ?? null)
   }, [selectedLeader, isOpen])

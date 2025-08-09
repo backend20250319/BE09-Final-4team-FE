@@ -144,12 +144,87 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
   }
 
   const handleOrgSave = (org: Organization) => {
+
+    const removeById = (orgs: Organization[], targetId: string): { tree: Organization[]; removed?: Organization } => {
+      let removed: Organization | undefined
+      const tree = orgs
+        .map(o => {
+          if (o.id === targetId) {
+            removed = { ...o }
+            return null
+          }
+          if (o.children && o.children.length > 0) {
+            const res = removeById(o.children, targetId)
+            if (res.removed) removed = res.removed
+            return { ...o, children: res.tree }
+          }
+          return o
+        })
+        .filter(Boolean) as Organization[]
+      return { tree, removed }
+    }
+
+
+    const insertUnderParent = (orgs: Organization[], parentId: string, node: Organization): Organization[] => {
+      return orgs.map(o => {
+        if (o.id === parentId) {
+          const children = o.children ? [...o.children, node] : [node]
+          return { ...o, children }
+        }
+        if (o.children && o.children.length > 0) {
+          return { ...o, children: insertUnderParent(o.children, parentId, node) }
+        }
+        return o
+      })
+    }
+
     if (editingOrg) {
+      const parentChanged = (editingOrg.parentId || '') !== (org.parentId || '')
+      if (parentChanged) {
+        setOrganizations(prev => {
+          const { tree, removed } = removeById(prev, org.id)
+          const node: Organization = {
+            ...(removed || org),
+            name: org.name,
+            parentId: org.parentId,
+            leader: org.leader,
+            members: org.members,
+            children: removed?.children || org.children || []
+          }
+          if (org.parentId) {
+            return insertUnderParent(tree, org.parentId, node)
+          }
+          return [...tree, node]
+        })
+      } else {
+        const update = (orgs: Organization[]): Organization[] =>
+          orgs.map(o => o.id === org.id
+            ? { ...o, name: org.name, parentId: org.parentId, leader: org.leader, members: org.members }
+            : { ...o, children: o.children ? update(o.children) : o.children }
+          )
+        setOrganizations(prev => update(prev))
+      }
       toast.success('조직이 성공적으로 수정되었습니다.')
     } else {
+      setOrganizations(prev => {
+        const node: Organization = { ...org, children: org.children || [] }
+        if (org.parentId) {
+          return insertUnderParent(prev, org.parentId, node)
+        }
+        return [...prev, node]
+      })
       toast.success('조직이 성공적으로 추가되었습니다.')
     }
     handleAddModalClose()
+  }
+
+  const handleOrgDelete = (id: string) => {
+    const remove = (orgs: Organization[]): Organization[] =>
+      orgs
+        .filter(o => o.id !== id)
+        .map(o => ({ ...o, children: o.children ? remove(o.children) : o.children }))
+    setOrganizations(prev => remove(prev))
+    toast.success('조직이 삭제되었습니다.')
   }
 
   const renderOrgTree = (orgs: Organization[], level = 0) => {
@@ -292,6 +367,8 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
         onClose={handleAddModalClose}
         organization={editingOrg}
         onSave={handleOrgSave}
+        onDelete={handleOrgDelete}
+        organizations={organizations}
       />
     </>
   )

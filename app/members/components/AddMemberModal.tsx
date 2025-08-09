@@ -56,12 +56,14 @@ const organizations = [
   '개발팀', '디자인팀', '마케팅팀', '인사팀', '기획팀', '영업팀'
 ];
 
+// 직위 목록 (예시)
 const positions = [
-  '사원', '대리', '과장', '차장', '부장', '팀장', '이사', '대표'
+  'CEO', 'COO', 'CTO', 'CPO', 'CMO', 'VP', 'Director', 'Head', 'Manager'
 ];
 
+// 직책 목록 (예시)
 const roles = [
-  '개발자', '디자이너', '마케터', '기획자', '영업원', '인사담당자', '관리자'
+  '본부장', '팀장', '팀원', '인턴'
 ];
 
 const jobs = [
@@ -88,6 +90,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -205,16 +208,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         errorMessage = isValid ? '' : '최소 1개 이상의 조직을 선택해주세요.';
         break;
       case 'position':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '직급을 선택해주세요.';
-        break;
+      case 'rank':
       case 'role':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '역할을 선택해주세요.';
-        break;
       case 'job':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '업무를 선택해주세요.';
+        isValid = true;
+        errorMessage = '';
         break;
       case 'joinDate':
         isValid = value.trim().length > 0;
@@ -236,6 +234,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const handleFieldBlur = (field: string, value: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
     validateField(field, value);
   };
 
@@ -257,7 +256,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const validateForm = () => {
-    const requiredFields = ['name', 'email', 'organization', 'position', 'role', 'job', 'joinDate'];
+    const requiredFields = ['name', 'email', 'organizations', 'joinDate'];
     let isValid = true;
     const newErrors: Record<string, string> = {};
 
@@ -288,13 +287,18 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const hasData = () => {
-    return Object.values(formData).some(value => 
-      typeof value === 'string' ? value.trim() !== '' : value !== false
-    );
+    const { name, email, joinDate, organizations, isAdmin, workPolicies, ...rest } = formData as any
+    const textChanged = [name, email, joinDate].some((v) => typeof v === 'string' && v.trim() !== '')
+    const orgChanged = Array.isArray(organizations) && organizations.length > 0
+    const policiesChanged = Array.isArray(workPolicies) && workPolicies.length > 0
+    const othersChanged = Object.values(rest).some((v) => typeof v === 'string' && v.trim() !== '')
+    return textChanged || orgChanged || policiesChanged || othersChanged
   };
 
+  const [initialSnapshot] = useState(JSON.stringify(initialFormData))
   const handleClose = () => {
-    if (hasData()) {
+    const currentSnapshot = JSON.stringify(formData)
+    if (currentSnapshot !== initialSnapshot && hasData()) {
       setShowBackConfirm(true);
     } else {
       onClose();
@@ -348,7 +352,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       placeholder="이름을 입력하세요"
                       className={errors.name ? 'border-red-500' : ''}
                     />
-                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                    {touched.name && errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -362,7 +366,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       placeholder="이메일을 입력하세요"
                       className={errors.email ? 'border-red-500' : ''}
                     />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                    {touched.email && errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -452,14 +456,29 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                        </div>
                      )}
                     
-                    {errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
+                    {touched.organizations && errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="position">직급 *</Label>
+                    <Label htmlFor="rank">직급</Label>
+                    <Select value={formData.rank} onValueChange={(value) => handleInputChange('rank', value)}>
+                      <SelectTrigger className={errors.rank ? 'border-red-500' : ''}>
+                        <SelectValue placeholder="선택(선택사항)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ranks.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.rank && <p className="text-sm text-red-500">{errors.rank}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position">직위</Label>
                     <Select value={formData.position} onValueChange={(value) => handleInputChange('position', value)}>
                       <SelectTrigger className={errors.position ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="직급을 선택하세요" />
+                        <SelectValue placeholder="선택(선택사항)" />
                       </SelectTrigger>
                       <SelectContent>
                         {positions.map((pos) => (
@@ -471,25 +490,22 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">역할 *</Label>
-                    <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                      <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="역할을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role} value={role}>{role}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="role">직책</Label>
+                    <Input
+                      id="role"
+                      value={formData.role}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      placeholder="직책을 입력하세요"
+                      className={errors.role ? 'border-red-500' : ''}
+                    />
                     {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job">업무 *</Label>
+                    <Label htmlFor="job">직무</Label>
                     <Select value={formData.job} onValueChange={(value) => handleInputChange('job', value)}>
                       <SelectTrigger className={errors.job ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="업무를 선택하세요" />
+                        <SelectValue placeholder="선택(선택사항)" />
                       </SelectTrigger>
                       <SelectContent>
                         {jobs.map((job) => (
@@ -503,7 +519,6 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
               </CardContent>
             </Card>
 
-            {/* 세 번째 컬럼 - 계정 정보 */}
             <Card>
               <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -521,7 +536,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       onBlur={(e) => handleFieldBlur('joinDate', e.target.value)}
                       className={errors.joinDate ? 'border-red-500' : ''}
                     />
-                    {errors.joinDate && <p className="text-sm text-red-500">{errors.joinDate}</p>}
+                    {touched.joinDate && errors.joinDate && <p className="text-sm text-red-500">{errors.joinDate}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -603,7 +618,6 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                   </div>
                 </div>
 
-                {/* 임시 비밀번호 */}
                 <div className="mt-4 space-y-2">
                   <Label>임시 비밀번호</Label>
                   <div className="flex gap-2">
@@ -664,11 +678,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             <DialogTitle>구성원 추가</DialogTitle>
           </DialogHeader>
           <p>입력한 정보로 구성원을 추가하시겠습니까?</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleSaveCancel}>
+                   <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleSaveCancel} className="cursor-pointer">
               취소
             </Button>
-            <Button onClick={handleSaveConfirm}>
+            <Button onClick={handleSaveConfirm} className="cursor-pointer">
               확인
             </Button>
           </div>
@@ -681,11 +695,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             <DialogTitle>변경사항 저장</DialogTitle>
           </DialogHeader>
           <p>입력한 정보가 저장되지 않습니다. 정말 나가시겠습니까?</p>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleBackCancel}>
+           <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleBackCancel} className="cursor-pointer">
               취소
             </Button>
-            <Button variant="destructive" onClick={handleBackConfirm}>
+            <Button variant="destructive" onClick={handleBackConfirm} className="cursor-pointer">
               나가기
             </Button>
           </div>

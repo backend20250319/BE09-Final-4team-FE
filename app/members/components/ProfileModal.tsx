@@ -21,6 +21,7 @@ import {
   Shield
 } from "lucide-react"
 import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import EditModal from './EditModal'
 
@@ -68,6 +69,7 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: ProfileModalProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
   const [profileImage, setProfileImage] = useState<string>('')
@@ -233,11 +235,8 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 왼쪽 컬럼 - 프로필 정보 */}
           <div className="lg:col-span-2 space-y-6">
-            {/* 프로필 섹션 */}
             <div className="flex items-start gap-6">
-              {/* 프로필 이미지 */}
               <div className="relative">
                 <Avatar className="w-24 h-24 bg-transparent">
                   <AvatarImage src={profileImage} alt={employee.name} className="bg-transparent" />
@@ -354,7 +353,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="p-1 h-auto"
+                    className="p-1 h-auto cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4" />
                   </Button>
@@ -393,25 +392,73 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-900">이번주 일정</h3>
-              <div className="space-y-2">
-                {(employee.weeklySchedule || [
-                  { title: '팀 회의', date: '25일', time: '10:00' },
-                  { title: '프로젝트 검토', date: '26일', time: '14:00' },
-                  { title: '휴가', date: '29-30일' }
-                ]).map((schedule, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <CalendarIcon className="w-4 h-4 text-gray-500" />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{schedule.title}</div>
-                      <div className="text-xs text-gray-500">
-                        {schedule.date}{schedule.time && ` ${schedule.time}`}
+            <div 
+              onClick={() => router.push('/work')} 
+              className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg cursor-pointer hover:from-blue-100 hover:to-blue-200 transition-colors"
+            >
+              {(() => {
+                // 현재 날짜 기준으로 이번 주의 날짜들 계산
+                const today = new Date();
+                const currentDay = today.getDay(); // 0: 일요일, 1: 월요일, ..., 6: 토요일
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1)); // 이번 주 월요일
+
+                const weekDates = [...Array(7)].map((_, i) => {
+                  const date = new Date(monday);
+                  date.setDate(monday.getDate() + i);
+                  return date;
+                });
+
+                const month = weekDates[0].getMonth() + 1; // 주의 시작일 기준 월
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon className="w-5 h-5 text-blue-600" />
+                        <h3 className="text-lg font-semibold text-gray-900">근무 일정</h3>
                       </div>
+                      <div className="text-sm font-medium text-gray-600">{month}월</div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                    
+                    <div className="grid grid-cols-7 gap-2">
+                      {weekDates.map((date, i) => {
+                        const isToday = date.toDateString() === today.toDateString();
+                        const workHours = date.getDay() === 0 || date.getDay() === 6 ? 0 : 8; // 주말은 0시간, 평일은 8시간
+
+                        return (
+                          <div key={i} className="text-center">
+                            <div className={`text-xs mb-1 ${isToday ? 'text-blue-600 font-bold' : 'text-gray-500'}`}>
+                              {date.getDate()}
+                            </div>
+                            <div className="h-32 w-3 mx-auto bg-blue-50 rounded-full relative overflow-hidden">
+                              {workHours > 0 && (
+                                <div 
+                                  className="absolute w-full bg-blue-500"
+                                  style={{
+                                    top: '0',
+                                    height: '100%',
+                                    opacity: 0.15
+                                  }}
+                                />
+                              )}
+                              {workHours > 0 && (
+                                <div 
+                                  className="absolute w-full bg-blue-500"
+                                  style={{
+                                    top: `${(24 - workHours) * (100/24)}%`,
+                                    height: `${workHours * (100/24)}%`
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -420,17 +467,17 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           <div className="flex justify-center mt-8">
             {isEditing ? (
               <div className="flex gap-2">
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
                   저장하기
                 </Button>
-                <Button variant="outline" onClick={handleCancel}>
+                <Button variant="outline" onClick={handleCancel} className="cursor-pointer">
                   취소
                 </Button>
               </div>
             ) : (
               <Button 
                 onClick={handleEditClick}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 수정하기

@@ -79,7 +79,6 @@ export default function MemberSelectionModal({
     return () => clearTimeout(id)
   }, [searchTerm])
 
-  // 부모에서 조직원 뱃지를 제거/변경하면 모달 선택 상태도 동기화
   useEffect(() => {
     setSelectedMemberIds(new Set(selectedMembers.map(m => m.id)))
   }, [selectedMembers, isOpen])

@@ -38,13 +38,17 @@ interface AddOrganizationModalProps {
   onClose: () => void
   organization?: Organization | null
   onSave: (org: Organization) => void
+  onDelete?: (id: string) => void
+  organizations: Organization[]
 }
 
 export default function AddOrganizationModal({ 
   isOpen, 
   onClose, 
   organization, 
-  onSave 
+  onSave,
+  onDelete,
+  organizations
 }: AddOrganizationModalProps) {
   const [orgName, setOrgName] = useState('')
   const [parentOrg, setParentOrg] = useState('')
@@ -57,6 +61,28 @@ export default function AddOrganizationModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showDeleteWarn, setShowDeleteWarn] = useState(false)
   const [deleteWarnMessage, setDeleteWarnMessage] = useState('')
+
+  const flattenOrgs = (orgs: Organization[], depth = 0): Array<{ id: string; name: string; depth: number }> => {
+    const list: Array<{ id: string; name: string; depth: number }> = []
+    orgs.forEach(o => {
+      list.push({ id: o.id, name: o.name, depth })
+      if (o.children && o.children.length > 0) {
+        list.push(...flattenOrgs(o.children, depth + 1))
+      }
+    })
+    return list
+  }
+
+  const excludedIds = useMemo(() => {
+    const set = new Set<string>()
+    if (organization) set.add(organization.id)
+    return set
+  }, [organization])
+
+  const parentOptions = useMemo(() => {
+    const flat = flattenOrgs(organizations)
+    return flat.filter(opt => !excludedIds.has(opt.id))
+  }, [organizations, excludedIds])
 
   useEffect(() => {
     if (organization) {
@@ -112,6 +138,7 @@ export default function AddOrganizationModal({
     if (!organization) return
     toast.success('조직이 성공적으로 삭제되었습니다.')
     setShowDeleteConfirm(false)
+    onDelete?.(organization.id)
     onClose()
   }
 
@@ -210,10 +237,11 @@ export default function AddOrganizationModal({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">없음</SelectItem>
-                  <SelectItem value="1">CEE</SelectItem>
-                  <SelectItem value="2">Management</SelectItem>
-                  <SelectItem value="3">Application 2</SelectItem>
-                  <SelectItem value="6">Application 1</SelectItem>
+                  {parentOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {`${'\u00A0'.repeat(opt.depth * 2)}${opt.name}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
