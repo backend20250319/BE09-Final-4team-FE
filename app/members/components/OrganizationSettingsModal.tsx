@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +40,7 @@ interface OrganizationSettingsModalProps {
 export default function OrganizationSettingsModal({ isOpen, onClose }: OrganizationSettingsModalProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
@@ -172,7 +173,7 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
                     e.stopPropagation()
                     toggleExpanded(org.id)
                   }}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  className="p-1 hover:bg-gray-200 rounded cursor-pointer"
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-4 h-4" />
@@ -198,9 +199,44 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
     })
   }
 
-  const filteredOrgs = organizations.filter(org => 
-    org.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchTerm])
+
+  const filteredOrgs = useMemo(() => {
+    if (!debouncedSearch) return organizations
+    const term = debouncedSearch.toLowerCase()
+    return organizations.filter(org => org.name.toLowerCase().includes(term))
+  }, [organizations, debouncedSearch])
+
+  const allOrgIds = useMemo(() => {
+    const all = new Set<string>()
+    const collectIds = (orgs: Organization[]) => {
+      orgs.forEach(o => {
+        all.add(o.id)
+        if (o.children && o.children.length > 0) collectIds(o.children)
+      })
+    }
+    collectIds(organizations)
+    return all
+  }, [organizations])
+
+  const expandAll = () => {
+    const collectIds = (orgs: Organization[], acc: Set<string>) => {
+      orgs.forEach(o => {
+        acc.add(o.id)
+        if (o.children && o.children.length > 0) collectIds(o.children, acc)
+      })
+    }
+    const all = new Set<string>()
+    collectIds(organizations, all)
+    setExpandedOrgs(all)
+  }
+
+  const collapseAll = () => setExpandedOrgs(new Set())
+
+  const isAllExpanded = allOrgIds.size > 0 && expandedOrgs.size >= allOrgIds.size
 
   return (
     <>
@@ -223,6 +259,17 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
               />
             </div>
 
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => (isAllExpanded ? collapseAll() : expandAll())}
+                className="cursor-pointer"
+              >
+                {isAllExpanded ? '모두 접기' : '모두 펼치기'}
+              </Button>
+            </div>
+
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               {renderOrgTree(filteredOrgs)}
             </div>
@@ -230,7 +277,7 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
             <div className="flex justify-center pt-4">
               <Button 
                 onClick={handleAddOrg}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 조직 추가
