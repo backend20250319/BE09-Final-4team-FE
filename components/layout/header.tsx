@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/hooks/use-auth"
 import ProfileModal from '@/app/members/components/ProfileModal'
 
 interface Employee {
@@ -25,6 +25,7 @@ interface Employee {
   selfIntroduction?: string
   remainingLeave?: number
   weeklyWorkHours?: number
+  workPolicies?: string[]
   weeklySchedule?: Array<{
     title: string
     date: string
@@ -181,11 +182,24 @@ export function Header({
         </div>
       </div>
 
-      {/* 프로필 모달 */}
       <ProfileModal
         isOpen={showProfileModal}
         onClose={handleProfileModalClose}
-        employee={employeeData}
+        employee={employeeData || {
+          id: 'temp',
+          name: user?.name || '사용자',
+          email: user?.email || '',
+          phone: '010-1234-5678',
+          address: '서울시 서초구 신반포로15길 19 (아크로리버파크)',
+          joinDate: new Date().toISOString().split('T')[0],
+          organization: '개발본부',
+          position: '대리',
+          role: '개발자',
+          job: '풀스택 개발',
+          isAdmin: user?.isAdmin || false,
+          teams: ['프론트엔드팀'],
+          workPolicies: ['flexible', 'hybrid'] 
+        }}
         onUpdate={handleProfileUpdate}
       />
     </div>
