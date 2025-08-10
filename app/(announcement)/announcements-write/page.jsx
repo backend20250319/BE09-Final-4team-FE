@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
 import dynamic from "next/dynamic";
 import { X, UploadCloud } from "lucide-react";
-import FileUploadBox from "../../../components/FileUploadBox";
+import FileUploadBox from "../../../components/upload/FileUploadBox";
 
 const Editor = dynamic(() => import("./components/Editor"), { 
   ssr: false,

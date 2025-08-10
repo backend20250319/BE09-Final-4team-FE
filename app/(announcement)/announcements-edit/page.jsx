@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import dataJson from "../announcements-detail/announcements.json";
 import { X } from "lucide-react";
-import FileUploadBox from "../../../components/FileUploadBox";
+import FileUploadBox from "../../../components/upload/FileUploadBox";
 
 const Editor = dynamic(() => import("../announcements-write/components/Editor"), {
   ssr: false,
