@@ -94,7 +94,7 @@ export function Sidebar({
     } else if (item.href) {
       // 하위 메뉴가 없는 경우: 페이지 이동
       router.push(item.href);
-      onMenuItemClick?.(index);
+    onMenuItemClick?.(index);
       if (isMobile) onClose?.();
     }
   };
@@ -142,17 +142,17 @@ export function Sidebar({
 
             return (
               <div key={index}>
-                <Button
-                  variant={active ? "default" : "ghost"}
-                  className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 cursor-pointer ${
-                    active
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                  }`}
-                  onClick={() => handleMenuClick(item, index)}
-                >
-                  <IconComponent className="w-5 h-5 mr-3" />
-                  {item.label}
+              <Button
+                variant={active ? "default" : "ghost"}
+                className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  active
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
+                }`}
+                onClick={() => handleMenuClick(item, index)}
+              >
+                <IconComponent className="w-5 h-5 mr-3" />
+                {item.label}
                   {hasChildren && (
                     <div className="ml-auto">
                       {isExpanded ? (
@@ -182,7 +182,7 @@ export function Sidebar({
                         >
                           <SubIconComponent className="w-4 h-4 mr-3" />
                           {subItem.label}
-                        </Button>
+              </Button>
                       );
                     })}
                   </div>
