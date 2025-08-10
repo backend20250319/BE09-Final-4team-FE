@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -8,6 +8,8 @@ import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
 import dynamic from "next/dynamic";
+import { X, UploadCloud } from "lucide-react";
+import FileUploadBox from "../../../components/FileUploadBox";
 
 const Editor = dynamic(() => import("./components/Editor"), { 
   ssr: false,
@@ -23,6 +25,23 @@ export default function NoticeWritePage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
+  const [attachment, setAttachment] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachment(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setAttachment(null);
+  };
+
+  const handleBoxClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,6 +49,9 @@ export default function NoticeWritePage() {
     console.log("제목:", title);
     console.log("작성자:", author);
     console.log("내용(JSON):", content);
+    if (attachment) {
+      console.log("첨부파일:", attachment.name);
+    }
     alert("공지사항이 게시되었습니다.");
     router.push("/announcements");
   };
@@ -64,9 +86,15 @@ export default function NoticeWritePage() {
             </div>
           </div>
           <div className="mb-8">
-            <label className="block mb-2 text-gray-700 font-semibold props">내용</label>
+            <label className="block mb-2 text-gray-700 font-semibold">내용</label>
             <Editor json={null} onChange={setContent}/>
           </div>
+          {/* 파일 업로드 */}
+          <FileUploadBox
+            attachment={attachment}
+            onFileChange={handleFileChange}
+            onRemoveFile={handleRemoveFile}
+          />
           <div className="flex justify-between items-center mt-8">
             <button
               type="button"
