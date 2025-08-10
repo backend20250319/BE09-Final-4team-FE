@@ -5,12 +5,14 @@ import dynamic from "next/dynamic";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { User, Calendar, Eye } from "lucide-react";
+import EditDeleteButtons from "./components/EditDeleteButtons";
+import { useRouter } from "next/navigation";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../announcements-write/components/Editor"), { ssr: false });
 
 export default function AnnouncementDetailPage() {
-  // const router = useRouter();
+  const router = useRouter();
   // const { id } = router.query; // /announcements-detail/[id] 라우팅 가정
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,10 @@ export default function AnnouncementDetailPage() {
                 <span className="flex items-center gap-1"><Eye className="w-4 h-4 mr-1" />{data.view}</span>
               </div>
             </div>
+            <EditDeleteButtons
+              onEdit={() => router.push(`/announcements-write`)}
+              onDelete={() => alert('삭제가 완료되었습니다.')}
+            />
           </div>
           {/* 본문 (lexical editor json 파싱) */}
           <div className="mb-10">
@@ -83,7 +89,7 @@ export default function AnnouncementDetailPage() {
           {/* 첨부파일 다운로드 */}
           {data.attachment && (
             <div className="mt-8 border-t pt-6">
-              <div className="font-semibold mb-2 text-gray-700">첨부파일</div>
+              <div className="font-semibold mb-2 text-gray-7ㄴ00">첨부파일</div>
               <a
                 href={data.attachment.url}
                 download
