@@ -20,13 +20,41 @@ export default function DocumentsTable({ files }) {
   const router = useRouter();
 
   // 파일 메타데이터 생성
-  const fileRows = files.map(filename => {
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
-    return {
-      filename,
-      ext,
-    };
-  });
+  // const fileRows = files.map(filename => {
+  //   const ext = filename.split('.').pop()?.toLowerCase() || '';
+  //   return {
+  //     filename,
+  //     ext,
+  //   };
+  // });
+  const fileRows = [
+    { filename: '인사규정.pdf', ext: 'pdf' },
+    { filename: '2025_사업계획서.docx', ext: 'docx' },
+    { filename: '근로계약서.hwp', ext: 'hwp' },
+    { filename: '연차휴가신청서.xlsx', ext: 'xlsx' },
+    { filename: '거래처_연락처.csv', ext: 'csv' },
+    { filename: '프로젝트_보고서.pptx', ext: 'pptx' },
+    { filename: '직원_명단.txt', ext: 'txt' },
+    { filename: '회의록_2025-08-10.docx', ext: 'docx' },
+    { filename: '월간매출통계_7월.xlsx', ext: 'xlsx' },
+    { filename: '홍보자료_브로슈어.pdf', ext: 'pdf' },
+    { filename: '고객불만_처리현황.xlsx', ext: 'xlsx' },
+    { filename: '신규직원_교육자료.pptx', ext: 'pptx' },
+    { filename: '개인정보취급방침.hwp', ext: 'hwp' },
+    { filename: '사내안전규정.pdf', ext: 'pdf' },
+    { filename: '연말정산_안내문.docx', ext: 'docx' },
+    { filename: '제품_가격표_2025.xlsx', ext: 'xlsx' },
+    { filename: '연구개발_성과보고서.pdf', ext: 'pdf' },
+    { filename: '프로젝트A_기획안.pptx', ext: 'pptx' },
+    { filename: '재무제표_상반기.xlsx', ext: 'xlsx' },
+    { filename: '외부감사_자료.hwp', ext: 'hwp' },
+    { filename: '브랜드_가이드라인.pdf', ext: 'pdf' },
+    { filename: '사내_공지사항_2025-08-01.txt', ext: 'txt' },
+    { filename: '채용공고_개발팀.docx', ext: 'docx' },
+    { filename: '품질검수_기록.xlsx', ext: 'xlsx' },
+    { filename: '마케팅전략_발표자료.pptx', ext: 'pptx' },
+  ];
+
 
   // 검색/필터
   const filtered = fileRows.filter(
@@ -108,14 +136,13 @@ export default function DocumentsTable({ files }) {
                       <span className="truncate">{file.filename}</span>
                     </TableCell>
                     <TableCell className="text-center px-6 py-2 h-12">
-                      <a
-                        href={`/files/${file.filename}`}
-                        download
+                      <button
+                        onClick={() => alert(`${file.filename} 다운로드 준비 중입니다.`)}
                         className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-blue-50 transition"
                         title="다운로드"
                       >
                         <Download className="w-5 h-5 text-blue-500" />
-                      </a>
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))
