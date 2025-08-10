@@ -78,7 +78,7 @@ export default function AnnouncementDetailPage() {
               </div>
             </div>
             <EditDeleteButtons
-              onEdit={() => router.push(`/announcements-write`)}
+              onEdit={() => router.push(`/announcements-edit`)}
               onDelete={() => alert('삭제가 완료되었습니다.')}
             />
           </div>
