@@ -25,18 +25,16 @@ export default function NoticeWritePage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
-  const [attachment, setAttachment] = useState(null);
+  const [attachments, setAttachments] = useState([]);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAttachment(file);
-    }
+    const files = Array.from(e.target.files);
+    setAttachments(prev => [...prev, ...files]);
   };
 
-  const handleRemoveFile = () => {
-    setAttachment(null);
+  const handleRemoveFile = (idx) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleBoxClick = () => {
@@ -49,8 +47,8 @@ export default function NoticeWritePage() {
     console.log("제목:", title);
     console.log("작성자:", author);
     console.log("내용(JSON):", content);
-    if (attachment) {
-      console.log("첨부파일:", attachment.name);
+    if (attachments.length > 0) {
+      console.log("첨부파일:", attachments.map(f => f.name));
     }
     alert("공지사항이 게시되었습니다.");
     router.push("/announcements");
@@ -91,7 +89,7 @@ export default function NoticeWritePage() {
           </div>
           {/* 파일 업로드 */}
           <FileUploadBox
-            attachment={attachment}
+            attachments={attachments}
             onFileChange={handleFileChange}
             onRemoveFile={handleRemoveFile}
           />
