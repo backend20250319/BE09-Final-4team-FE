@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import dataJson from "../announcements-detail/announcements.json";
 import { X } from "lucide-react";
+import FileUploadBox from "../../../components/FileUploadBox";
 
 const Editor = dynamic(() => import("../announcements-write/components/Editor"), {
   ssr: false,
@@ -25,16 +26,33 @@ export default function AnnouncementEditPage() {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
-  const [attachment, setAttachment] = useState(null);
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     if (dataJson && dataJson.data) {
       setTitle(dataJson.data.title || "");
       setAuthor(dataJson.data.displayAuthor || "");
       setContent(JSON.stringify(dataJson.data.content || ""));
-      setAttachment(dataJson.data.attachment || null);
+      if (dataJson.data.attachment) {
+        setAttachments([
+          {
+            name: dataJson.data.attachment.name,
+            size: parseFloat(dataJson.data.attachment.size) * 1024 || 0,
+            url: dataJson.data.attachment.url,
+          },
+        ]);
+      }
     }
   }, []);
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setAttachments(prev => [...prev, ...files]);
+  };
+
+  const handleRemoveFile = (idx) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -78,29 +96,12 @@ export default function AnnouncementEditPage() {
             <label className="block mb-2 text-gray-700 font-semibold">내용</label>
             <Editor jsonData={content} onChange={setContent} />
           </div>
-          {attachment && (
-            <div className="mb-8">
-              <label className="block mb-2 text-gray-700 font-semibold">첨부파일</label>
-              <div className="relative w-fit">
-                <a
-                  href={attachment.url}
-                  download
-                  className="flex items-center gap-2 p-4 border rounded bg-gray-50 hover:bg-blue-50 transition w-fit shadow-sm pr-10"
-                >
-                  <span className="font-medium">{attachment.name}</span>
-                  <span className="text-xs text-gray-400 ml-2">{attachment.size}</span>
-                </a>
-                <button
-                  type="button"
-                  className="absolute top-2 right-2 p-1 rounded-full hover:bg-gray-200 transition text-gray-400 hover:text-red-500"
-                  onClick={() => setAttachment(null)}
-                  aria-label="첨부파일 삭제"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          )}
+          {/* 기존 첨부파일 다운로드+삭제는 삭제, 아래 FileUploadBox만 남김 */}
+          <FileUploadBox
+            attachments={attachments}
+            onFileChange={handleFileChange}
+            onRemoveFile={handleRemoveFile}
+          />
           <div className="flex justify-between items-center mt-8">
             <button
               type="button"
