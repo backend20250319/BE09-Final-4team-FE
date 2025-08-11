@@ -101,7 +101,7 @@ export default function DocumentsTable() {
               </button>
             </div>
             <button type="button" className="bg-white/60 border border-gray-200/50 text-gray-400 hover:text-gray-600 w-9 h-9 flex items-center justify-center rounded-md" aria-label="필터" style={{ background: 'none', border: '1px solid #e5e7eb', padding: 0, marginLeft: '8px' }}><Filter /></button>
-            <GradientButton type="button" variant="primary" className="h-10 px-4" onClick={() => router.push('/documents-upload')}><Plus className="w-4 h-4 mr-2" />업로드</GradientButton>
+            <GradientButton type="button" variant="primary" className="h-10 px-4" onClick={() => router.push('/documents/upload')}><Plus className="w-4 h-4 mr-2" />업로드</GradientButton>
           </div>
         </div>
         {/* 테이블 */}
