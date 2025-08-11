@@ -80,50 +80,6 @@ export function ShiftWorkForm({ formData, setFormData }) {
         </div>
       </div>
 
-      {/* 교대 유형 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          교대 유형
-        </label>
-        <Select
-          value={formData.shiftType || "3shift"}
-          onValueChange={(value) => updateFormData("shiftType", value)}
-        >
-          <SelectTrigger className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {shiftTypes.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* 교대 패턴 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          교대 패턴
-        </label>
-        <Select
-          value={formData.shiftPattern || "day_night"}
-          onValueChange={(value) => updateFormData("shiftPattern", value)}
-        >
-          <SelectTrigger className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {shiftPatterns.map((pattern) => (
-              <SelectItem key={pattern.value} value={pattern.value}>
-                {pattern.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* 교대 주기 */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
