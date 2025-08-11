@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
 import dynamic from "next/dynamic";
 import { X, UploadCloud } from "lucide-react";
-import FileUploadBox from "../../../components/upload/FileUploadBox";
+import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
 const Editor = dynamic(() => import("./components/Editor"), { 
   ssr: false,
@@ -88,10 +88,9 @@ export default function NoticeWritePage() {
             <Editor json={null} onChange={setContent}/>
           </div>
           {/* 파일 업로드 */}
-          <FileUploadBox
+          <AttachmentsManager
             attachments={attachments}
-            onFileChange={handleFileChange}
-            onRemoveFile={handleRemoveFile}
+            onAttachmentsChange={setAttachments}
           />
           <div className="flex justify-between items-center mt-8">
             <button

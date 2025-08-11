@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { User, Calendar, Eye } from "lucide-react";
 import EditDeleteButtons from "./components/EditDeleteButtons";
 import { useRouter } from "next/navigation";
+import { AttachmentsSection } from "@/components/ui/attachments-section";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../announcements-write/components/Editor"), { ssr: false });
@@ -89,18 +90,15 @@ export default function AnnouncementDetailPage() {
           {/* 첨부파일 다운로드 */}
           {data.attachment && (
             <div className="mt-8 border-t pt-6">
-              <div className="font-semibold mb-2 text-gray-7ㄴ00">첨부파일</div>
-              <a
-                href={data.attachment.url}
-                download
-                className="flex items-center gap-2 p-4 border rounded bg-gray-50 hover:bg-blue-50 transition w-fit shadow-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m0 0l-6-6m6 6l6-6" />
-                </svg>
-                <span className="font-medium">{data.attachment.name}</span>
-                <span className="text-xs text-gray-400 ml-2">{data.attachment.size}</span>
-              </a>
+              <div className="font-semibold mb-2 text-gray-700">첨부파일</div>
+              <AttachmentsSection
+                attachments={[{
+                  id: data.attachment.id || data.attachment.name,
+                  name: data.attachment.name,
+                  url: data.attachment.url,
+                  size: data.attachment.size ? `${data.attachment.size}` : ""
+                }]}
+              />
             </div>
           )}
           {/* 하단 버튼 */}

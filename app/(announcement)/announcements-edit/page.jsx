@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
 import dataJson from "../announcements-detail/announcements.json";
 import { X } from "lucide-react";
-import FileUploadBox from "../../../components/upload/FileUploadBox";
+import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
 const Editor = dynamic(() => import("../announcements-write/components/Editor"), {
   ssr: false,
@@ -27,6 +27,7 @@ export default function AnnouncementEditPage() {
   const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
   const [attachments, setAttachments] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (dataJson && dataJson.data) {
@@ -96,11 +97,9 @@ export default function AnnouncementEditPage() {
             <label className="block mb-2 text-gray-700 font-semibold">내용</label>
             <Editor jsonData={content} onChange={setContent} />
           </div>
-          {/* 기존 첨부파일 다운로드+삭제는 삭제, 아래 FileUploadBox만 남김 */}
-          <FileUploadBox
+          <AttachmentsManager
             attachments={attachments}
-            onFileChange={handleFileChange}
-            onRemoveFile={handleRemoveFile}
+            onAttachmentsChange={setAttachments}
           />
           <div className="flex justify-between items-center mt-8">
             <button
