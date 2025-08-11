@@ -6,6 +6,7 @@ import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-rea
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/use-auth"
 import ProfileModal from '@/app/members/components/ProfileModal'
+import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
 
 interface Employee {
   id: string
@@ -35,15 +36,15 @@ interface Employee {
 
 interface HeaderProps {
   userName?: string
-  showNotifications?: boolean
+  hasNewNotifications?: boolean
   showUserProfile?: boolean
   onToggleSidebar?: () => void
   isMobile?: boolean
 }
 
-export function Header({ 
+export function Header({
   userName = "김인사",
-  showNotifications = true,
+  hasNewNotifications: hasNewNotifications = true,
   showUserProfile = true,
   onToggleSidebar,
   isMobile = false
@@ -52,7 +53,7 @@ export function Header({
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
 
-      useEffect(() => {
+  useEffect(() => {
     if (user?.email) {
       fetch('/api/members')
         .then(response => response.json())
@@ -68,7 +69,7 @@ export function Header({
     }
   }, [user])
 
-      useEffect(() => {
+  useEffect(() => {
     const handleEmployeeUpdate = (event: CustomEvent) => {
       const updatedEmployee = event.detail
       if (updatedEmployee.email === user?.email) {
@@ -77,7 +78,7 @@ export function Header({
     }
 
     window.addEventListener('employeeUpdated', handleEmployeeUpdate as EventListener)
-    
+
     return () => {
       window.removeEventListener('employeeUpdated', handleEmployeeUpdate as EventListener)
     }
@@ -98,14 +99,24 @@ export function Header({
     setEmployeeData(updatedEmployee)
   }
 
+  const handleNotificationClick = (notification: any) => {
+    // 알림 클릭 시 처리 로직
+    console.log('알림 클릭:', notification)
+  }
+
+  const handleViewAllNotifications = () => {
+    // 모든 알림 보기 처리 로직
+    console.log('모든 알림 보기')
+  }
+
   return (
     <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-2 sticky top-0 z-10">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           {onToggleSidebar && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onToggleSidebar}
               className="hover:bg-gray-100/80 transition-colors cursor-pointer"
             >
@@ -114,23 +125,21 @@ export function Header({
           )}
         </div>
         <div className="flex items-center gap-3 sm:gap-6">
-          {showNotifications && (
-            <Button variant="ghost" size="sm" className="relative hover:bg-gray-100/80 transition-colors cursor-pointer">
-              <Bell className="w-5 h-5 text-gray-500" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
-            </Button>
-          )}
+          <NotificationsDropdown
+            hasNewNotifications={hasNewNotifications}
+            onNotificationClick={handleNotificationClick}
+          />
           {showUserProfile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
                     {employeeData?.profileImage ? (
-                      <img 
-                        src={employeeData.profileImage} 
+                      <img
+                        src={employeeData.profileImage}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
@@ -147,8 +156,8 @@ export function Header({
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
                     {employeeData?.profileImage ? (
-                      <img 
-                        src={employeeData.profileImage} 
+                      <img
+                        src={employeeData.profileImage}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
@@ -198,7 +207,7 @@ export function Header({
           job: '풀스택 개발',
           isAdmin: user?.isAdmin || false,
           teams: ['프론트엔드팀'],
-          workPolicies: ['flexible', 'hybrid'] 
+          workPolicies: ['flexible', 'hybrid']
         }}
         onUpdate={handleProfileUpdate}
       />
