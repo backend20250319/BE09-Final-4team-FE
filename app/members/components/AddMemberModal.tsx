@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import styles from './date-input.module.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SimpleDropdown from "./SimpleDropdown";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,6 +86,7 @@ const workPolicies = [
 
 export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddMemberModalProps) {
   const [formData, setFormData] = useState(initialFormData);
+  const joinDateRef = useRef<HTMLInputElement | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validFields, setValidFields] = useState<Record<string, boolean>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -455,31 +457,25 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
 
                   <div className="space-y-2">
                     <Label htmlFor="rank">직급</Label>
-                    <Select value={formData.rank} onValueChange={(value) => handleInputChange('rank', value)}>
-                      <SelectTrigger className={errors.rank ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ranks.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SimpleDropdown
+                      options={ranks}
+                      value={formData.rank}
+                      onChange={(value) => handleInputChange('rank', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={errors.rank ? 'border-red-500' : ''}
+                    />
                     {errors.rank && <p className="text-sm text-red-500">{errors.rank}</p>}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="position">직위</Label>
-                    <Select value={formData.position} onValueChange={(value) => handleInputChange('position', value)}>
-                      <SelectTrigger className={errors.position ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {positions.map((pos) => (
-                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SimpleDropdown
+                      options={positions}
+                      value={formData.position}
+                      onChange={(value) => handleInputChange('position', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={errors.position ? 'border-red-500' : ''}
+                    />
                     {errors.position && <p className="text-sm text-red-500">{errors.position}</p>}
                   </div>
 
@@ -497,16 +493,13 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
 
                   <div className="space-y-2">
                     <Label htmlFor="job">직책</Label>
-                    <Select value={formData.job} onValueChange={(value) => handleInputChange('job', value)}>
-                      <SelectTrigger className={errors.job ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {jobs.map((job) => (
-                          <SelectItem key={job} value={job}>{job}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SimpleDropdown
+                      options={jobs}
+                      value={formData.job}
+                      onChange={(value) => handleInputChange('job', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={errors.job ? 'border-red-500' : ''}
+                    />
                     {errors.job && <p className="text-sm text-red-500">{errors.job}</p>}
                   </div>
                 </div>
@@ -522,14 +515,38 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="joinDate">입사일 *</Label>
-                    <Input
-                      id="joinDate"
-                      type="date"
-                      value={formData.joinDate}
-                      onChange={(e) => handleInputChange('joinDate', e.target.value)}
-                      onBlur={(e) => handleFieldBlur('joinDate', e.target.value)}
-                      className={errors.joinDate ? 'border-red-500' : ''}
-                    />
+                    <div
+                      className="relative"
+                      onPointerDown={() => {
+                        const input = joinDateRef.current
+                        if (!input) return
+                        input.focus()
+                        try {
+                          input.showPicker?.()
+                        } catch {}
+                        // Fallback for browsers requiring a native click
+                        input.click()
+                      }}
+                    >
+                      <Input
+                        id="joinDate"
+                        ref={joinDateRef}
+                        type="date"
+                        placeholder="연도-월-일"
+                        value={formData.joinDate}
+                        onChange={(e) => handleInputChange('joinDate', e.target.value)}
+                        onBlur={(e) => handleFieldBlur('joinDate', e.target.value)}
+                        className={`${errors.joinDate ? 'border-red-500' : ''} cursor-pointer ${styles.dateInput}`}
+                      />
+                      <button
+                        type="button"
+                        aria-label="달력 열기"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        // Let the wrapper handle opening via event bubbling
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </div>
                     {touched.joinDate && errors.joinDate && <p className="text-sm text-red-500">{errors.joinDate}</p>}
                   </div>
 
@@ -539,6 +556,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       <Switch
                         checked={formData.isAdmin}
                         onCheckedChange={(checked) => handleInputChange('isAdmin', checked)}
+                        className="cursor-pointer"
                       />
                       <span className="text-sm text-gray-600">관리자 권한 부여</span>
                     </div>
@@ -672,11 +690,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             <DialogTitle>구성원 추가</DialogTitle>
           </DialogHeader>
           <p>입력한 정보로 구성원을 추가하시겠습니까?</p>
-                   <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleSaveCancel} className="cursor-pointer">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleSaveCancel}>
               취소
             </Button>
-            <Button onClick={handleSaveConfirm} className="cursor-pointer">
+            <Button onClick={handleSaveConfirm}>
               확인
             </Button>
           </div>
@@ -690,10 +708,10 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
           </DialogHeader>
           <p>입력한 정보가 저장되지 않습니다. 정말 나가시겠습니까?</p>
            <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleBackCancel} className="cursor-pointer">
+            <Button variant="outline" onClick={handleBackCancel}>
               취소
             </Button>
-            <Button variant="destructive" onClick={handleBackConfirm} className="cursor-pointer">
+            <Button variant="destructive" onClick={handleBackConfirm}>
               나가기
             </Button>
           </div>

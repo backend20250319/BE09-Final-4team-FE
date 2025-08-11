@@ -137,14 +137,14 @@ export default function LeaderSelectionModal({
           </div>
 
           <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={onClose} className="cursor-pointer">
+            <Button variant="outline" onClick={onClose}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               뒤로가기
             </Button>
             <Button 
               onClick={handleSave}
               disabled={!selectedMember}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
             >
               저장하기
             </Button>
