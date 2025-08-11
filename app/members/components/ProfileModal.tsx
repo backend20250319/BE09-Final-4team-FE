@@ -353,7 +353,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="p-1 h-auto cursor-pointer"
+                    className="p-1 h-auto"
                   >
                     <Edit3 className="w-4 h-4" />
                   </Button>
@@ -467,17 +467,17 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           <div className="flex justify-center mt-8">
             {isEditing ? (
               <div className="flex gap-2">
-                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 cursor-pointer">
+                <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
                   저장하기
                 </Button>
-                <Button variant="outline" onClick={handleCancel} className="cursor-pointer">
+                <Button variant="outline" onClick={handleCancel}>
                   취소
                 </Button>
               </div>
             ) : (
               <Button 
                 onClick={handleEditClick}
-                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 수정하기

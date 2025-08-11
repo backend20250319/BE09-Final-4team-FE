@@ -343,7 +343,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-2">
               <Button 
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-green-600 hover:bg-green-700 cursor-pointer"
                 onClick={handleCheckIn}
                 disabled={attendanceState.isCheckedIn}
               >
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                 출근 {attendanceState.checkInTime || currentTime}
               </Button>
               <Button 
-                className="flex-1 bg-red-600 hover:bg-red-700"
+                className="flex-1 bg-red-600 hover:bg-red-700 cursor-pointer"
                 onClick={handleCheckOut}
                 disabled={!attendanceState.isCheckedIn || attendanceState.isCheckedOut}
               >
@@ -408,7 +408,7 @@ export default function DashboardPage() {
       {/* 결재, 뉴스, 공지 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* 결재 Card */}
-        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.7s' }}>
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.7s' }} onClick={() => router.push('/approvals')}>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">결재 현황</CardTitle>
           </CardHeader>
@@ -460,7 +460,7 @@ export default function DashboardPage() {
         </GlassCard>
 
         {/* 공지 Card */}
-        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.9s' }}>
+        <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.9s' }} onClick={() => router.push('/announcements')}>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">공지사항</CardTitle>
           </CardHeader>

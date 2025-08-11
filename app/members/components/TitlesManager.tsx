@@ -97,7 +97,7 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
                   <Button
                     variant="outline"
                     size="icon"
-                    className="text-gray-500 hover:text-red-600 cursor-pointer"
+                    className="text-gray-500 hover:text-red-600"
                     onClick={() => setConfirmIndex(idx)}
                   >
                     <X className="w-4 h-4" />
@@ -108,15 +108,15 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
 
             <Button
               variant="outline"
-              className="w-full justify-center text-blue-600 border-blue-300 hover:bg-blue-50 cursor-pointer"
+              className="w-full justify-center text-blue-600 border-blue-300 hover:bg-blue-50"
               onClick={() => setShowAddModal(true)}
             >
               <Plus className="w-4 h-4 mr-2" /> 새 항목 추가
             </Button>
 
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={onClose} className="cursor-pointer">뒤로가기</Button>
-              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 cursor-pointer">저장하기</Button>
+              <Button variant="outline" onClick={onClose}>뒤로가기</Button>
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">저장하기</Button>
             </div>
           </div>
         </DialogContent>
@@ -136,8 +136,8 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
               <Input value={addingText} onChange={(e) => setAddingText(e.target.value)} placeholder="항목을 입력하세요" />
             </div>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setShowAddModal(false)} className="cursor-pointer">뒤로가기</Button>
-              <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700 cursor-pointer">저장하기</Button>
+              <Button variant="outline" onClick={() => setShowAddModal(false)}>뒤로가기</Button>
+              <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700">저장하기</Button>
             </div>
           </div>
         </DialogContent>
@@ -150,14 +150,14 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
             <DialogDescription>이 작업은 되돌릴 수 없습니다.</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmIndex(null)} className="cursor-pointer">취소</Button>
+            <Button variant="outline" onClick={() => setConfirmIndex(null)}>취소</Button>
             <Button
               variant="destructive"
               onClick={() => {
                 if (confirmIndex !== null) remove(type, confirmIndex)
                 setConfirmIndex(null)
               }}
-              className="cursor-pointer"
+              
             >
               삭제
             </Button>

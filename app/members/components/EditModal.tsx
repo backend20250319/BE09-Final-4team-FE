@@ -597,7 +597,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
             </Card>
           </div>
 
-          <div className="flex justify-between pt-6 border-t">
+            <div className="flex justify-between pt-6 border-t">
             <div className="flex gap-2">
               <Button variant="outline" onClick={onClose}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -610,7 +610,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 </Button>
               )}
             </div>
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
               저장하기
             </Button>
           </div>

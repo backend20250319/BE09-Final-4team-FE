@@ -672,11 +672,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             <DialogTitle>구성원 추가</DialogTitle>
           </DialogHeader>
           <p>입력한 정보로 구성원을 추가하시겠습니까?</p>
-                   <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleSaveCancel} className="cursor-pointer">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleSaveCancel}>
               취소
             </Button>
-            <Button onClick={handleSaveConfirm} className="cursor-pointer">
+            <Button onClick={handleSaveConfirm}>
               확인
             </Button>
           </div>
@@ -690,10 +690,10 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
           </DialogHeader>
           <p>입력한 정보가 저장되지 않습니다. 정말 나가시겠습니까?</p>
            <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleBackCancel} className="cursor-pointer">
+            <Button variant="outline" onClick={handleBackCancel}>
               취소
             </Button>
-            <Button variant="destructive" onClick={handleBackConfirm} className="cursor-pointer">
+            <Button variant="destructive" onClick={handleBackConfirm}>
               나가기
             </Button>
           </div>

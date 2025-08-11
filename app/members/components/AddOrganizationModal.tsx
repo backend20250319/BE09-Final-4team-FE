@@ -251,7 +251,7 @@ export default function AddOrganizationModal({
               <Button
                 variant="outline"
                 onClick={() => setShowLeaderModal(true)}
-                className="w-full justify-start cursor-pointer"
+                className="w-full justify-start"
               >
                 {selectedLeader ? `${selectedLeader.name} ${selectedLeader.role}` : '조직장 선택'}
               </Button>
@@ -281,7 +281,7 @@ export default function AddOrganizationModal({
               <Button
                 variant="outline"
                 onClick={() => setShowMemberModal(true)}
-                className="w-full justify-start cursor-pointer"
+                className="w-full justify-start"
               >
                 조직원 추가
               </Button>
@@ -309,14 +309,14 @@ export default function AddOrganizationModal({
               )}
             </div>
 
-            <div className="flex justify-between pt-6">
+              <div className="flex justify-between pt-6">
               <div className="flex gap-2">
-                <Button variant="outline" onClick={requestClose} className="cursor-pointer">
+                <Button variant="outline" onClick={requestClose}>
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   뒤로가기
                 </Button>
                 {organization && (
-                  <Button variant="destructive" onClick={handleDeleteClick} className="cursor-pointer">
+                  <Button variant="destructive" onClick={handleDeleteClick}>
                     <Trash2 className="w-4 h-4 mr-2" />
                     삭제
                   </Button>
@@ -325,7 +325,7 @@ export default function AddOrganizationModal({
               <Button 
                 onClick={handleSave}
                 disabled={!canSave}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
               >
                 저장하기
               </Button>
@@ -342,9 +342,9 @@ export default function AddOrganizationModal({
               저장하지 않은 변경 사항이 있습니다. 닫으시겠습니까?
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowCloseConfirm(false)} className="cursor-pointer">취소</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white cursor-pointer" onClick={confirmDiscardAndClose}>변경사항 저장하지 않고 닫기</Button>
+            <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowCloseConfirm(false)}>취소</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmDiscardAndClose}>변경사항 저장하지 않고 닫기</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -358,7 +358,7 @@ export default function AddOrganizationModal({
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => setShowDeleteWarn(false)} className="cursor-pointer">확인</Button>
+            <Button variant="outline" onClick={() => setShowDeleteWarn(false)} >확인</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -372,8 +372,8 @@ export default function AddOrganizationModal({
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="cursor-pointer">취소</Button>
-            <Button variant="destructive" onClick={performDelete} className="cursor-pointer">삭제</Button>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>취소</Button>
+            <Button variant="destructive" onClick={performDelete}>삭제</Button>
           </div>
         </DialogContent>
       </Dialog>
