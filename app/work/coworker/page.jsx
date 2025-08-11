@@ -586,7 +586,7 @@ export default function CoworkerSchedulePage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
-                  placeholder="직원명, 조직, 직무 검색하기"
+                  placeholder="직원명, 조직, 직책 검색하기"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
