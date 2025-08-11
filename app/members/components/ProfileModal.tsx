@@ -394,7 +394,7 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
             <div 
               onClick={() => router.push('/work')} 
-              className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg cursor-pointer hover:from-blue-100 hover:to-blue-200 transition-colors"
+              className="p-4 rounded-lg cursor-pointer bg-white/70 hover:bg-white ring-1 ring-gray-200 hover:ring-blue-300 shadow-sm transition-all"
             >
               {(() => {
                 // 현재 날짜 기준으로 이번 주의 날짜들 계산
