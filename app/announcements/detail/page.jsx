@@ -5,12 +5,15 @@ import dynamic from "next/dynamic";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { User, Calendar, Eye } from "lucide-react";
+import EditDeleteButtons from "./components/EditDeleteButtons";
+import { useRouter } from "next/navigation";
+import { AttachmentsSection } from "@/components/ui/attachments-section";
 
 // Lexical Editor Viewer (읽기 전용)
-const Editor = dynamic(() => import("../announcements-write/components/Editor"), { ssr: false });
+const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
 
 export default function AnnouncementDetailPage() {
-  // const router = useRouter();
+  const router = useRouter();
   // const { id } = router.query; // /announcements-detail/[id] 라우팅 가정
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -75,34 +78,38 @@ export default function AnnouncementDetailPage() {
                 <span className="flex items-center gap-1"><Eye className="w-4 h-4 mr-1" />{data.view}</span>
               </div>
             </div>
+            <EditDeleteButtons
+              onEdit={() => router.push(`/announcements/edit`)}
+              onDelete={() => {
+                alert('삭제가 완료되었습니다.');
+                router.push(`/announcements`);
+              }}
+            />
           </div>
           {/* 본문 (lexical editor json 파싱) */}
           <div className="mb-10">
-            <Editor jsonData={JSON.stringify(data.content)} onChange={() => {}} readOnly={true} showToolbar={false} />
+            <Editor jsonData={JSON.stringify(data.content)} onChange={() => { }} readOnly={true} showToolbar={false} />
           </div>
           {/* 첨부파일 다운로드 */}
           {data.attachment && (
             <div className="mt-8 border-t pt-6">
               <div className="font-semibold mb-2 text-gray-700">첨부파일</div>
-              <a
-                href={data.attachment.url}
-                download
-                className="flex items-center gap-2 p-4 border rounded bg-gray-50 hover:bg-blue-50 transition w-fit shadow-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-red-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m0 0l-6-6m6 6l6-6" />
-                </svg>
-                <span className="font-medium">{data.attachment.name}</span>
-                <span className="text-xs text-gray-400 ml-2">{data.attachment.size}</span>
-              </a>
+              <AttachmentsSection
+                attachments={[{
+                  id: data.attachment.id || data.attachment.name,
+                  name: data.attachment.name,
+                  url: data.attachment.url,
+                  size: data.attachment.size ? `${data.attachment.size}` : ""
+                }]}
+              />
             </div>
           )}
           {/* 하단 버튼 */}
           <div className="flex justify-between mt-12">
-            <button onClick={handleBack} className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">뒤로가기</button>
+            <button onClick={handleBack} className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">뒤로가기</button>
             <div className="flex gap-2">
-              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">이전글</button>
-              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">다음글</button>
+              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">이전글</button>
+              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">다음글</button>
             </div>
           </div>
         </GlassCard>
