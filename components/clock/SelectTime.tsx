@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import TimePicker from "./TimePicker";
-const buttonClass = "p-2.5 flex-1 rounded-xl bg-[#8D8D8D]";
 
 interface SelecTimeProps {
   onTimeSelect: (time: string) => void;
@@ -46,16 +45,21 @@ const SelectTime = ({ onTimeSelect, onClose }: SelecTimeProps) => {
     // 모달 배경(클릭 시 닫힘)
     <div
       onClick={onClose}
-      className="fixed inset-0 flex items-center justify-center w-full h-full bg-black/70 z-50"
+      className="fixed inset-0 flex items-center justify-center w-full h-full bg-black/50 backdrop-blur-sm z-50"
     >
       <div
-        className="w-full max-w-sm mx-6 h-[280px] bg-white rounded-2xl flex items-center justify-center p-4"
+        className="w-full max-w-sm mx-6 bg-white rounded-3xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <section className="w-full">
-          <p className="text-center text-lg font-medium border-b-2 pb-2">
+        {/* iOS 스타일 헤더 */}
+        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+          <p className="text-center text-lg font-semibold text-gray-800">
             {convertTimeFormat(`${selectedHour}:${selectedMinute}`)}
           </p>
+        </div>
+
+        {/* 시간 선택 영역 */}
+        <div className="px-6 py-8 bg-white">
           <div className="flex justify-center items-center">
             {/* 시간 선택 */}
             <TimePicker
@@ -63,7 +67,7 @@ const SelectTime = ({ onTimeSelect, onClose }: SelecTimeProps) => {
               handleTimeScroll={handleHourScroll}
               selectedTime={selectedHour}
             />
-            <span className="text-lg font-bold mx-3">:</span>
+            <span className="text-2xl font-bold mx-4 text-gray-400">:</span>
             {/* 분 선택 */}
             <TimePicker
               time={minutes}
@@ -71,15 +75,25 @@ const SelectTime = ({ onTimeSelect, onClose }: SelecTimeProps) => {
               selectedTime={selectedMinute}
             />
           </div>
-          <div className="flex justify-center items-center gap-2 text-white mt-6">
-            <button onClick={onClose} className={buttonClass}>
+        </div>
+
+        {/* iOS 스타일 버튼 영역 */}
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 px-4 text-gray-600 font-medium bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+            >
               취소
             </button>
-            <button onClick={handleConfirm} className={buttonClass}>
+            <button
+              onClick={handleConfirm}
+              className="flex-1 py-3 px-4 text-white font-medium bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors shadow-sm"
+            >
               확인
             </button>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
