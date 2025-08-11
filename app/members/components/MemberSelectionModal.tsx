@@ -34,6 +34,7 @@ export default function MemberSelectionModal({
 }: MemberSelectionModalProps) {
   const [members, setMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(
     new Set(selectedMembers.map(member => member.id))
   )
@@ -73,10 +74,23 @@ export default function MemberSelectionModal({
     onSelect(selectedMembersList)
   }
 
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchTerm])
+
+  useEffect(() => {
+    setSelectedMemberIds(new Set(selectedMembers.map(m => m.id)))
+  }, [selectedMembers, isOpen])
+
+  const filteredMembers = members.filter(member => {
+    if (!debouncedSearch) return true
+    const term = debouncedSearch.toLowerCase()
+    return (
+      member.name.toLowerCase().includes(term) ||
+      member.role.toLowerCase().includes(term)
+    )
+  })
 
   const hasSelectedMembers = selectedMemberIds.size > 0
 
@@ -132,14 +146,14 @@ export default function MemberSelectionModal({
           </div>
 
           <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="cursor-pointer">
               <ArrowLeft className="w-4 h-4 mr-2" />
               뒤로가기
             </Button>
             <Button 
               onClick={handleSave}
               disabled={!hasSelectedMembers}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
             >
               저장하기
             </Button>

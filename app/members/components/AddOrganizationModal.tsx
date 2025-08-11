@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect, useMemo } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -38,13 +38,17 @@ interface AddOrganizationModalProps {
   onClose: () => void
   organization?: Organization | null
   onSave: (org: Organization) => void
+  onDelete?: (id: string) => void
+  organizations: Organization[]
 }
 
 export default function AddOrganizationModal({ 
   isOpen, 
   onClose, 
   organization, 
-  onSave 
+  onSave,
+  onDelete,
+  organizations
 }: AddOrganizationModalProps) {
   const [orgName, setOrgName] = useState('')
   const [parentOrg, setParentOrg] = useState('')
@@ -52,6 +56,33 @@ export default function AddOrganizationModal({
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([])
   const [showLeaderModal, setShowLeaderModal] = useState(false)
   const [showMemberModal, setShowMemberModal] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showDeleteWarn, setShowDeleteWarn] = useState(false)
+  const [deleteWarnMessage, setDeleteWarnMessage] = useState('')
+
+  const flattenOrgs = (orgs: Organization[], depth = 0): Array<{ id: string; name: string; depth: number }> => {
+    const list: Array<{ id: string; name: string; depth: number }> = []
+    orgs.forEach(o => {
+      list.push({ id: o.id, name: o.name, depth })
+      if (o.children && o.children.length > 0) {
+        list.push(...flattenOrgs(o.children, depth + 1))
+      }
+    })
+    return list
+  }
+
+  const excludedIds = useMemo(() => {
+    const set = new Set<string>()
+    if (organization) set.add(organization.id)
+    return set
+  }, [organization])
+
+  const parentOptions = useMemo(() => {
+    const flat = flattenOrgs(organizations)
+    return flat.filter(opt => !excludedIds.has(opt.id))
+  }, [organizations, excludedIds])
 
   useEffect(() => {
     if (organization) {
@@ -59,11 +90,13 @@ export default function AddOrganizationModal({
       setParentOrg(organization.parentId || '')
       setSelectedLeader(organization.leader || null)
       setSelectedMembers(organization.members || [])
-          } else {
+      setIsDirty(false)
+    } else {
         setOrgName('')
       setParentOrg('')
       setSelectedLeader(null)
       setSelectedMembers([])
+      setIsDirty(false)
     }
   }, [organization])
 
@@ -73,44 +106,40 @@ export default function AddOrganizationModal({
       return
     }
 
-    if (!selectedLeader) {
-      toast.error('조직장을 선택해주세요.')
-      return
-    }
 
-    if (selectedMembers.length === 0) {
-      toast.error('최소 1명의 조직원을 선택해주세요.')
-      return
-    }
 
     const newOrg: Organization = {
       id: organization?.id || Date.now().toString(),
       name: orgName,
       parentId: parentOrg || undefined,
       members: selectedMembers,
-      leader: selectedLeader
+      leader: selectedLeader || undefined
     }
 
     onSave(newOrg)
   }
 
-  const handleDelete = () => {
+  const handleDeleteClick = () => {
     if (!organization) return
-
     if (organization.members.length > 0) {
-      toast.error('조직원을 모두 이동시킨 후 삭제할 수 있습니다.')
+      setDeleteWarnMessage('조직원을 모두 제거해야 삭제할 수 있습니다.')
+      setShowDeleteWarn(true)
       return
     }
-
     if (organization.children && organization.children.length > 0) {
-      toast.error('하위 조직을 모두 삭제한 후 삭제할 수 있습니다.')
+      setDeleteWarnMessage('하위 조직을 모두 삭제한 후 삭제할 수 있습니다.')
+      setShowDeleteWarn(true)
       return
     }
+    setShowDeleteConfirm(true)
+  }
 
-    if (confirm('정말로 이 조직을 삭제하시겠습니까?')) {
-      toast.success('조직이 성공적으로 삭제되었습니다.')
-      onClose()
-    }
+  const performDelete = () => {
+    if (!organization) return
+    toast.success('조직이 성공적으로 삭제되었습니다.')
+    setShowDeleteConfirm(false)
+    onDelete?.(organization.id)
+    onClose()
   }
 
   const handleLeaderSelect = (leader: Member) => {
@@ -134,11 +163,54 @@ export default function AddOrganizationModal({
   const canDelete = organization && organization.members.length === 0 && 
     (!organization.children || organization.children.length === 0)
 
-  const canSave = orgName.trim() && selectedLeader && selectedMembers.length > 0
+  const canSave = Boolean(orgName.trim()) && isDirty
+
+  useEffect(() => {
+    const initial = organization
+      ? {
+          orgName: organization.name,
+          parent: organization.parentId || '',
+          leaderId: organization.leader?.id || null,
+          memberIds: (organization.members || []).map(m => m.id).join(',')
+        }
+      : { orgName: '', parent: '', leaderId: null, memberIds: '' }
+
+    const current = {
+      orgName,
+      parent: parentOrg,
+      leaderId: selectedLeader?.id || null,
+      memberIds: selectedMembers.map(m => m.id).join(',')
+    }
+    setIsDirty(JSON.stringify(initial) !== JSON.stringify(current))
+  }, [organization, orgName, parentOrg, selectedLeader, selectedMembers])
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      if (isDirty) {
+        setShowCloseConfirm(true)
+        return
+      }
+      onClose()
+      return
+    }
+  }
+
+  const requestClose = () => {
+    if (isDirty) {
+      setShowCloseConfirm(true)
+    } else {
+      onClose()
+    }
+  }
+
+  const confirmDiscardAndClose = () => {
+    setShowCloseConfirm(false)
+    onClose()
+  }
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-gray-900">
@@ -159,16 +231,17 @@ export default function AddOrganizationModal({
 
             <div className="space-y-2">
               <Label htmlFor="parentOrg">상위 조직</Label>
-              <Select value={parentOrg} onValueChange={setParentOrg}>
+              <Select value={parentOrg || 'none'} onValueChange={(v) => setParentOrg(v === 'none' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="상위 조직 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">없음</SelectItem>
-                  <SelectItem value="1">CEE</SelectItem>
-                  <SelectItem value="2">Management</SelectItem>
-                  <SelectItem value="3">Application 2</SelectItem>
-                  <SelectItem value="6">Application 1</SelectItem>
+                  <SelectItem value="none">없음</SelectItem>
+                  {parentOptions.map(opt => (
+                    <SelectItem key={opt.id} value={opt.id}>
+                      {`${'\u00A0'.repeat(opt.depth * 2)}${opt.name}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -178,21 +251,27 @@ export default function AddOrganizationModal({
               <Button
                 variant="outline"
                 onClick={() => setShowLeaderModal(true)}
-                className="w-full justify-start"
+                className="w-full justify-start cursor-pointer"
               >
                 {selectedLeader ? `${selectedLeader.name} ${selectedLeader.role}` : '조직장 선택'}
               </Button>
               {selectedLeader && (
-                <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {selectedLeader.name} {selectedLeader.role}
-                  </Badge>
-                  <button
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-100 text-blue-800 cursor-pointer hover:bg-red-100"
                     onClick={removeLeader}
-                    className="text-red-500 hover:text-red-700"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    {selectedLeader.name} {selectedLeader.role}
+                    <X
+                      className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500"
+                      aria-label="조직장 제거"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeLeader()
+                      }}
+                    />
+                  </Badge>
                 </div>
               )}
             </div>
@@ -202,24 +281,29 @@ export default function AddOrganizationModal({
               <Button
                 variant="outline"
                 onClick={() => setShowMemberModal(true)}
-                className="w-full justify-start"
+                className="w-full justify-start cursor-pointer"
               >
                 조직원 추가
               </Button>
               {selectedMembers.length > 0 && (
-                <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {selectedMembers.map(member => (
-                    <div key={member.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {member.name} {member.role}
-                      </Badge>
-                      <button
-                        onClick={() => removeMember(member.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <Badge
+                      key={member.id}
+                      variant="secondary"
+                      className="bg-blue-100 text-blue-800 cursor-pointer hover:bg-red-100"
+                      onClick={() => removeMember(member.id)}
+                    >
+                      {member.name} {member.role}
+                      <X
+                        className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500"
+                        aria-label={`${member.name} 제거`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeMember(member.id)
+                        }}
+                      />
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -227,25 +311,69 @@ export default function AddOrganizationModal({
 
             <div className="flex justify-between pt-6">
               <div className="flex gap-2">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={requestClose} className="cursor-pointer">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   뒤로가기
                 </Button>
-                {organization && canDelete && (
-                  <Button variant="destructive" onClick={handleDelete}>
+                {organization && (
+                  <Button variant="destructive" onClick={handleDeleteClick} className="cursor-pointer">
                     <Trash2 className="w-4 h-4 mr-2" />
                     삭제
                   </Button>
                 )}
               </div>
               <Button 
-                onClick={handleSave} 
+                onClick={handleSave}
                 disabled={!canSave}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
               >
                 저장하기
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">변경 사항이 저장되지 않았습니다</DialogTitle>
+            <DialogDescription>
+              저장하지 않은 변경 사항이 있습니다. 닫으시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowCloseConfirm(false)} className="cursor-pointer">취소</Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white cursor-pointer" onClick={confirmDiscardAndClose}>변경사항 저장하지 않고 닫기</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteWarn} onOpenChange={setShowDeleteWarn}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">삭제할 수 없습니다</DialogTitle>
+            <DialogDescription>
+              {deleteWarnMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setShowDeleteWarn(false)} className="cursor-pointer">확인</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">조직 삭제</DialogTitle>
+            <DialogDescription>
+              정말로 이 조직을 삭제하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} className="cursor-pointer">취소</Button>
+            <Button variant="destructive" onClick={performDelete} className="cursor-pointer">삭제</Button>
           </div>
         </DialogContent>
       </Dialog>

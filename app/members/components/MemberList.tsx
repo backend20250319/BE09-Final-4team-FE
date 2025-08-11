@@ -15,7 +15,8 @@ interface Employee {
   phone?: string;
   address?: string;
   joinDate: string;
-  organization: string;
+  organization?: string;
+  organizations?: string[];
   position: string;
   role: string;
   job: string;
@@ -228,7 +229,6 @@ export default function MemberList({
 
   return (
     <div className="space-y-6">
-      {/* 검색바 */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <Input
@@ -239,14 +239,12 @@ export default function MemberList({
         />
       </div>
 
-      {/* 직원 리스트 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayedEmployees.map(employee => (
           <EmployeeCard key={employee.id} employee={employee} />
         ))}
       </div>
       
-      {/* 로딩 인디케이터 */}
       {displayedCount < employees.length && (
         <div ref={loadingRef} className="flex justify-center py-4">
           {isLoading ? (
@@ -273,7 +271,6 @@ export default function MemberList({
         </div>
       )}
 
-      {/* 프로필 모달 */}
       <ProfileModal
         isOpen={showProfileModal}
         onClose={handleProfileModalClose}

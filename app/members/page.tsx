@@ -42,6 +42,7 @@ interface Employee {
   address?: string
   joinDate: string
   organization: string
+  organizations?: string[]
   position: string
   role: string
   job: string
@@ -568,9 +569,12 @@ export default function MembersPage() {
     const teamCounts: Record<string, number> = {}
     
     employees.forEach(emp => {
-      if (emp.organization) {
-        orgCounts[emp.organization] = (orgCounts[emp.organization] || 0) + 1
-      }
+      const orgList = Array.isArray(emp.organizations) && emp.organizations.length > 0
+        ? emp.organizations
+        : (emp.organization ? [emp.organization] : [])
+      orgList.forEach(orgName => {
+        orgCounts[orgName] = (orgCounts[orgName] || 0) + 1
+      })
       
       if (emp.teams) {
         emp.teams.forEach(team => {
@@ -677,7 +681,10 @@ export default function MembersPage() {
       filtered = filtered.filter(emp => {
         const searchLower = searchTerm.toLowerCase()
         const nameMatch = emp.name.toLowerCase().includes(searchLower)
-        const orgMatch = emp.organization.toLowerCase().includes(searchLower)
+        const orgMatch = (
+          (emp.organization && emp.organization.toLowerCase().includes(searchLower)) ||
+          (Array.isArray(emp.organizations) && emp.organizations.some(o => o.toLowerCase().includes(searchLower)))
+        )
         const teamMatch = emp.teams && emp.teams.some(team => 
           team.toLowerCase().includes(searchLower)
         )
@@ -687,7 +694,10 @@ export default function MembersPage() {
     
     if (selectedOrg) {
       filtered = filtered.filter(emp => {
-        const orgMatch = emp.organization === selectedOrg
+        const orgMatch = (
+          emp.organization === selectedOrg ||
+          (Array.isArray(emp.organizations) && emp.organizations.includes(selectedOrg))
+        )
         const teamMatch = emp.teams && emp.teams.includes(selectedOrg)
         return orgMatch || teamMatch
       })
@@ -832,6 +842,9 @@ export default function MembersPage() {
       const result = await response.json();
 
       if (result.success) {
+        const primaryOrg = Array.isArray(memberData.organizations) && memberData.organizations.length > 0
+          ? memberData.organizations[0]
+          : memberData.organization
         const newMember: Employee = {
           id: result.member.id,
           name: memberData.name,
@@ -839,13 +852,14 @@ export default function MembersPage() {
           phone: memberData.phone || '',
           address: memberData.address || '',
           joinDate: memberData.joinDate,
-          organization: memberData.organization,
+          organization: primaryOrg,
+          organizations: Array.isArray(memberData.organizations) ? memberData.organizations : undefined,
           position: memberData.position,
           role: memberData.role,
           job: memberData.job,
           rank: memberData.rank || '',
           isAdmin: Boolean(memberData.isAdmin),
-          teams: [memberData.organization]
+          teams: primaryOrg ? [primaryOrg] : []
         };
 
         const updatedEmployees = [...employees, newMember].sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
@@ -953,7 +967,7 @@ export default function MembersPage() {
               variant="default" 
               size="sm" 
               onClick={handleSettingsClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
             >
               <Settings className="w-4 h-4 mr-2" />
               설정
