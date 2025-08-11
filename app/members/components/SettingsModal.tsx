@@ -87,9 +87,6 @@ export default function SettingsModal({ isOpen, onClose, onAddMember }: Settings
                 <h2 className="text-2xl font-bold text-gray-900">구성원 설정</h2>
                 <p className="text-sm text-gray-600 mt-1">구성원 관리 옵션을 선택하세요</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={onClose} className="cursor-pointer">
-                <X className="w-4 h-4" />
-              </Button>
             </DialogTitle>
           </DialogHeader>
           
