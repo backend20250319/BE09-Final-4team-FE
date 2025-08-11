@@ -7,11 +7,10 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
-import dataJson from "../announcements-detail/announcements.json";
-import { X } from "lucide-react";
+import dataJson from "../detail/announcements.json";
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
-const Editor = dynamic(() => import("../announcements-write/components/Editor"), {
+const Editor = dynamic(() => import("../write/components/Editor"), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center p-8 gap-2">
@@ -62,7 +61,7 @@ export default function AnnouncementEditPage() {
     console.log("작성자:", author);
     console.log("본문(JSON):", content);
     alert("공지사항이 수정되었습니다.");
-    router.push("/announcements");
+    router.push("/announcements/detail");
   };
 
   return (

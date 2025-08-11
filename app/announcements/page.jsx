@@ -110,12 +110,12 @@ export default function AnnouncementsPage() {
 
   // 공지사항 클릭 핸들러
   const handleGlassCardClick = (id) => {
-    router.push("/announcements-detail")
+    router.push("/announcements/detail")
   }
 
   // 글쓰기 클릭 핸들러
   const handleWriteAnnouncement = () => {
-    router.push("/announcements-write")
+    router.push("/announcements/write")
   }
 
   

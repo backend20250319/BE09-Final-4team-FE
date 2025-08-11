@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
 
 // Lexical Editor Viewer (읽기 전용)
-const Editor = dynamic(() => import("../announcements-write/components/Editor"), { ssr: false });
+const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
 
 export default function AnnouncementDetailPage() {
   const router = useRouter();
@@ -79,13 +79,17 @@ export default function AnnouncementDetailPage() {
               </div>
             </div>
             <EditDeleteButtons
-              onEdit={() => router.push(`/announcements-edit`)}
-              onDelete={() => alert('삭제가 완료되었습니다.')}
+              onEdit={() => router.push(`/announcements/edit`)}
+              onDelete={() => {
+                alert('삭제가 완료되었습니다.');
+                router.push(`/announcements`);
+              }}
+
             />
           </div>
           {/* 본문 (lexical editor json 파싱) */}
           <div className="mb-10">
-            <Editor jsonData={JSON.stringify(data.content)} onChange={() => {}} readOnly={true} showToolbar={false} />
+            <Editor jsonData={JSON.stringify(data.content)} onChange={() => { }} readOnly={true} showToolbar={false} />
           </div>
           {/* 첨부파일 다운로드 */}
           {data.attachment && (
