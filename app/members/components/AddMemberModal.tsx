@@ -92,12 +92,15 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setFormData({ ...initialFormData });
       setErrors({});
       setValidFields({});
+      setTouched({});
+      setSubmitted(false);
       setShowSaveConfirm(false);
       setShowBackConfirm(false);
       setWorkPolicyDropdownOpen(false);
@@ -127,20 +130,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    if (typeof value === 'string' && (!value || value.trim() === '')) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-      setValidFields(prev => ({ ...prev, [field]: false }));
-      return;
-    }
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    
-    if (field === 'joinDate' && typeof value === 'string' && value && value !== '') {
-      setValidFields(prev => ({ ...prev, [field]: true }));
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    if (typeof value === 'string') setValidFields(prev => ({ ...prev, [field]: value.trim().length > 0 }));
   };
 
   const handleWorkPolicyToggle = (policyId: string) => {
@@ -235,7 +226,9 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
 
   const handleFieldBlur = (field: string, value: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    validateField(field, value);
+    if (submitted) {
+      validateField(field, value);
+    }
   };
 
   const generatePassword = () => {
@@ -264,14 +257,14 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       const value = formData[field as keyof typeof formData] as string;
       if (!validateField(field, value)) {
         isValid = false;
-        newErrors[field] = errors[field] || '필수 항목입니다.';
+        if (submitted) newErrors[field] = '필수 항목입니다.';
       }
     });
 
     // 근무 정책 필수 검사
     if (!formData.workPolicies || formData.workPolicies.length === 0) {
       isValid = false;
-      newErrors['workPolicies'] = '최소 1개 이상의 근무 정책을 선택해주세요.';
+      if (submitted) newErrors['workPolicies'] = '최소 1개 이상의 근무 정책을 선택해주세요.';
     }
 
     setErrors(newErrors);
@@ -279,6 +272,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const handleSave = () => {
+    setSubmitted(true);
     if (validateForm()) {
       setShowSaveConfirm(true);
     } else {
