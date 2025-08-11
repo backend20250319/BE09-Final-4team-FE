@@ -103,7 +103,7 @@ export default function AnnouncementEditPage() {
           <div className="flex justify-between items-center mt-8">
             <button
               type="button"
-              className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+              className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition cursor-pointer"
               onClick={() => router.back()}
             >
               취소

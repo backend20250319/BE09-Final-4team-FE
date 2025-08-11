@@ -12,7 +12,7 @@ export default function EditDeleteButtons({ onEdit, onDelete }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="p-2 rounded-full hover:bg-gray-100 focus:outline-none"
+          className="p-2 rounded-full hover:bg-gray-100 focus:outline-none cursor-pointer"
           aria-label="더보기"
         >
           <MoreVertical className="w-6 h-6" />

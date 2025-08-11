@@ -84,7 +84,6 @@ export default function AnnouncementDetailPage() {
                 alert('삭제가 완료되었습니다.');
                 router.push(`/announcements`);
               }}
-
             />
           </div>
           {/* 본문 (lexical editor json 파싱) */}
@@ -107,10 +106,10 @@ export default function AnnouncementDetailPage() {
           )}
           {/* 하단 버튼 */}
           <div className="flex justify-between mt-12">
-            <button onClick={handleBack} className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">뒤로가기</button>
+            <button onClick={handleBack} className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">뒤로가기</button>
             <div className="flex gap-2">
-              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">이전글</button>
-              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow">다음글</button>
+              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">이전글</button>
+              <button className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition font-semibold shadow cursor-pointer">다음글</button>
             </div>
           </div>
         </GlassCard>

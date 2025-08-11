@@ -11,13 +11,13 @@ import dynamic from "next/dynamic";
 import { X, UploadCloud } from "lucide-react";
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
-const Editor = dynamic(() => import("./components/Editor"), { 
+const Editor = dynamic(() => import("./components/Editor"), {
   ssr: false,
-  loading: () => 
+  loading: () =>
     <div className="flex items-center justify-center p-8 gap-2">
-        <div className="w-5 h-5 border-2 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
-        <span>에디터 로딩 중...</span>
-      </div>
+      <div className="w-5 h-5 border-2 border-gray-100 border-t-blue-500 rounded-full animate-spin"></div>
+      <span>에디터 로딩 중...</span>
+    </div>
 });
 
 export default function NoticeWritePage() {
@@ -85,7 +85,7 @@ export default function NoticeWritePage() {
           </div>
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold">내용</label>
-            <Editor json={null} onChange={setContent}/>
+            <Editor json={null} onChange={setContent} />
           </div>
           {/* 파일 업로드 */}
           <AttachmentsManager
@@ -95,7 +95,7 @@ export default function NoticeWritePage() {
           <div className="flex justify-between items-center mt-8">
             <button
               type="button"
-              className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
+              className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition cursor-pointer"
               onClick={() => router.back()}
             >
               취소
