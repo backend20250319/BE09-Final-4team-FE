@@ -429,7 +429,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job">직무</Label>
+                    <Label htmlFor="job">직책</Label>
                     <Select
                       value={editedEmployee?.job || ''}
                       onValueChange={(value) => handleInputChange('job', value)}
@@ -446,12 +446,12 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">직책</Label>
+                    <Label htmlFor="role">직무</Label>
                     <Input
                       id="role"
                       value={editedEmployee?.role || ''}
                       onChange={(e) => handleInputChange('role', e.target.value)}
-                      placeholder="직책을 입력하세요"
+                      placeholder="직무를 입력하세요"
                     />
                   </div>
                 </div>

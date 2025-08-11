@@ -59,8 +59,8 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
   const titleMap: Record<TitleKind, { title: string; list: string[] }> = useMemo(() => ({
     rank: { title: '직급 설정', list: rank },
     position: { title: '직위 설정', list: position },
-    duty: { title: '직책 설정', list: duty },
-    job: { title: '직무 설정', list: job }
+    duty: { title: '직무 설정', list: duty },
+    job: { title: '직책 설정', list: job }
   }), [rank, position, duty, job])
 
   const current = titleMap[type]

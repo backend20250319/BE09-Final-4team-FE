@@ -83,7 +83,7 @@ const formTemplates: FormTemplate[] = [
     category: "hr",
     icon: User,
     color: "from-orange-500 to-orange-600",
-    fields: ["직무", "인원", "자격요건", "급여 범위"],
+    fields: ["직책", "인원", "자격요건", "급여 범위"],
     estimatedTime: "20분",
   },
   {

@@ -51,8 +51,8 @@ const menuItems = [
   
   {
     id: 6,
-    title: "직무 관리",
-    description: "구성원의 직무를 설정하고 관리합니다",
+    title: "직책 관리",
+    description: "구성원의 직책을 설정하고 관리합니다",
     icon: Star
   }
 ];

@@ -61,9 +61,9 @@ const positions = [
   'CEO', 'COO', 'CTO', 'CPO', 'CMO', 'VP', 'Director', 'Head', 'Manager'
 ];
 
-// 직책 목록 (예시)
 const roles = [
-  '본부장', '팀장', '팀원', '인턴'
+  '프론트엔드 개발', '백엔드 개발', 'UI/UX 디자인', '디지털 마케팅', 
+  '제품 기획', '영업 관리', '인사 관리', '시스템 관리'
 ];
 
 const jobs = [
@@ -490,19 +490,19 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">직책</Label>
+                    <Label htmlFor="role">직무</Label>
                     <Input
                       id="role"
                       value={formData.role}
                       onChange={(e) => handleInputChange('role', e.target.value)}
-                      placeholder="직책을 입력하세요"
+                      placeholder="직무를 입력하세요"
                       className={errors.role ? 'border-red-500' : ''}
                     />
                     {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job">직무</Label>
+                    <Label htmlFor="job">직책</Label>
                     <Select value={formData.job} onValueChange={(value) => handleInputChange('job', value)}>
                       <SelectTrigger className={errors.job ? 'border-red-500' : ''}>
                         <SelectValue placeholder="선택(선택사항)" />
