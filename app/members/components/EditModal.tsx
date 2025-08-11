@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import styles from './date-input.module.css'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import SimpleDropdown from "./SimpleDropdown"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { 
@@ -67,6 +68,7 @@ interface EditModalProps {
 export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelete }: EditModalProps) {
   const { user } = useAuth()
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
+  const joinDateRef = useRef<HTMLInputElement | null>(null)
   const [tempPassword, setTempPassword] = useState<string>('')
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false)
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false)
@@ -385,64 +387,32 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
 
                   <div className="space-y-2">
                     <Label htmlFor="rank">직급</Label>
-                    <Select
+                    <SimpleDropdown
+                      options={["사원","대리","과장","차장","부장","팀장","이사","대표"]}
                       value={editedEmployee?.rank || ''}
-                      onValueChange={(value) => handleInputChange('rank', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="사원">사원</SelectItem>
-                        <SelectItem value="대리">대리</SelectItem>
-                        <SelectItem value="과장">과장</SelectItem>
-                        <SelectItem value="차장">차장</SelectItem>
-                        <SelectItem value="부장">부장</SelectItem>
-                        <SelectItem value="팀장">팀장</SelectItem>
-                        <SelectItem value="이사">이사</SelectItem>
-                        <SelectItem value="대표">대표</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => handleInputChange('rank', value)}
+                      placeholder="선택(선택사항)"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="position">직위</Label>
-                    <Select
+                    <SimpleDropdown
+                      options={["CEO","COO","CTO","CPO","CMO","VP","Director","Head","Manager"]}
                       value={editedEmployee?.position || ''}
-                      onValueChange={(value) => handleInputChange('position', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CEO">CEO</SelectItem>
-                        <SelectItem value="COO">COO</SelectItem>
-                        <SelectItem value="CTO">CTO</SelectItem>
-                        <SelectItem value="CPO">CPO</SelectItem>
-                        <SelectItem value="CMO">CMO</SelectItem>
-                        <SelectItem value="VP">VP</SelectItem>
-                        <SelectItem value="Director">Director</SelectItem>
-                        <SelectItem value="Head">Head</SelectItem>
-                        <SelectItem value="Manager">Manager</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => handleInputChange('position', value)}
+                      placeholder="선택(선택사항)"
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="job">직책</Label>
-                    <Select
+                    <SimpleDropdown
+                      options={jobs}
                       value={editedEmployee?.job || ''}
-                      onValueChange={(value) => handleInputChange('job', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="선택(선택사항)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {jobs.map((j) => (
-                          <SelectItem key={j} value={j}>{j}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => handleInputChange('job', value)}
+                      placeholder="선택(선택사항)"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -467,12 +437,36 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="joinDate">입사일 *</Label>
-                    <Input
-                      id="joinDate"
-                      type="date"
-                      value={editedEmployee?.joinDate || ''}
-                      onChange={(e) => handleInputChange('joinDate', e.target.value)}
-                    />
+                    <div
+                      className="relative"
+                      onPointerDown={() => {
+                        const input = joinDateRef.current
+                        if (!input) return
+                        input.focus()
+                        try {
+                          input.showPicker?.()
+                        } catch {}
+                        input.click()
+                      }}
+                    >
+                      <Input
+                        id="joinDate"
+                        ref={joinDateRef}
+                        type="date"
+                        placeholder="연도-월-일"
+                        value={editedEmployee?.joinDate || ''}
+                        onChange={(e) => handleInputChange('joinDate', e.target.value)}
+                        className={`cursor-pointer ${styles.dateInput}`}
+                      />
+                      <button
+                        type="button"
+                        aria-label="달력 열기"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        // wrapper handles opening
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -481,6 +475,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       <Switch
                         checked={editedEmployee?.isAdmin}
                         onCheckedChange={(checked) => handleInputChange('isAdmin', checked)}
+                        className="cursor-pointer"
                       />
                       <span className="text-sm text-gray-600">관리자 권한 부여</span>
                     </div>
