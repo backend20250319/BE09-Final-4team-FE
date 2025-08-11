@@ -17,7 +17,6 @@ import {
   Car,
   Home,
   Briefcase,
-  X,
 } from "lucide-react"
 
 // 문서 양식 타입 정의
@@ -159,19 +158,9 @@ export function FormSelectionModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!max-w-4xl !w-[95vw] h-[80vh] flex flex-col p-0">
         <DialogHeader className="pb-4 px-6 pt-6 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className={`${typography.h2} text-gray-800`}>
-              문서 양식 선택
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <DialogTitle className={`${typography.h2} text-gray-800`}>
+            문서 양식 선택
+          </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
