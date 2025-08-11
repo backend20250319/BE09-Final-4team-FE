@@ -194,10 +194,10 @@ export function TimeWorkForm({ formData, setFormData }) {
           </div>
         </div>
 
-        {/* 근무 주기 시작 요일 */}
+        {/* 근무 주기 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            근무 주기 시작 요일
+            근무 주기 
           </label>
           <p className="text-xs text-gray-500 mb-3">
             근무 주기가 시작되는 요일

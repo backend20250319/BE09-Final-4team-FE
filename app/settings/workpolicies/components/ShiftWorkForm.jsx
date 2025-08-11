@@ -11,46 +11,44 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
-import SelectTime from "@/components/clock/SelectTime";
 
 export function ShiftWorkForm({ formData, setFormData }) {
-  const [showTimePicker, setShowTimePicker] = useState({
-    shift1Start: false,
-    shift1End: false,
-    shift2Start: false,
-    shift2End: false,
-    shift3Start: false,
-    shift3End: false,
-  });
-
   const updateFormData = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleTimeSelect = (field, time) => {
-    updateFormData(field, time);
-    setShowTimePicker((prev) => ({ ...prev, [field]: false }));
-  };
-
-  const openTimePicker = (field) => {
-    setShowTimePicker((prev) => ({ ...prev, [field]: true }));
-  };
-
-  const closeTimePicker = (field) => {
-    setShowTimePicker((prev) => ({ ...prev, [field]: false }));
-  };
-
-  const shiftTypes = [
-    { value: "2shift", label: "2교대" },
-    { value: "3shift", label: "3교대" },
-    { value: "4shift", label: "4교대" },
+  const weekDays = [
+    { id: "monday", name: "월", short: "월" },
+    { id: "tuesday", name: "화", short: "화" },
+    { id: "wednesday", name: "수", short: "수" },
+    { id: "thursday", name: "목", short: "목" },
+    { id: "friday", name: "금", short: "금" },
+    { id: "saturday", name: "토", short: "토" },
+    { id: "sunday", name: "일", short: "일" },
   ];
 
-  const shiftPatterns = [
-    { value: "day_night", label: "주간/야간" },
-    { value: "morning_afternoon", label: "오전/오후" },
-    { value: "custom", label: "사용자 정의" },
+  const workingDaysOptions = [
+    { value: "5", label: "5일" },
+    { value: "6", label: "6일" },
+    { value: "7", label: "7일" },
   ];
+
+  const handleDayToggle = (field, dayId) => {
+    const currentDays = formData[field] || {
+      monday: field === "workingDays" ? true : false,
+      tuesday: field === "workingDays" ? true : false,
+      wednesday: field === "workingDays" ? true : false,
+      thursday: field === "workingDays" ? true : false,
+      friday: field === "workingDays" ? true : false,
+      saturday: false,
+      sunday: field === "weeklyHoliday" ? true : false,
+    };
+
+    updateFormData(field, {
+      ...currentDays,
+      [dayId]: !currentDays[dayId],
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -80,161 +78,137 @@ export function ShiftWorkForm({ formData, setFormData }) {
         </div>
       </div>
 
-      {/* 교대 주기 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          교대 주기 (일)
-        </label>
-        <Input
-          type="number"
-          min="1"
-          max="30"
-          value={formData.shiftCycle || "7"}
-          onChange={(e) => updateFormData("shiftCycle", e.target.value)}
-          className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-          placeholder="7"
-        />
-      </div>
-
-      {/* 1교대 시간 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          1교대 시간
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <button
-              type="button"
-              onClick={() => openTimePicker("shift1Start")}
-              className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-            >
-              {formData.shift1Start || "06:00"}
-            </button>
-          </div>
-          <span className="text-gray-500">~</span>
-          <div className="flex-1">
-            <button
-              type="button"
-              onClick={() => openTimePicker("shift1End")}
-              className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-            >
-              {formData.shift1End || "14:00"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2교대 시간 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          2교대 시간
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex-1">
-            <button
-              type="button"
-              onClick={() => openTimePicker("shift2Start")}
-              className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-            >
-              {formData.shift2Start || "14:00"}
-            </button>
-          </div>
-          <span className="text-gray-500">~</span>
-          <div className="flex-1">
-            <button
-              type="button"
-              onClick={() => openTimePicker("shift2End")}
-              className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-            >
-              {formData.shift2End || "22:00"}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 3교대 시간 (3교대 이상인 경우) */}
-      {(formData.shiftType === "3shift" || formData.shiftType === "4shift") && (
+      {/* 한 주의 근무일 수 */}
+      <div className="flex items-center justify-between">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            3교대 시간
-          </label>
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <button
-                type="button"
-                onClick={() => openTimePicker("shift3Start")}
-                className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-              >
-                {formData.shift3Start || "22:00"}
-              </button>
-            </div>
-            <span className="text-gray-500">~</span>
-            <div className="flex-1">
-              <button
-                type="button"
-                onClick={() => openTimePicker("shift3End")}
-                className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
-              >
-                {formData.shift3End || "06:00"}
-              </button>
-            </div>
-          </div>
+          <p className="text-sm font-medium text-gray-700">한 주의 근무일 수</p>
         </div>
-      )}
+        <div className="w-32">
+          <Select
+            value={formData.workingDaysPerWeek || "5"}
+            onValueChange={(value) =>
+              updateFormData("workingDaysPerWeek", value)
+            }
+          >
+            <SelectTrigger className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {workingDaysOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* 주휴일 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          주휴일
+        </label>
+        <p className="text-xs text-gray-500 mb-3">
+          1주마다 부여하는 유급 휴일의 요일
+        </p>
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day) => {
+            const weeklyHoliday = formData.weeklyHoliday || {
+              monday: false,
+              tuesday: false,
+              wednesday: false,
+              thursday: false,
+              friday: false,
+              saturday: false,
+              sunday: true,
+            };
+            const isSelected = weeklyHoliday[day.id];
+
+            return (
+              <button
+                key={day.id}
+                onClick={() => handleDayToggle("weeklyHoliday", day.id)}
+                className={`p-3 rounded-lg border-2 transition-all duration-200 ${
+                  isSelected
+                    ? `border-blue-500 bg-blue-500 text-white`
+                    : `border-gray-200 bg-white/60 text-gray-600 hover:border-gray-300`
+                }`}
+              >
+                <span className="text-sm font-medium">{day.short}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 근무 시간 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-700">근무 시간</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">근무</span>
+          <div className="w-20">
+            <Input
+              type="number"
+              min="0"
+              max="24"
+              value={formData.workHours || "8"}
+              onChange={(e) => updateFormData("workHours", e.target.value)}
+              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl text-center"
+              placeholder="8"
+            />
+          </div>
+          <span className="text-sm text-gray-600">시간</span>
+          <div className="w-20">
+            <Input
+              type="number"
+              min="0"
+              max="59"
+              value={formData.workMinutes || "0"}
+              onChange={(e) => updateFormData("workMinutes", e.target.value)}
+              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl text-center"
+              placeholder="0"
+            />
+          </div>
+          <span className="text-sm text-gray-600">분</span>
+        </div>
+      </div>
 
       {/* 휴게 시간 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          휴게 시간 (분)
-        </label>
-        <Input
-          type="number"
-          min="0"
-          max="120"
-          value={formData.breakTime || "60"}
-          onChange={(e) => updateFormData("breakTime", e.target.value)}
-          className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-          placeholder="60"
-        />
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-700">휴게 시간</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">휴게</span>
+          <div className="w-20">
+            <Input
+              type="number"
+              min="0"
+              max="24"
+              value={formData.breakHours || "1"}
+              onChange={(e) => updateFormData("breakHours", e.target.value)}
+              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl text-center"
+              placeholder="1"
+            />
+          </div>
+          <span className="text-sm text-gray-600">시간</span>
+          <div className="w-20">
+            <Input
+              type="number"
+              min="0"
+              max="59"
+              value={formData.breakMinutes || "0"}
+              onChange={(e) => updateFormData("breakMinutes", e.target.value)}
+              className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl text-center"
+              placeholder="0"
+            />
+          </div>
+          <span className="text-sm text-gray-600">분</span>
+        </div>
       </div>
-
-      {/* Time Picker Modals */}
-      {showTimePicker.shift1Start && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift1Start", time)}
-          onClose={() => closeTimePicker("shift1Start")}
-        />
-      )}
-      {showTimePicker.shift1End && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift1End", time)}
-          onClose={() => closeTimePicker("shift1End")}
-        />
-      )}
-      {showTimePicker.shift2Start && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift2Start", time)}
-          onClose={() => closeTimePicker("shift2Start")}
-        />
-      )}
-      {showTimePicker.shift2End && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift2End", time)}
-          onClose={() => closeTimePicker("shift2End")}
-        />
-      )}
-      {showTimePicker.shift3Start && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift3Start", time)}
-          onClose={() => closeTimePicker("shift3Start")}
-        />
-      )}
-      {showTimePicker.shift3End && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("shift3End", time)}
-          onClose={() => closeTimePicker("shift3End")}
-        />
-      )}
     </div>
   );
 }
