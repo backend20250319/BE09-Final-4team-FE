@@ -4,15 +4,15 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Download, Filter, Plus } from 'lucide-react';
 import StyledPaging from '@/components/paging/styled-paging';
 import { typography } from '@/lib/design-tokens';
 import { GradientButton } from '@/components/ui/gradient-button';
+import { Filter, Plus } from 'lucide-react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
 import { useRouter } from 'next/navigation';
+import { AttachmentsSection } from '@/components/ui/attachments-section';
 
-export default function DocumentsTable({ files }) {
+export default function DocumentsTable() {
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -55,9 +55,10 @@ export default function DocumentsTable({ files }) {
     { filename: '마케팅전략_발표자료.pptx', ext: 'pptx' },
   ];
 
+  const [rows, setRows] = useState(fileRows);
 
   // 검색/필터
-  const filtered = fileRows.filter(
+  const filtered = rows.filter(
     f =>
       f.filename.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -89,18 +90,17 @@ export default function DocumentsTable({ files }) {
                 onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
                 className="pr-10 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl h-10"
               />
-              <Button
+              <button
                 type="button"
-                size="icon"
-                variant="ghost"
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 w-9 h-9 flex items-center justify-center rounded-md"
                 onClick={handleSearch}
                 aria-label="검색"
+                style={{ background: 'none', border: 'none', padding: 0 }}
               >
                 <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-              </Button>
+              </button>
             </div>
-            <Button type="button" size="icon" variant="secondary" className="bg-white/60 border border-gray-200/50 text-gray-400 hover:text-gray-600" aria-label="필터"><Filter /></Button>
+            <button type="button" className="bg-white/60 border border-gray-200/50 text-gray-400 hover:text-gray-600 w-9 h-9 flex items-center justify-center rounded-md" aria-label="필터" style={{ background: 'none', border: '1px solid #e5e7eb', padding: 0, marginLeft: '8px' }}><Filter /></button>
             <GradientButton type="button" variant="primary" className="h-10 px-4" onClick={() => router.push('/documents-write')}><Plus className="w-4 h-4 mr-2" />업로드</GradientButton>
           </div>
         </div>
@@ -109,40 +109,26 @@ export default function DocumentsTable({ files }) {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50 h-12">
-                <TableHead className="w-[70%] text-gray-700 font-semibold px-6 py-2">문서명</TableHead>
-                <TableHead className="w-[30%] text-gray-700 font-semibold px-6 py-2 text-center">다운로드</TableHead>
+                <TableHead className="w-full text-gray-700 font-semibold px-6 py-2 text-center">첨부파일</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paged.length === 0 ? (
                 <TableRow className="h-12">
-                  <TableCell colSpan={2} className="text-center py-12 text-gray-400">문서가 없습니다.</TableCell>
+                  <TableCell colSpan={1} className="text-center py-12 text-gray-400">문서가 없습니다.</TableCell>
                 </TableRow>
               ) : (
                 paged.map(file => (
                   <TableRow key={file.filename} className="h-12">
-                    <TableCell className="flex items-center gap-2 font-medium px-6 py-2 h-12">
-                      <div style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <FileIcon
-                          extension={file.ext}
-                          color={defaultStyles[file.ext]?.color}
-                          labelColor={defaultStyles[file.ext]?.labelColor}
-                          glyphColor={defaultStyles[file.ext]?.glyphColor}
-                          size={24}
-                          fontSize={8}
-                          style={{ width: 32, height: 32 }}
-                        />
-                      </div>
-                      <span className="truncate">{file.filename}</span>
-                    </TableCell>
-                    <TableCell className="text-center px-6 py-2 h-12">
-                      <button
-                        onClick={() => alert(`${file.filename} 다운로드 준비 중입니다.`)}
-                        className="inline-flex items-center justify-center w-9 h-9 rounded-md hover:bg-blue-50 transition"
-                        title="다운로드"
-                      >
-                        <Download className="w-5 h-5 text-blue-500" />
-                      </button>
+                    <TableCell className="px-6 py-2 h-12">
+                      <AttachmentsSection
+                        attachments={[{
+                          id: file.filename,
+                          name: file.filename,
+                          url: '', // 실제 파일 URL이 있다면 여기에 입력
+                          size: '1.0 MB' // 실제 파일 크기 정보로 대체
+                        }]}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

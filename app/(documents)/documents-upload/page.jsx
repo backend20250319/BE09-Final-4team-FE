@@ -1,25 +1,25 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
 import { typography } from "@/lib/design-tokens";
+import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
 export default function DocumentsUploadPage() {
   const router = useRouter();
-  const fileInputRef = useRef(null);
+  const [attachments, setAttachments] = useState([]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const file = fileInputRef.current?.files?.[0];
-    if (!file) {
+    if (attachments.length === 0) {
       alert("업로드할 파일을 선택하세요.");
       return;
     }
     // TODO: 실제 업로드 API 연동
-    alert(`'${file.name}' 업로드 완료! (API 연동 필요)`);
+    alert(`'${attachments.map(f => f.name).join(", ")}' 업로드 완료! (API 연동 필요)`);
     router.push("/documents");
   };
 
@@ -33,12 +33,11 @@ export default function DocumentsUploadPage() {
         <form onSubmit={handleSubmit}>
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold">문서 파일</label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="block w-full border border-gray-300 rounded-lg p-2 bg-white/80"
-              accept=".pdf,.doc,.docx,.hwp,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
-              required
+            <AttachmentsManager
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              maxFiles={5}
+              maxFileSize={20}
             />
           </div>
           <div className="flex justify-end">
