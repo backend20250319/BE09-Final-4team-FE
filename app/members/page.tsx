@@ -41,7 +41,7 @@ interface Employee {
   phone?: string
   address?: string
   joinDate: string
-  organization: string
+  organization?: string
   organizations?: string[]
   position: string
   role: string
@@ -915,10 +915,10 @@ export default function MembersPage() {
     <div className="ml-4">
       <button
         onClick={() => handleOrgSelect(org.name)}
-        className={`w-full text-left p-2 rounded-lg transition-colors ${
+        className={`group w-full text-left p-2 rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 ${
           selectedOrg === org.name
-            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-            : 'hover:bg-gray-50'
+            ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200 hover:ring-blue-300'
+            : 'bg-white hover:bg-gray-50 ring-1 ring-transparent hover:ring-gray-200 hover:shadow-sm'
         }`}
       >
         <div className="flex items-center justify-between">
