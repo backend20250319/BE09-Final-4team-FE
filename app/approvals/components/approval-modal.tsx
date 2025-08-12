@@ -115,7 +115,7 @@ function ApprovalHeader({ approval }: { approval: Approval }) {
   const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
   const statusBgColor = getStatusColor(approval.status, approval.isMyApproval)
   const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
-  
+
   // formTemplate 찾기
   const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
   if (!formTemplate) return null
@@ -181,7 +181,7 @@ function FormFieldDisplay({
 }) {
   const formatValue = () => {
     if (!value && value !== 0) return '-'
-    
+
     switch (field.type) {
       case 'money':
         return `${value}원`
@@ -211,14 +211,13 @@ function FormFieldDisplay({
 // 양식 필드 섹션 컴포넌트
 function FormFieldsSection({ approval }: { approval: Approval }) {
   const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
-  
+
   if (!formTemplate?.fields || !approval.formFields) {
     return null
   }
 
   return (
     <div className="space-y-3">
-      <h3 className={`${typography.h4} text-gray-800`}>신청 내용</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
         {formTemplate.fields.map((field) => (
           <FormFieldDisplay
@@ -359,8 +358,8 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${stage.status === "completed" ? "bg-green-100" :
-                    stage.status === "current" ? "bg-blue-100" :
-                      stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
+                  stage.status === "current" ? "bg-blue-100" :
+                    stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
                   }`}>
                   {stage.status === "completed" ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
@@ -376,8 +375,8 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
                   <p className="font-medium text-gray-800">
                     {stageIndex + 1}단계 승인
                     <span className={`text-sm ml-2 ${stage.status === "completed" ? "text-green-600" :
-                        stage.status === "current" ? "text-blue-600" :
-                          stage.status === "pending" ? "text-yellow-600" : "text-red-600"
+                      stage.status === "current" ? "text-blue-600" :
+                        stage.status === "pending" ? "text-yellow-600" : "text-red-600"
                       }`}>
                       {stage.status === "completed" ? "완료" :
                         stage.status === "current" ? "진행중" :
@@ -442,8 +441,8 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
             </div>
 
             <div className="space-y-1">
-                      {references.map((reference, index) => (
-          <div key={reference.id || `reference-${index}`} className="flex items-center gap-3 p-2">
+              {references.map((reference, index) => (
+                <div key={reference.id || `reference-${index}`} className="flex items-center gap-3 p-2">
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarImage src={reference.avatar} alt={reference.name} />
                     <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
@@ -481,8 +480,8 @@ function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
-      return (
-      <div>
+  return (
+    <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
@@ -661,14 +660,11 @@ export function ApprovalModal({
               {/* 양식 필드 */}
               <FormFieldsSection approval={approval} />
 
-              <Separator />
-
               {/* 상세 내용 */}
               <div className="space-y-2">
-                <h3 className={`${typography.h4} text-gray-800`}>추가 설명</h3>
                 <div className="p-3">
                   <div className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content || '추가 설명이 없습니다.'}
+                    {approval.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>
@@ -676,7 +672,6 @@ export function ApprovalModal({
               {/* 첨부 파일 */}
               {approval.attachments && approval.attachments.length > 0 && (
                 <>
-                  <Separator />
                   <AttachmentsSection attachments={approval.attachments} />
                 </>
               )}
@@ -749,17 +744,14 @@ export function ApprovalModal({
 
               {/* 양식 필드 */}
               {approval.formFields && (
-                <CollapsibleSection title="신청 내용" defaultOpen={true}>
-                  <FormFieldsSection approval={approval} />
-                </CollapsibleSection>
+                <FormFieldsSection approval={approval} />
               )}
 
               {/* 상세 내용 */}
               <div className="space-y-2">
-                <h3 className={`${typography.h4} text-gray-800`}>추가 설명</h3>
                 <div className="p-3">
                   <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content || '추가 설명이 없습니다.'}
+                    {approval.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>

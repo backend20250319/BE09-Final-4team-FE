@@ -641,9 +641,8 @@ export function FormWriterModal({
 
               {/* 본문 작성 */}
               <div className="space-y-2 flex-1 flex flex-col min-h-0">
-                <Label className="text-sm font-medium text-gray-700">추가 설명</Label>
                 <Textarea
-                  placeholder="추가 설명이나 상세 내용을 작성하세요..."
+                  placeholder="내용을 입력하세요"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="flex-1 min-h-0 resize-none overflow-y-auto"
