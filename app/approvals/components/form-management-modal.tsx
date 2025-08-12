@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { FormTemplatesGrid } from "./form-templates-grid"
 import { colors, typography } from "@/lib/design-tokens"
 import { FormTemplate, formTemplates as initialTemplates } from "@/lib/mock-data/form-templates"
-import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText } from "lucide-react"
+import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X } from "lucide-react"
 
 type Category = { id: string; name: string }
 
@@ -35,7 +35,8 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [categories, setCategories] = useState<Category[]>(defaultCategories)
   const [templates, setTemplates] = useState<(FormTemplate & { hidden?: boolean })[]>(() => initialTemplates)
-  const [showCategoryEditor, setShowCategoryEditor] = useState(false)
+  const [isEditingCategories, setIsEditingCategories] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
   const [editingForm, setEditingForm] = useState<FormTemplate | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
 
@@ -95,6 +96,36 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
     setTemplates((prev) => prev.map((t) => (t.id === form.id ? { ...t, category: categoryId } : t)))
   }
 
+  const handleAddCategory = () => {
+    const name = newCategoryName.trim()
+    if (!name) return
+    const id = name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "")
+    if (!categories.find((c) => c.id === id)) {
+      setCategories((prev) => [...prev, { id, name }])
+      setNewCategoryName("")
+    }
+  }
+
+  const handleRemoveCategory = (categoryId: string) => {
+    if (categoryId === "all") return
+    // 해당 카테고리를 사용하는 양식들을 다른 카테고리로 이동
+    const firstAvailableCategory = categories.find(c => c.id !== "all" && c.id !== categoryId)?.id || "hr"
+    setTemplates((prev) => prev.map((t) => 
+      t.category === categoryId ? { ...t, category: firstAvailableCategory } : t
+    ))
+    setCategories((prev) => prev.filter((c) => c.id !== categoryId))
+    if (selectedCategory === categoryId) {
+      setSelectedCategory("all")
+    }
+  }
+
+  const handleRenameCategoryInline = (categoryId: string, newName: string) => {
+    setCategories((prev) => prev.map((c) => (c.id === categoryId ? { ...c, name: newName } : c)))
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!max-w-5xl !w-[95vw] h-[85vh] flex flex-col p-0">
@@ -114,8 +145,8 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
               />
             </div>
 
-            <Button variant="outline" onClick={() => setShowCategoryEditor(true)} className="flex items-center gap-2">
-              <Settings className="w-4 h-4" /> 분류 수정
+            <Button variant="outline" onClick={() => setIsEditingCategories(!isEditingCategories)} className="flex items-center gap-2">
+              <Settings className="w-4 h-4" /> {isEditingCategories ? "편집 완료" : "분류 수정"}
             </Button>
 
             <Button onClick={handleNewForm} className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
@@ -124,19 +155,66 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
           </div>
 
           <div className="px-6 pb-4 flex-shrink-0">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="flex items-center gap-2 whitespace-nowrap flex-shrink-0"
-                >
-                  {category.name}
-                </Button>
-              ))}
-            </div>
+            {isEditingCategories ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center gap-1 bg-gray-50 rounded-lg p-2">
+                      {category.id === "all" ? (
+                        <span className="text-sm text-gray-600 px-2">{category.name}</span>
+                      ) : (
+                        <>
+                          <Input
+                            className="text-sm w-20 h-7 px-2 bg-white"
+                            value={category.name}
+                            onChange={(e) => handleRenameCategoryInline(category.id, e.target.value)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRemoveCategory(category.id)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="새 분류 이름"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="flex-1 h-8"
+                    onKeyPress={(e) => e.key === "Enter" && handleAddCategory()}
+                  />
+                  <Button
+                    onClick={handleAddCategory}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 h-8"
+                    disabled={!newCategoryName.trim()}
+                  >
+                    <Plus className="w-4 h-4 mr-1" /> 추가
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2 pb-2">
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className="flex items-center gap-2 whitespace-nowrap"
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
@@ -185,19 +263,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
         </div>
       </DialogContent>
 
-      {/* 분류 추가/수정 모달 */}
-      <Dialog open={showCategoryEditor} onOpenChange={setShowCategoryEditor}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className={`${typography.h3} text-gray-800`}>분류 추가/수정</DialogTitle>
-          </DialogHeader>
-          <CategoryEditor
-            categories={categories}
-            onChange={setCategories}
-            onClose={() => setShowCategoryEditor(false)}
-          />
-        </DialogContent>
-      </Dialog>
+
 
     {/* 양식 수정 모달 */}
     <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
@@ -226,77 +292,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   )
 }
 
-function CategoryEditor({
-  categories,
-  onChange,
-  onClose,
-}: {
-  categories: Category[]
-  onChange: (next: Category[]) => void
-  onClose: () => void
-}) {
-  const [local, setLocal] = useState<Category[]>(categories)
-  const [adding, setAdding] = useState("")
 
-  const handleAdd = () => {
-    const name = adding.trim()
-    if (!name) return
-    const id = name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-    if (!local.find((c) => c.id === id)) {
-      setLocal((prev) => [...prev, { id, name }])
-      setAdding("")
-    }
-  }
-
-  const handleRename = (id: string, name: string) => {
-    setLocal((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)))
-  }
-
-  const handleRemove = (id: string) => {
-    if (id === "all") return
-    setLocal((prev) => prev.filter((c) => c.id !== id))
-  }
-
-  const handleSave = () => {
-    onChange(local)
-    onClose()
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <Input
-          placeholder="새 분류 이름"
-          value={adding}
-          onChange={(e) => setAdding(e.target.value)}
-        />
-        <Button onClick={handleAdd}>추가</Button>
-      </div>
-      <div className="space-y-2 max-h-72 overflow-y-auto">
-        {local.map((c) => (
-          <div key={c.id} className="flex items-center gap-2">
-            <Input
-              className="flex-1"
-              value={c.name}
-              onChange={(e) => handleRename(c.id, e.target.value)}
-              disabled={c.id === "all"}
-            />
-            <Button variant="outline" onClick={() => handleRemove(c.id)} disabled={c.id === "all"}>
-              삭제
-            </Button>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onClose}>취소</Button>
-        <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">저장</Button>
-      </div>
-    </div>
-  )
-}
 
 function EditForm({
   value,
