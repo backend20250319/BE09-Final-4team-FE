@@ -332,7 +332,7 @@ export default function VacationPage() {
     {
       title: "기본 연차",
       count: 12,
-      unit: "일",
+      unit: "일 남음",
       description: "3일 사용됨",
       icon: CalendarDays,
       color: colors.primary.blue,
@@ -342,7 +342,7 @@ export default function VacationPage() {
     {
       title: "보상 연차",
       count: 4,
-      unit: "일",
+      unit: "일 남음",
       description: "1일 사용됨",
       icon: Gift,
       color: colors.status.success.gradient,
@@ -352,7 +352,7 @@ export default function VacationPage() {
     {
       title: "특별 연차",
       count: 1,
-      unit: "일",
+      unit: "일 남음",
       description: "0일 사용됨",
       icon: Star,
       color: colors.status.warning.gradient,
