@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -21,6 +21,13 @@ export function TimeWorkForm({ formData, setFormData }) {
     breakTimeEnd: false,
   });
 
+  const timePickerRefs = {
+    startTimeStart: useRef(null),
+    startTimeEnd: useRef(null),
+    breakTimeStart: useRef(null),
+    breakTimeEnd: useRef(null),
+  };
+
   const updateFormData = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -37,6 +44,24 @@ export function TimeWorkForm({ formData, setFormData }) {
   const closeTimePicker = (field) => {
     setShowTimePicker((prev) => ({ ...prev, [field]: false }));
   };
+
+  // 바깥 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.keys(showTimePicker).forEach((field) => {
+        if (showTimePicker[field] && timePickerRefs[field].current) {
+          if (!timePickerRefs[field].current.contains(event.target)) {
+            closeTimePicker(field);
+          }
+        }
+      });
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTimePicker]);
 
   const weekDays = [
     { id: "monday", name: "월", short: "월" },
@@ -106,16 +131,8 @@ export function TimeWorkForm({ formData, setFormData }) {
 
       {/* 일하는 방식 */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div>
           <h3 className="text-lg font-semibold text-gray-800">일하는 방식</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 text-xs"
-          >
-            <Calendar className="w-3 h-3" />
-            요일별 설정
-          </Button>
         </div>
 
         {/* 근무 요일 */}
@@ -197,7 +214,7 @@ export function TimeWorkForm({ formData, setFormData }) {
         {/* 근무 주기 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            근무 주기 
+            근무 주기
           </label>
           <p className="text-xs text-gray-500 mb-3">
             근무 주기가 시작되는 요일
@@ -230,21 +247,51 @@ export function TimeWorkForm({ formData, setFormData }) {
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm text-gray-600">출근</span>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => openTimePicker("startTimeStart")}
-                className="px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors"
-              >
-                {formData.startTimeStart || "09:00"}
-              </button>
+              <div className="relative" ref={timePickerRefs.startTimeStart}>
+                <button
+                  type="button"
+                  onClick={() => openTimePicker("startTimeStart")}
+                  className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                >
+                  {formData.startTimeStart || "09:00"}
+                </button>
+
+                {/* 시작 시간 드롭다운 */}
+                {showTimePicker.startTimeStart && (
+                  <div className="absolute top-full left-0 z-50 mt-1">
+                    <SelectTime
+                      onTimeSelect={(time) =>
+                        handleTimeSelect("startTimeStart", time)
+                      }
+                      onClose={() => closeTimePicker("startTimeStart")}
+                      isDropdown={true}
+                    />
+                  </div>
+                )}
+              </div>
               <span className="text-gray-400">-</span>
-              <button
-                type="button"
-                onClick={() => openTimePicker("startTimeEnd")}
-                className="px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors"
-              >
-                {formData.startTimeEnd || "11:00"}
-              </button>
+              <div className="relative" ref={timePickerRefs.startTimeEnd}>
+                <button
+                  type="button"
+                  onClick={() => openTimePicker("startTimeEnd")}
+                  className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                >
+                  {formData.startTimeEnd || "11:00"}
+                </button>
+
+                {/* 종료 시간 드롭다운 */}
+                {showTimePicker.startTimeEnd && (
+                  <div className="absolute top-full left-0 z-50 mt-1">
+                    <SelectTime
+                      onTimeSelect={(time) =>
+                        handleTimeSelect("startTimeEnd", time)
+                      }
+                      onClose={() => closeTimePicker("startTimeEnd")}
+                      isDropdown={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -286,21 +333,51 @@ export function TimeWorkForm({ formData, setFormData }) {
           {(formData.breakTimes || [{ start: "12:00", end: "13:00" }]).map(
             (breakTime, index) => (
               <div key={index} className="flex items-center gap-2 mb-2">
-                <button
-                  type="button"
-                  onClick={() => openTimePicker("breakTimeStart")}
-                  className="px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors"
-                >
-                  {breakTime.start}
-                </button>
+                <div className="relative" ref={timePickerRefs.breakTimeStart}>
+                  <button
+                    type="button"
+                    onClick={() => openTimePicker("breakTimeStart")}
+                    className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                  >
+                    {breakTime.start}
+                  </button>
+
+                  {/* 휴게 시작 시간 드롭다운 */}
+                  {showTimePicker.breakTimeStart && (
+                    <div className="absolute top-full left-0 z-50 mt-1">
+                      <SelectTime
+                        onTimeSelect={(time) =>
+                          handleTimeSelect("breakTimeStart", time)
+                        }
+                        onClose={() => closeTimePicker("breakTimeStart")}
+                        isDropdown={true}
+                      />
+                    </div>
+                  )}
+                </div>
                 <span className="text-gray-400">-</span>
-                <button
-                  type="button"
-                  onClick={() => openTimePicker("breakTimeEnd")}
-                  className="px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors"
-                >
-                  {breakTime.end}
-                </button>
+                <div className="relative" ref={timePickerRefs.breakTimeEnd}>
+                  <button
+                    type="button"
+                    onClick={() => openTimePicker("breakTimeEnd")}
+                    className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                  >
+                    {breakTime.end}
+                  </button>
+
+                  {/* 휴게 종료 시간 드롭다운 */}
+                  {showTimePicker.breakTimeEnd && (
+                    <div className="absolute top-full left-0 z-50 mt-1">
+                      <SelectTime
+                        onTimeSelect={(time) =>
+                          handleTimeSelect("breakTimeEnd", time)
+                        }
+                        onClose={() => closeTimePicker("breakTimeEnd")}
+                        isDropdown={true}
+                      />
+                    </div>
+                  )}
+                </div>
                 {(formData.breakTimes || []).length > 1 && (
                   <Button
                     variant="outline"
@@ -326,32 +403,6 @@ export function TimeWorkForm({ formData, setFormData }) {
           </Button>
         </div>
       </div>
-
-      {/* Time Picker Modals */}
-      {showTimePicker.startTimeStart && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("startTimeStart", time)}
-          onClose={() => closeTimePicker("startTimeStart")}
-        />
-      )}
-      {showTimePicker.startTimeEnd && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("startTimeEnd", time)}
-          onClose={() => closeTimePicker("startTimeEnd")}
-        />
-      )}
-      {showTimePicker.breakTimeStart && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("breakTimeStart", time)}
-          onClose={() => closeTimePicker("breakTimeStart")}
-        />
-      )}
-      {showTimePicker.breakTimeEnd && (
-        <SelectTime
-          onTimeSelect={(time) => handleTimeSelect("breakTimeEnd", time)}
-          onClose={() => closeTimePicker("breakTimeEnd")}
-        />
-      )}
     </div>
   );
 }

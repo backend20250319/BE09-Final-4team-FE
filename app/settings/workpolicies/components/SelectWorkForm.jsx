@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -10,12 +10,58 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Calendar, HelpCircle } from "lucide-react";
+import { Calendar, HelpCircle, Plus } from "lucide-react";
+import SelectTime from "@/components/clock/SelectTime";
 
 export function SelectWorkForm({ formData, setFormData }) {
+  const [showTimePicker, setShowTimePicker] = useState({
+    coreTimeStart: false,
+    coreTimeEnd: false,
+    breakTimeStart: false,
+    breakTimeEnd: false,
+  });
+
+  const timePickerRefs = {
+    coreTimeStart: useRef(null),
+    coreTimeEnd: useRef(null),
+    breakTimeStart: useRef(null),
+    breakTimeEnd: useRef(null),
+  };
+
   const updateFormData = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleTimeSelect = (field, time) => {
+    updateFormData(field, time);
+    setShowTimePicker((prev) => ({ ...prev, [field]: false }));
+  };
+
+  const openTimePicker = (field) => {
+    setShowTimePicker((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const closeTimePicker = (field) => {
+    setShowTimePicker((prev) => ({ ...prev, [field]: false }));
+  };
+
+  // 바깥 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      Object.keys(showTimePicker).forEach((field) => {
+        if (showTimePicker[field] && timePickerRefs[field].current) {
+          if (!timePickerRefs[field].current.contains(event.target)) {
+            closeTimePicker(field);
+          }
+        }
+      });
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTimePicker]);
 
   const weekDays = [
     { id: "monday", name: "월", short: "월" },
@@ -86,9 +132,20 @@ export function SelectWorkForm({ formData, setFormData }) {
     });
   };
 
-  const handleBreakTimeAdd = () => {
-    const currentBreakTimes = formData.breakTimes || ["12:00-13:00"];
-    updateFormData("breakTimes", [...currentBreakTimes, "12:00-13:00"]);
+  const addBreakTime = () => {
+    const currentBreaks = formData.breakTimes || [];
+    updateFormData("breakTimes", [
+      ...currentBreaks,
+      { start: "12:00", end: "13:00" },
+    ]);
+  };
+
+  const removeBreakTime = (index) => {
+    const currentBreaks = formData.breakTimes || [];
+    updateFormData(
+      "breakTimes",
+      currentBreaks.filter((_, i) => i !== index)
+    );
   };
 
   return (
@@ -106,16 +163,8 @@ export function SelectWorkForm({ formData, setFormData }) {
 
       {/* 일하는 방식 */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div>
           <h3 className="text-lg font-semibold text-gray-800">일하는 방식</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 text-xs"
-          >
-            <Calendar className="w-3 h-3" />
-            요일별 설정
-          </Button>
         </div>
       </div>
 
@@ -256,15 +305,62 @@ export function SelectWorkForm({ formData, setFormData }) {
             </div>
             <span className="text-sm text-gray-600">분</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">코어 타임</span>
-            <div className="flex-1">
-              <Input
-                value={formData.coreTime || ""}
-                onChange={(e) => updateFormData("coreTime", e.target.value)}
-                className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-                placeholder="코어 타임 선택"
-              />
+          <div className="space-y-3">
+            {/* StartCoreTime */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">시작 시간</span>
+              <div
+                className="flex-1 relative"
+                ref={timePickerRefs.coreTimeStart}
+              >
+                <button
+                  type="button"
+                  onClick={() => openTimePicker("coreTimeStart")}
+                  className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
+                >
+                  {formData.coreTimeStart || "10:00"}
+                </button>
+
+                {/* 시작 시간 드롭다운 */}
+                {showTimePicker.coreTimeStart && (
+                  <div className="absolute top-full left-0 z-50 mt-1 w-full">
+                    <SelectTime
+                      onTimeSelect={(time) =>
+                        handleTimeSelect("coreTimeStart", time)
+                      }
+                      onClose={() => closeTimePicker("coreTimeStart")}
+                      isDropdown={true}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* EndCoreTime */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">종료 시간</span>
+              <div className="flex-1 relative" ref={timePickerRefs.coreTimeEnd}>
+                <button
+                  type="button"
+                  onClick={() => openTimePicker("coreTimeEnd")}
+                  className="w-full px-3 py-2 text-left bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl hover:bg-white/80 transition-colors"
+                >
+                  {formData.coreTimeEnd || "16:00"}
+                </button>
+
+                {/* 종료 시간 드롭다운 */}
+                {showTimePicker.coreTimeEnd && (
+                  <div className="absolute top-full left-0 z-50 mt-1 w-full">
+                    <SelectTime
+                      onTimeSelect={(time) =>
+                        handleTimeSelect("coreTimeEnd", time)
+                      }
+                      onClose={() => closeTimePicker("coreTimeEnd")}
+                      isDropdown={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -279,29 +375,76 @@ export function SelectWorkForm({ formData, setFormData }) {
           </p>
         </div>
         <div className="space-y-2">
-          {(formData.breakTimes || ["12:00-13:00"]).map((breakTime, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                value={breakTime}
-                onChange={(e) => {
-                  const newBreakTimes = [
-                    ...(formData.breakTimes || ["12:00-13:00"]),
-                  ];
-                  newBreakTimes[index] = e.target.value;
-                  updateFormData("breakTimes", newBreakTimes);
-                }}
-                className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-                placeholder="오후 12:00 - 오후 1:00"
-              />
-            </div>
-          ))}
+          {(formData.breakTimes || [{ start: "12:00", end: "13:00" }]).map(
+            (breakTime, index) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
+                <div className="relative" ref={timePickerRefs.breakTimeStart}>
+                  <button
+                    type="button"
+                    onClick={() => openTimePicker("breakTimeStart")}
+                    className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                  >
+                    {breakTime.start}
+                  </button>
+
+                  {/* 휴게 시작 시간 드롭다운 */}
+                  {showTimePicker.breakTimeStart && (
+                    <div className="absolute top-full left-0 z-50 mt-1">
+                      <SelectTime
+                        onTimeSelect={(time) =>
+                          handleTimeSelect("breakTimeStart", time)
+                        }
+                        onClose={() => closeTimePicker("breakTimeStart")}
+                        isDropdown={true}
+                      />
+                    </div>
+                  )}
+                </div>
+                <span className="text-gray-400">-</span>
+                <div className="relative" ref={timePickerRefs.breakTimeEnd}>
+                  <button
+                    type="button"
+                    onClick={() => openTimePicker("breakTimeEnd")}
+                    className="w-40 px-3 py-2 text-sm bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-lg hover:bg-white/80 transition-colors text-center"
+                  >
+                    {breakTime.end}
+                  </button>
+
+                  {/* 휴게 종료 시간 드롭다운 */}
+                  {showTimePicker.breakTimeEnd && (
+                    <div className="absolute top-full left-0 z-50 mt-1">
+                      <SelectTime
+                        onTimeSelect={(time) =>
+                          handleTimeSelect("breakTimeEnd", time)
+                        }
+                        onClose={() => closeTimePicker("breakTimeEnd")}
+                        isDropdown={true}
+                      />
+                    </div>
+                  )}
+                </div>
+                {(formData.breakTimes || []).length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeBreakTime(index)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    삭제
+                  </Button>
+                )}
+              </div>
+            )
+          )}
+
           <Button
             variant="outline"
             size="sm"
-            onClick={handleBreakTimeAdd}
-            className="text-xs"
+            onClick={addBreakTime}
+            className="flex items-center gap-2 mt-2"
           >
-            + 추가하기
+            <Plus className="w-4 h-4" />
+            추가하기
           </Button>
         </div>
       </div>

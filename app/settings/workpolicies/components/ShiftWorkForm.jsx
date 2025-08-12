@@ -28,6 +28,10 @@ export function ShiftWorkForm({ formData, setFormData }) {
   ];
 
   const workingDaysOptions = [
+    { value: "1", label: "1일" },
+    { value: "2", label: "2일" },
+    { value: "3", label: "3일" },
+    { value: "4", label: "4일" },
     { value: "5", label: "5일" },
     { value: "6", label: "6일" },
     { value: "7", label: "7일" },
@@ -65,16 +69,8 @@ export function ShiftWorkForm({ formData, setFormData }) {
 
       {/* 일하는 방식 */}
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div>
           <h3 className="text-lg font-semibold text-gray-800">일하는 방식</h3>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 text-xs"
-          >
-            <Calendar className="w-3 h-3" />
-            요일별 설정
-          </Button>
         </div>
       </div>
 
@@ -85,7 +81,7 @@ export function ShiftWorkForm({ formData, setFormData }) {
         </div>
         <div className="w-32">
           <Select
-            value={formData.workingDaysPerWeek || "5"}
+            value={formData.workingDaysPerWeek || "1"}
             onValueChange={(value) =>
               updateFormData("workingDaysPerWeek", value)
             }
