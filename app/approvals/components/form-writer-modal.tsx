@@ -12,6 +12,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import {
   X,
   Plus,
@@ -24,6 +26,7 @@ import {
   ChevronUp,
   ArrowLeft,
   Send,
+  CalendarDays,
 } from "lucide-react"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 
@@ -51,7 +54,7 @@ interface Reference {
   position: string
 }
 
-import { FormTemplate } from "./form-selection-modal"
+import { FormTemplate, FormField } from "@/lib/mock-data/form-templates"
 
 interface FormWriterModalProps {
   isOpen: boolean
@@ -63,6 +66,7 @@ interface FormWriterModalProps {
     attachments: Attachment[]
     approvalStages: ApprovalStage[]
     references: Reference[]
+    formFields: Record<string, any>
   }) => Promise<void>
 }
 
@@ -359,7 +363,130 @@ function ReferencesManager({
   )
 }
 
+// 필드별 입력 컴포넌트 렌더러
+function FormFieldRenderer({
+  field,
+  value,
+  onChange
+}: {
+  field: FormField
+  value: any
+  onChange: (value: any) => void
+}) {
+  const handleMultiSelectChange = (optionValue: string, checked: boolean) => {
+    const currentValues = Array.isArray(value) ? value : []
+    if (checked) {
+      onChange([...currentValues, optionValue])
+    } else {
+      onChange(currentValues.filter((v: string) => v !== optionValue))
+    }
+  }
 
+  const formatMoney = (value: string) => {
+    const number = value.replace(/[^\d]/g, '')
+    return number.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  }
+
+  const handleMoneyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatMoney(e.target.value)
+    onChange(formatted)
+  }
+
+  switch (field.type) {
+    case 'text':
+      return (
+        <Input
+          type="text"
+          placeholder={field.placeholder}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full"
+        />
+      )
+    
+    case 'number':
+      return (
+        <Input
+          type="number"
+          placeholder={field.placeholder}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full"
+        />
+      )
+    
+    case 'money':
+      return (
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder={field.placeholder}
+            value={value || ''}
+            onChange={handleMoneyChange}
+            className="w-full pr-10"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+            원
+          </span>
+        </div>
+      )
+    
+    case 'date':
+      return (
+        <div className="relative">
+          <Input
+            type="date"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full"
+          />
+          <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
+      )
+    
+    case 'select':
+      return (
+        <Select value={value || ''} onValueChange={onChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="옵션을 선택하세요" />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options?.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    
+    case 'multiselect':
+      const selectedValues = Array.isArray(value) ? value : []
+      return (
+        <div className="space-y-2">
+          {field.options?.map((option) => (
+            <div key={option} className="flex items-center space-x-2">
+              <Checkbox
+                id={`${field.name}-${option}`}
+                checked={selectedValues.includes(option)}
+                onCheckedChange={(checked) => handleMultiSelectChange(option, !!checked)}
+              />
+              <Label
+                htmlFor={`${field.name}-${option}`}
+                className="text-sm font-normal"
+              >
+                {option}
+              </Label>
+            </div>
+          ))}
+        </div>
+      )
+    
+
+    default:
+      return null
+  }
+}
 
 export function FormWriterModal({
   isOpen,
@@ -378,6 +505,7 @@ export function FormWriterModal({
     }
   ])
   const [references, setReferences] = useState<Reference[]>([])
+  const [formFieldValues, setFormFieldValues] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // 모달이 닫힐 때 상태 초기화
@@ -393,6 +521,7 @@ export function FormWriterModal({
         }
       ])
       setReferences([])
+      setFormFieldValues({})
     }
   }, [isOpen])
 
@@ -416,13 +545,28 @@ export function FormWriterModal({
       return
     }
 
+    // 필수 필드 검증
+    if (formTemplate?.fields) {
+      const missingFields = formTemplate.fields
+        .filter(field => field.required)
+        .filter(field => !formFieldValues[field.name] || 
+          (Array.isArray(formFieldValues[field.name]) && formFieldValues[field.name].length === 0)
+        )
+      
+      if (missingFields.length > 0) {
+        alert(`다음 필수 필드를 입력해주세요: ${missingFields.map(f => f.name).join(', ')}`)
+        return
+      }
+    }
+
     setIsSubmitting(true)
     try {
       await onSubmit({
         content,
         attachments,
         approvalStages,
-        references
+        references,
+        formFields: formFieldValues
       })
       onClose()
     } catch (error) {
@@ -452,7 +596,7 @@ export function FormWriterModal({
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div className="flex items-center gap-4 flex-1">
-                <div className={`w-12 h-12 bg-gradient-to-r ${formTemplate.color} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
                   <IconComponent className="w-6 h-6 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -467,11 +611,39 @@ export function FormWriterModal({
           <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
             <div className="flex-1 flex flex-col min-h-0 min-w-0">
+              
+              {/* 양식 필드 */}
+              {formTemplate.fields && formTemplate.fields.length > 0 && (
+                <div className="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
+                  <h3 className={`${typography.h4} text-gray-800`}>양식 항목</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {formTemplate.fields.map((field) => (
+                      <div key={field.name} className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {field.name}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <FormFieldRenderer
+                          field={field}
+                          value={formFieldValues[field.name]}
+                          onChange={(value) => 
+                            setFormFieldValues(prev => ({
+                              ...prev,
+                              [field.name]: value
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 본문 작성 */}
               <div className="space-y-2 flex-1 flex flex-col min-h-0">
+                <Label className="text-sm font-medium text-gray-700">추가 설명</Label>
                 <Textarea
-                  placeholder="문서 내용을 작성하세요..."
+                  placeholder="추가 설명이나 상세 내용을 작성하세요..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="flex-1 min-h-0 resize-none overflow-y-auto"
@@ -535,11 +707,38 @@ export function FormWriterModal({
           {/* 모바일 레이아웃 */}
           <div className="lg:hidden flex-1 overflow-y-auto min-h-0">
             <div className="space-y-6 px-6 py-4">
+              
+              {/* 양식 필드 */}
+              {formTemplate.fields && formTemplate.fields.length > 0 && (
+                <CollapsibleSection title="양식 항목" defaultOpen={true}>
+                  <div className="space-y-4">
+                    {formTemplate.fields.map((field) => (
+                      <div key={field.name} className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                          {field.name}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <FormFieldRenderer
+                          field={field}
+                          value={formFieldValues[field.name]}
+                          onChange={(value) => 
+                            setFormFieldValues(prev => ({
+                              ...prev,
+                              [field.name]: value
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+              )}
+
               {/* 본문 작성 */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">내용</label>
+                <label className="text-sm font-medium text-gray-700">추가 설명</label>
                 <Textarea
-                  placeholder="문서 내용을 작성하세요..."
+                  placeholder="추가 설명이나 상세 내용을 작성하세요..."
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   className="min-h-[200px] resize-none"

@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
 import { Attachment } from "@/components/ui/attachments-manager"
+import { formTemplates } from "@/lib/mock-data/form-templates"
 
 // 타입 정의
 export interface User {
@@ -84,22 +85,20 @@ interface Reference {
 
 export interface Approval {
   id: number
-  title: string
+  formTemplateId: string
   content: string
-  type: string
   department: string
   requester: string
   date: string
   status: 'pending' | 'approved' | 'rejected'
   priority?: 'low' | 'medium' | 'high'
   isMyApproval?: boolean
-  color: string
-  icon: React.ComponentType<{ className?: string }>
   attachments?: Attachment[]
   history?: TimelineItem[]
   comments?: TimelineItem[]
   approvalStages?: ApprovalStage[]
   references?: Reference[]
+  formFields?: Record<string, any>
 }
 
 interface ApprovalModalProps {
@@ -116,15 +115,19 @@ function ApprovalHeader({ approval }: { approval: Approval }) {
   const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
   const statusBgColor = getStatusColor(approval.status, approval.isMyApproval)
   const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
+  
+  // formTemplate 찾기
+  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+  if (!formTemplate) return null
 
   return (
     <div className="flex items-center gap-5">
-      <div className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}>
-        <approval.icon className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
+        <formTemplate.icon className="w-6 h-6 text-white" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className={`${typography.h3} text-gray-800 truncate`}>{approval.title}</h2>
+          <h2 className={`${typography.h3} text-gray-800 truncate`}>{formTemplate.title}</h2>
           {approval.priority === "high" && (
             <Badge variant="destructive" className="flex items-center gap-1 text-xs">
               <AlertCircle className="w-3 h-3" />
@@ -163,6 +166,67 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
           <p className="text-xs text-gray-500 font-medium">신청일</p>
           <p className="text-sm font-semibold text-gray-800">{approval.date}</p>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// 필드별 값 표시 컴포넌트
+function FormFieldDisplay({
+  field,
+  value
+}: {
+  field: { name: string; type: string; options?: string[] }
+  value: any
+}) {
+  const formatValue = () => {
+    if (!value && value !== 0) return '-'
+    
+    switch (field.type) {
+      case 'money':
+        return `${value}원`
+      case 'date':
+        return new Date(value).toLocaleDateString('ko-KR')
+      case 'multiselect':
+        return Array.isArray(value) ? value.join(', ') : value
+
+      case 'select':
+      case 'text':
+      case 'number':
+      default:
+        return value.toString()
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-gray-500 font-medium">{field.name}</p>
+      <p className="text-sm font-semibold text-gray-800 break-words">
+        {formatValue()}
+      </p>
+    </div>
+  )
+}
+
+// 양식 필드 섹션 컴포넌트
+function FormFieldsSection({ approval }: { approval: Approval }) {
+  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+  
+  if (!formTemplate?.fields || !approval.formFields) {
+    return null
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className={`${typography.h4} text-gray-800`}>신청 내용</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+        {formTemplate.fields.map((field) => (
+          <FormFieldDisplay
+            key={field.name}
+            field={field}
+            value={approval.formFields![field.name]}
+          />
+        ))}
       </div>
     </div>
   )
@@ -594,13 +658,17 @@ export function ApprovalModal({
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 pl-2">
               <ApprovalInfo approval={approval} />
 
+              {/* 양식 필드 */}
+              <FormFieldsSection approval={approval} />
+
               <Separator />
 
               {/* 상세 내용 */}
               <div className="space-y-2">
+                <h3 className={`${typography.h4} text-gray-800`}>추가 설명</h3>
                 <div className="p-3">
                   <div className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content}
+                    {approval.content || '추가 설명이 없습니다.'}
                   </div>
                 </div>
               </div>
@@ -679,11 +747,19 @@ export function ApprovalModal({
             <div className="space-y-3 p-3">
               <ApprovalInfo approval={approval} />
 
+              {/* 양식 필드 */}
+              {approval.formFields && (
+                <CollapsibleSection title="신청 내용" defaultOpen={true}>
+                  <FormFieldsSection approval={approval} />
+                </CollapsibleSection>
+              )}
+
               {/* 상세 내용 */}
               <div className="space-y-2">
+                <h3 className={`${typography.h4} text-gray-800`}>추가 설명</h3>
                 <div className="p-3">
                   <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content}
+                    {approval.content || '추가 설명이 없습니다.'}
                   </div>
                 </div>
               </div>

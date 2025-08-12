@@ -114,7 +114,7 @@ export function FormSelectionModal({
                       onClick={() => handleFormSelect(form)}
                     >
                       <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 bg-gradient-to-r ${form.color} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}>
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: form.color }}>
                           <IconComponent className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -122,25 +122,10 @@ export function FormSelectionModal({
                             <h3 className={`${typography.h4} text-gray-800 truncate`}>
                               {form.title}
                             </h3>
-                            <Badge variant="secondary" className="text-xs">
-                              {form.estimatedTime}
-                            </Badge>
                           </div>
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          <p className="text-sm text-gray-600 line-clamp-2">
                             {form.description}
                           </p>
-                          <div className="flex flex-wrap gap-1">
-                            {form.fields.slice(0, 3).map((field, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {field}
-                              </Badge>
-                            ))}
-                            {form.fields.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{form.fields.length - 3}
-                              </Badge>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </GlassCard>

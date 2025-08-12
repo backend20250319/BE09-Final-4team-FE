@@ -1,118 +1,22 @@
-import { Calendar, FileText, ArrowRight, User } from "lucide-react"
 import { colors } from "@/lib/design-tokens"
 
 const approvals = [
     {
-      id: 1,
-      title: "연차 신청",
-      type: "휴가",
-      requester: "김철수",
-      department: "개발팀",
-      date: "2025.07.25",
-      status: "pending",
-      priority: "normal",
-      content: "8월 1일 연차 사용 신청합니다.",
-      icon: Calendar,
-      color: colors.status.warning.gradient,
-
-      isMyApproval: true, // 내가 승인해야 하는지
-              approvalStages: [
-                  {
-          id: 1,
-          status: "completed",
-          approvers: [
-            {
-              userId: "team-leader-1",
-              name: "박팀장",
-              position: "개발팀장",
-              status: "completed",
-              date: "2025.07.26"
-            }
-          ]
-        },
-          {
-            id: 2,
-            status: "current",
-          approvers: [
-            {
-              userId: "current-user-id", // 현재 사용자
-              name: "김인사",
-              position: "인사팀장",
-              status: "pending"
-            },
-            {
-              userId: "hr-manager-1",
-              name: "이인사",
-              position: "인사팀원",
-              status: "pending"
-            }
-          ]
-        }
-      ],
-      references: [
-        {
-          userId: "ref-1",
-          name: "정수민",
-          position: "경영지원팀장"
-        },
-        {
-          userId: "ref-2", 
-          name: "최지영",
-          position: "인사팀원"
-        }
-      ],
-      history: [
-        {
-          id: 1,
-          action: "created",
-          user: { name: "김철수", avatar: "/placeholder-user.jpg" },
-          date: "2025.07.25 09:30"
-        },
-        {
-          id: 2,
-          action: "updated",
-          user: { name: "김철수", avatar: "/placeholder-user.jpg" },
-          date: "2025.07.25 10:15",
-          changes: [
-            { field: "연차일수", oldValue: "1일", newValue: "2일" },
-            { field: "사유", oldValue: "개인휴가", newValue: "가족여행" }
-          ]
-        },
-        {
-          id: 3,
-          action: "approver_added",
-          user: { name: "박팀장", avatar: "/placeholder-user.jpg" },
-          date: "2025.07.25 11:00"
-        }
-      ],
-      comments: [
-        {
-          id: 1,
-          user: { name: "박팀장", avatar: "/placeholder-user.jpg" },
-          content: "연차 신청서 검토 완료했습니다. 승인하겠습니다.",
-          date: "2025.07.26 14:30"
-        },
-        {
-          id: 2,
-          user: { name: "김철수", avatar: "/placeholder-user.jpg" },
-          content: "감사합니다!",
-          date: "2025.07.26 15:00"
-        }
-      ]
-    },
-    {
       id: 2,
-      title: "업무용 장비 구매",
-      type: "구매",
+      formTemplateId: "expense-report",
       requester: "이영희",
       department: "디자인팀",
       date: "2025.07.24",
       status: "approved",
       priority: "high",
-      content: "디자인 작업용 태블릿 구매 신청",
-      icon: FileText,
-      color: colors.status.success.gradient,
+      content: "디자인 작업용 태블릿 구매를 위한 지출 결의서입니다.",
       isMyApproval: false,
+      formFields: {
+        "지출 항목": "장비비",
+        "금액": "2,500,000",
+        "사유": "디자인 작업 효율성 향상을 위한 태블릿 구매",
+        "증빙서류": "견적서_태블릿.pdf"
+      },
       approvalStages: [
         {
           id: 1,
@@ -216,17 +120,20 @@ const approvals = [
     },
     {
       id: 3,
-      title: "출장 신청",
-      type: "출장",
+      formTemplateId: "business-trip",
       requester: "박민수",
       department: "마케팅팀",
       date: "2025.07.23",
       status: "rejected",
       priority: "normal",
-      content: "고객사 방문을 위한 출장 신청",
-      icon: ArrowRight,
-      color: colors.status.error.gradient,
+      content: "고객사 방문을 위한 출장 신청서입니다.",
       isMyApproval: false,
+      formFields: {
+        "출장지": "부산",
+        "출장일": "2025-07-28",
+        "목적": "업무협의",
+        "예상 비용": "800,000"
+      },
       approvalStages: [
         {
           id: 1,
@@ -315,17 +222,20 @@ const approvals = [
     },
     {
       id: 4,
-      title: "교육 참석 신청",
-      type: "교육",
+      formTemplateId: "recruitment",
       requester: "최지영",
       department: "인사팀",
       date: "2025.07.22",
       status: "pending",
       priority: "normal",
-      content: "HR 전문가 과정 교육 참석 신청",
-      icon: User,
-      color: colors.status.info.gradient,
+      content: "신규 마케팅 담당자 채용을 위한 신청서입니다.",
       isMyApproval: true,
+      formFields: {
+        "직무": "마케터",
+        "인원": "2",
+        "자격요건": ["대학 졸업", "관련 경력"],
+        "급여 범위": "연봉 3500-4500만원"
+      },
       approvalStages: [
         {
           id: 1,
@@ -403,17 +313,20 @@ const approvals = [
     },
     {
       id: 5,
-      title: "회의실 예약",
-      type: "시설",
+      formTemplateId: "facility-request",
       requester: "정수민",
       department: "경영지원팀",
       date: "2025.07.21",
       status: "approved",
       priority: "low",
-      content: "다음 주 월요일 대회의실 예약 신청",
-      icon: FileText,
-      color: colors.status.success.gradient,
+      content: "다음 주 월요일 대회의실 예약을 위한 시설 사용 신청서입니다.",
       isMyApproval: false,
+      formFields: {
+        "시설명": "대회의실",
+        "사용일시": "2025-07-28",
+        "목적": "분기별 전체 회의",
+        "참석자": "15"
+      },
       approvalStages: [
         {
           id: 1,
@@ -461,17 +374,20 @@ const approvals = [
     },
     {
       id: 6,
-      title: "프로젝트 예산 신청",
-      type: "예산",
+      formTemplateId: "budget-request",
       requester: "김철수",
       department: "개발팀",
       date: "2025.07.20",
       status: "pending",
       priority: "high",
-      content: "신규 프로젝트 개발 예산 신청",
-      icon: FileText,
-      color: colors.status.info.gradient,
+      content: "신규 프로젝트 개발을 위한 예산 요청서입니다.",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      formFields: {
+        "예산 항목": "장비비",
+        "요청 금액": "8,000,000",
+        "사용 계획": "신규 프로젝트 개발을 위한 서버 및 개발 도구 구매",
+        "기대 효과": "개발 생산성 30% 향상 및 프로젝트 일정 단축"
+      },
       attachments: [
         {
           id: "att-1",
@@ -584,17 +500,20 @@ const approvals = [
     },
     {
       id: 7,
-      title: "외부 교육 신청",
-      type: "교육",
+      formTemplateId: "salary-adjustment",
       requester: "김철수",
       department: "개발팀",
       date: "2025.07.19",
       status: "pending",
       priority: "normal",
-      content: "React 고급 과정 교육 신청",
-      icon: User,
-      color: colors.status.info.gradient,
+      content: "개발팀 팀장 승진에 따른 급여 조정 신청서입니다.",
       isMyApproval: false, // 내가 신청했지만 타인이 승인해야 함
+      formFields: {
+        "현재 급여": "5,000,000",
+        "희망 급여": "6,500,000",
+        "조정 사유": ["승진", "성과 우수"],
+        "근무 실적": "프로젝트 리드 성공 및 팀 생산성 20% 향상"
+      },
       approvalStages: [
         {
           id: 1,

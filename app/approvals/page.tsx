@@ -6,10 +6,11 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
 import { ApprovalModal } from "@/app/approvals/components/approval-modal"
-import { FormSelectionModal, FormTemplate } from "@/app/approvals/components/form-selection-modal"
+import { FormSelectionModal } from "@/app/approvals/components/form-selection-modal"
 import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import approvals from "@/lib/mock-data/approvals"
+import { FormTemplate, formTemplates } from "@/lib/mock-data/form-templates"
 import {
   Search,
   Plus,
@@ -29,21 +30,19 @@ import {
 // 타입 정의
 interface Approval {
   id: number
-  title: string
-  type: string
+  formTemplateId: string
   requester: string
   department: string
   date: string
   status: string
   priority: string
   content: string
-  icon: any
-  color: string
   isMyApproval: boolean
   approvalStages: any[]
   references: any[]
   history: any[]
   comments: any[]
+  formFields?: Record<string, any>
 }
 
 export default function ApprovalsPage() {
@@ -67,7 +66,8 @@ export default function ApprovalsPage() {
   const currentUser = "김철수"
 
   const filteredApprovals = approvals.filter((approval: Approval) => {
-    const matchesSearch = approval.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+    const matchesSearch = (formTemplate?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          approval.requester.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
@@ -170,6 +170,7 @@ export default function ApprovalsPage() {
     attachments: any[]
     approvalStages: any[]
     references: any[]
+    formFields: Record<string, any>
   }) => {
     // 실제로는 API 호출을 통해 결재 신청
     console.log("결재 신청:", {
@@ -218,6 +219,10 @@ export default function ApprovalsPage() {
     const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
     const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
     
+    // formTemplate 찾기
+    const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+    if (!formTemplate) return null
+    
     // 모든 승인자 정보 수집
     const allApprovers = approval.approvalStages.flatMap((stage: any) => stage.approvers)
     
@@ -229,9 +234,10 @@ export default function ApprovalsPage() {
       >
         <div className="flex items-center gap-4 h-full">
           <div
-            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
+            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
+            style={{ backgroundColor: formTemplate.color }}
           >
-            <approval.icon className="w-6 h-6 text-white" />
+            <formTemplate.icon className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 flex flex-col justify-center h-full">
             <div className="flex items-center gap-3 mb-1 min-w-0">
@@ -254,7 +260,7 @@ export default function ApprovalsPage() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{formTemplate.title}</h4>
               <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
               <div className="flex-shrink-0">
                 <ApproverAvatars approvers={allApprovers} />
