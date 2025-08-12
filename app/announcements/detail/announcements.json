@@ -1,5 +1,5 @@
 {
-  "status": "success", 
+  "status": "success",
   "message": "",
   "data": {
     "title": "2024년 하반기 인사평가 일정 안내",
@@ -136,7 +136,7 @@
                     "format": 0,
                     "mode": "normal",
                     "style": "",
-                  "text": "직책 변경: 총 8명",
+                    "text": "직책 변경: 총 8명",
                     "type": "text",
                     "version": 1
                   }
@@ -240,6 +240,5 @@
       "url": "/2024_하반기_인사발령_명단.pdf",
       "size": "1.2MB"
     }
-  } 
+  }
 }
-
