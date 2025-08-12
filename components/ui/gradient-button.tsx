@@ -18,7 +18,7 @@ export function GradientButton({
 }: GradientButtonProps) {
   const variants = {
     primary: `bg-gradient-to-r ${colors.primary.blue} hover:${colors.primary.blueHover} text-white ${shadows.primary}`,
-    secondary: `bg-gradient-to-r ${colors.secondary.gray} hover:bg-gray-200 text-gray-700`,
+    secondary: `bg-gray-50 hover:bg-gray-200 text-gray-700 border border-gray-200`,
     success: `bg-gradient-to-r ${colors.status.success.gradient} hover:from-emerald-500 hover:to-emerald-600 text-white`,
     warning: `bg-gradient-to-r ${colors.status.warning.gradient} hover:from-amber-500 hover:to-amber-600 text-white`,
     error: `bg-gradient-to-r ${colors.status.error.gradient} hover:from-red-500 hover:to-red-600 text-white`,

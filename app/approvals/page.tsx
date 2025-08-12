@@ -25,6 +25,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronRight,
+  Settings,
 } from "lucide-react"
 
 // 타입 정의
@@ -160,6 +161,13 @@ export default function ApprovalsPage() {
     setIsFormSelectionOpen(true)
   }
 
+  const handleFormTemplateManagement = () => {
+    // 문서 양식 관리 페이지로 이동하거나 모달을 열기
+    console.log("문서 양식 관리 클릭")
+    // 실제로는 router.push('/settings/form-templates') 또는 모달 열기
+    alert("문서 양식 관리 기능은 준비 중입니다.")
+  }
+
   const handleFormSelect = (form: FormTemplate) => {
     setSelectedFormTemplate(form)
     setIsFormWriterOpen(true)
@@ -284,10 +292,16 @@ export default function ApprovalsPage() {
             className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
           />
         </div>
-        <GradientButton variant="primary" onClick={handleNewApprovalClick}>
-          <Plus className="w-4 h-4 mr-2" />
-          결재 신청
-        </GradientButton>
+        <div className="flex gap-3">
+          <GradientButton variant="secondary" onClick={handleFormTemplateManagement}>
+            <Settings className="w-4 h-4 mr-2" />
+            문서 양식 관리
+          </GradientButton>
+          <GradientButton variant="primary" onClick={handleNewApprovalClick}>
+            <Plus className="w-4 h-4 mr-2" />
+            문서 작성
+          </GradientButton>
+        </div>
       </div>
 
       {/* Tabs */}
