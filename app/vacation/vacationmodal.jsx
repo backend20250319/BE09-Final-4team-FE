@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import { X, Clock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,12 +52,11 @@ export default function VacationModal({
   ];
 
   const handleStartDateChange = (newStartDate) => {
-    console.log("시작일 선택:", newStartDate); // 디버깅용
     setStartDate(newStartDate);
 
     // 시작일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
     if (newStartDate && !endDate) {
-      setSelectedDates([new Date(newStartDate)]);
+      setSelectedDates([newStartDate]);
     } else if (newStartDate && endDate) {
       updateSelectedDates(newStartDate, endDate);
     } else {
@@ -65,12 +65,11 @@ export default function VacationModal({
   };
 
   const handleEndDateChange = (newEndDate) => {
-    console.log("종료일 선택:", newEndDate); // 디버깅용
     setEndDate(newEndDate);
 
     // 종료일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
     if (newEndDate && !startDate) {
-      setSelectedDates([new Date(newEndDate)]);
+      setSelectedDates([newEndDate]);
     } else if (newEndDate && startDate) {
       updateSelectedDates(startDate, newEndDate);
     } else {
@@ -79,17 +78,15 @@ export default function VacationModal({
   };
 
   const updateSelectedDates = (start, end) => {
-    console.log("날짜 업데이트:", start, end); // 디버깅용
-
     if (start && end) {
-      const startDate = new Date(start);
-      const endDate = new Date(end);
+      const startDate = start instanceof Date ? start : new Date(start);
+      const endDate = end instanceof Date ? end : new Date(end);
       const dates = [];
       const current = new Date(startDate);
 
       // 시작일과 종료일이 같은 경우
       if (startDate.getTime() === endDate.getTime()) {
-        dates.push(new Date(startDate));
+        dates.push(startDate);
       } else {
         // 시작일부터 종료일까지 모든 날짜 추가
         while (current <= endDate) {
@@ -97,14 +94,13 @@ export default function VacationModal({
           current.setDate(current.getDate() + 1);
         }
       }
-      console.log("생성된 날짜 배열:", dates); // 디버깅용
       setSelectedDates(dates);
     } else if (start) {
       // 시작일만 있는 경우
-      setSelectedDates([new Date(start)]);
+      setSelectedDates([start instanceof Date ? start : new Date(start)]);
     } else if (end) {
       // 종료일만 있는 경우
-      setSelectedDates([new Date(end)]);
+      setSelectedDates([end instanceof Date ? end : new Date(end)]);
     } else {
       setSelectedDates([]);
     }
@@ -194,59 +190,87 @@ export default function VacationModal({
             selectedDates={selectedDates}
           />
 
-          {/* Time Inputs */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                휴가 시작 시간
-              </label>
+          {/* Date Range Info - 범위 선택 시에만 표시 */}
+          {startDate &&
+            endDate &&
+            startDate.getTime() !== endDate.getTime() && (
+              <div className="mb-4 p-3 bg-blue-50/50 border border-blue-200/50 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-blue-700">
+                    <span className="font-medium">선택된 기간:</span>{" "}
+                    {format(new Date(startDate), "yyyy년 M월 d일", {
+                      locale: ko,
+                    })}{" "}
+                    ~{" "}
+                    {format(new Date(endDate), "yyyy년 M월 d일", {
+                      locale: ko,
+                    })}
+                  </div>
+                  <div className="text-sm font-medium text-blue-700">
+                    {selectedDates.length}일
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {/* Time Inputs - 단일 날짜 선택 시에만 표시 */}
+          {((startDate && !endDate) ||
+            (startDate &&
+              endDate &&
+              startDate.getTime() === endDate.getTime())) && (
+            <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  value={startTime}
-                  readOnly
-                  onClick={() => {
-                    setShowStartTimeDropdown(!showStartTimeDropdown);
-                    setShowEndTimeDropdown(false);
-                  }}
-                  className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
-                />
-                {showStartTimeDropdown && (
-                  <SelectTime
-                    onTimeSelect={handleStartTimeSelect}
-                    onClose={() => setShowStartTimeDropdown(false)}
-                    isDropdown={true}
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  휴가 시작 시간
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    value={startTime}
+                    readOnly
+                    onClick={() => {
+                      setShowStartTimeDropdown(!showStartTimeDropdown);
+                      setShowEndTimeDropdown(false);
+                    }}
+                    className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
                   />
-                )}
+                  {showStartTimeDropdown && (
+                    <SelectTime
+                      onTimeSelect={handleStartTimeSelect}
+                      onClose={() => setShowStartTimeDropdown(false)}
+                      isDropdown={true}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  휴가 종료 시간
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    value={endTime}
+                    readOnly
+                    onClick={() => {
+                      setShowEndTimeDropdown(!showEndTimeDropdown);
+                      setShowStartTimeDropdown(false);
+                    }}
+                    className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
+                  />
+                  {showEndTimeDropdown && (
+                    <SelectTime
+                      onTimeSelect={handleEndTimeSelect}
+                      onClose={() => setShowEndTimeDropdown(false)}
+                      isDropdown={true}
+                    />
+                  )}
+                </div>
               </div>
             </div>
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                휴가 종료 시간
-              </label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  value={endTime}
-                  readOnly
-                  onClick={() => {
-                    setShowEndTimeDropdown(!showEndTimeDropdown);
-                    setShowStartTimeDropdown(false);
-                  }}
-                  className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
-                />
-                {showEndTimeDropdown && (
-                  <SelectTime
-                    onTimeSelect={handleEndTimeSelect}
-                    onClose={() => setShowEndTimeDropdown(false)}
-                    isDropdown={true}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Reason Textarea */}
           <div className="mb-4">

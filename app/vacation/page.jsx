@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import {
   Bell,
@@ -45,6 +45,7 @@ export default function VacationPage() {
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef(null);
 
   // 1년을 3개월씩 나눈 기간들
   const periods = [
@@ -328,6 +329,18 @@ export default function VacationPage() {
     setCurrentPage(1);
   }, [startDate, endDate, selectedPeriod]);
 
+  // 외부 클릭 시 캘린더 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setIsCalendarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const vacationStats = [
     {
       title: "기본 연차",
@@ -414,67 +427,37 @@ export default function VacationPage() {
         <div className="flex items-center justify-between mb-6">
           <h3 className={`${typography.h2} text-gray-800`}>휴가 기록</h3>
           <div className="flex items-center gap-4">
-            {/* 날짜 필터링 버튼 */}
-            <div className="relative">
+            {/* 날짜 필터링 - MUI Desktop variant */}
+            <div className="relative" ref={calendarRef}>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                  className="px-4 py-2 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl text-sm flex items-center gap-2"
+                  className="px-4 py-2 bg-card backdrop-blur-sm border-border rounded-lg text-sm flex items-center gap-2 text-card-foreground hover:bg-accent hover:text-accent-foreground"
                 >
                   <Calendar className="w-4 h-4" />
                   {startDate && endDate
                     ? `${startDate} ~ ${endDate}`
-                    : "날짜 선택"}
+                    : "날짜 범위 선택"}
                 </Button>
-                {startDate && endDate && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setStartDate("");
-                      setEndDate("");
-                      setIsCalendarOpen(false);
-                    }}
-                    className="px-2 py-1 text-xs text-gray-500 hover:text-red-500 hover:bg-red-50"
-                    title="날짜 범위 초기화"
-                  >
-                    초기화
-                  </Button>
-                )}
               </div>
 
-              {/* Calendar 모달 */}
+              {/* Desktop Calendar Popover */}
               {isCalendarOpen && (
-                <div className="absolute top-full right-0 mt-2 z-50">
-                  <div className="bg-white rounded-lg shadow-xl border border-gray-200 p-4">
+                <div className="absolute top-full left-0 mt-2 z-50">
+                  <div className="bg-popover backdrop-blur-sm border border-border rounded-xl shadow-2xl p-4 min-w-[320px]">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800">
+                      <h4 className="text-sm font-semibold text-popover-foreground">
                         날짜 범위 선택
                       </h4>
-                      <div className="flex items-center gap-2">
-                        {(startDate || endDate) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setStartDate("");
-                              setEndDate("");
-                            }}
-                            className="px-2 py-1 text-xs text-gray-500 hover:text-red-500 hover:bg-red-50"
-                          >
-                            초기화
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setIsCalendarOpen(false)}
-                          className="w-6 h-6"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsCalendarOpen(false)}
+                        className="w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
                     <CalendarComponent
                       startDate={startDate}
