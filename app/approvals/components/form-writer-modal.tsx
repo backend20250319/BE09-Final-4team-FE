@@ -115,7 +115,7 @@ function ApprovalStagesManager({
   onStagesChange: (stages: ApprovalStage[]) => void
   availableUsers: User[]
 }) {
-  const [selectedApprover, setSelectedApprover] = useState<{[stageId: string]: string}>({});
+  const [selectedApprover, setSelectedApprover] = useState<{ [stageId: string]: string }>({});
   const addStage = () => {
     if (stages.length >= 5) return
     const newStage: ApprovalStage = {
@@ -200,13 +200,13 @@ function ApprovalStagesManager({
 
           {/* 승인자 추가 */}
           {(() => {
-            const availableApprovers = availableUsers.filter(user => 
+            const availableApprovers = availableUsers.filter(user =>
               !stage.approvers.some(approver => approver.id === user.id)
             );
-            
+
             return availableApprovers.length > 0 ? (
-              <Select 
-                value={selectedApprover[stage.id] || ""} 
+              <Select
+                value={selectedApprover[stage.id] || ""}
                 onValueChange={(userId) => {
                   const user = availableUsers.find(u => u.id === userId)
                   if (user) {
@@ -317,13 +317,13 @@ function ReferencesManager({
 
       {/* 참조자 추가 */}
       {(() => {
-        const availableReferences = availableUsers.filter(user => 
+        const availableReferences = availableUsers.filter(user =>
           !references.some(ref => ref.id === user.id)
         );
-        
+
         return availableReferences.length > 0 ? (
-          <Select 
-            value={selectedReference} 
+          <Select
+            value={selectedReference}
             onValueChange={(userId) => {
               const user = availableUsers.find(u => u.id === userId)
               if (user) {
@@ -445,7 +445,7 @@ function FormFieldRenderer({
           className="w-full"
         />
       )
-    
+
     case 'number':
       return (
         <Input
@@ -456,7 +456,7 @@ function FormFieldRenderer({
           className="w-full"
         />
       )
-    
+
     case 'money':
       return (
         <div className="relative">
@@ -472,7 +472,7 @@ function FormFieldRenderer({
           </span>
         </div>
       )
-    
+
     case 'date':
       return (
         <div className="relative">
@@ -485,7 +485,7 @@ function FormFieldRenderer({
           <CalendarDays className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         </div>
       )
-    
+
     case 'select':
       return (
         <Select value={value || ''} onValueChange={onChange}>
@@ -501,7 +501,7 @@ function FormFieldRenderer({
           </SelectContent>
         </Select>
       )
-    
+
     case 'multiselect':
       const selectedValues = Array.isArray(value) ? value : []
       return (
@@ -523,7 +523,7 @@ function FormFieldRenderer({
           ))}
         </div>
       )
-    
+
 
     default:
       return null
@@ -607,10 +607,10 @@ export function FormWriterModal({
     if (formTemplate.fields) {
       const missingFields = formTemplate.fields
         .filter(field => field.required)
-        .filter(field => !formFieldValues[field.name] || 
+        .filter(field => !formFieldValues[field.name] ||
           (Array.isArray(formFieldValues[field.name]) && formFieldValues[field.name].length === 0)
         )
-      
+
       if (missingFields.length > 0) {
         alert(`다음 필수 필드를 입력해주세요: ${missingFields.map(f => f.name).join(', ')}`)
         return
@@ -675,11 +675,10 @@ export function FormWriterModal({
           <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
             <div className="flex-1 flex flex-col min-h-0 min-w-0">
-              
+
               {/* 양식 필드 */}
               {formTemplate.fields && formTemplate.fields.length > 0 && (
                 <div className="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
-                  <h3 className={`${typography.h4} text-gray-800`}>양식 항목</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {formTemplate.fields.map((field) => (
                       <div key={field.name} className="space-y-2">
@@ -690,7 +689,7 @@ export function FormWriterModal({
                         <FormFieldRenderer
                           field={field}
                           value={formFieldValues[field.name]}
-                          onChange={(value) => 
+                          onChange={(value) =>
                             setFormFieldValues(prev => ({
                               ...prev,
                               [field.name]: value
@@ -791,7 +790,7 @@ export function FormWriterModal({
           {/* 모바일 레이아웃 */}
           <div className="lg:hidden flex-1 overflow-y-auto min-h-0">
             <div className="space-y-6 px-6 py-4">
-              
+
               {/* 양식 필드 */}
               {formTemplate.fields && formTemplate.fields.length > 0 && (
                 <CollapsibleSection title="양식 항목" defaultOpen={true}>
@@ -805,7 +804,7 @@ export function FormWriterModal({
                         <FormFieldRenderer
                           field={field}
                           value={formFieldValues[field.name]}
-                          onChange={(value) => 
+                          onChange={(value) =>
                             setFormFieldValues(prev => ({
                               ...prev,
                               [field.name]: value
@@ -827,15 +826,16 @@ export function FormWriterModal({
 
               {/* 본문 작성 */}
               {formTemplate.content === 'enabled' && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">추가 설명</label>
-                  <Textarea
-                    placeholder="추가 설명이나 상세 내용을 작성하세요..."
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="min-h-[200px] resize-none"
-                  />
-                </div>
+                <CollapsibleSection title="내용 작성" defaultOpen={true}>
+                  <div className="space-y-2">
+                    <Textarea
+                      placeholder="내용을 입력하세요"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="min-h-[200px] resize-none"
+                    />
+                  </div>
+                </CollapsibleSection>
               )}
 
               {/* 승인 단계 */}
@@ -858,7 +858,7 @@ export function FormWriterModal({
 
               {/* 첨부파일 */}
               {formTemplate.attachments !== 'disabled' && (
-                <CollapsibleSection 
+                <CollapsibleSection
                   title={
                     <div className="flex items-center gap-2">
                       <span>첨부파일</span>
@@ -867,6 +867,7 @@ export function FormWriterModal({
                       )}
                     </div>
                   }
+                  defaultOpen={formTemplate.attachments === 'required'}
                 >
                   <div className="max-h-64 overflow-y-auto">
                     <AttachmentsManager

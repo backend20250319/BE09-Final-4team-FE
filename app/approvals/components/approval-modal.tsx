@@ -354,17 +354,25 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
     <div className="space-y-3">
       <div className="space-y-3">
         {stages.map((stage, stageIndex) => (
-          <div key={stage.id || `stage-${stageIndex}`} className="p-3">
+          <div 
+            key={stage.id || `stage-${stageIndex}`} 
+            className={`p-3 rounded-lg transition-all duration-300 ${
+              stage.status === "current" 
+                ? "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md" 
+                : ""
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${stage.status === "completed" ? "bg-green-100" :
-                  stage.status === "current" ? "bg-blue-100" :
-                    stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
-                  }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                  stage.status === "completed" ? "bg-green-100" :
+                  stage.status === "current" ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg" :
+                  stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
+                }`}>
                   {stage.status === "completed" ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   ) : stage.status === "current" ? (
-                    <Clock className="w-4 h-4 text-blue-600" />
+                    <Clock className="w-4 h-4 text-white animate-pulse" />
                   ) : stage.status === "pending" ? (
                     <AlertCircle className="w-4 h-4 text-yellow-600" />
                   ) : (
@@ -372,12 +380,13 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-800">
+                  <p className={`font-medium ${stage.status === "current" ? "text-blue-800" : "text-gray-800"}`}>
                     {stageIndex + 1}단계 승인
-                    <span className={`text-sm ml-2 ${stage.status === "completed" ? "text-green-600" :
-                      stage.status === "current" ? "text-blue-600" :
-                        stage.status === "pending" ? "text-yellow-600" : "text-red-600"
-                      }`}>
+                    <span className={`text-sm ml-2 font-semibold ${
+                      stage.status === "completed" ? "text-green-600" :
+                      stage.status === "current" ? "text-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" :
+                      stage.status === "pending" ? "text-yellow-600" : "text-red-600"
+                    }`}>
                       {stage.status === "completed" ? "완료" :
                         stage.status === "current" ? "진행중" :
                           stage.status === "pending" ? "대기중" : "반려됨"}
@@ -385,7 +394,9 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
                   </p>
                 </div>
               </div>
-              <div className="text-sm text-gray-500 flex-shrink-0">
+              <div className={`text-sm flex-shrink-0 ${
+                stage.status === "current" ? "text-blue-700 font-medium" : "text-gray-500"
+              }`}>
                 {stage.approvers.filter(a => a.status === "completed").length}/{stage.approvers.length} 승인
               </div>
             </div>
