@@ -38,7 +38,7 @@ const SelectTime = ({
 
   if (isDropdown) {
     return (
-      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-100 border border-gray-200 rounded-lg shadow-lg p-4">
+      <div className="bg-gray-100 border border-gray-200 rounded-lg shadow-lg p-4">
         {/* 시간 선택 영역 */}
         <div className="flex justify-center items-center gap-1 mb-4">
           {/* 시간 선택 */}
