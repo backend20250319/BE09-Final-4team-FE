@@ -19,6 +19,7 @@ import {
   Briefcase,
 } from "lucide-react"
 import { FormTemplate, formTemplates } from "@/lib/mock-data/form-templates"
+import { FormTemplatesGrid } from "./form-templates-grid"
 
 // 카테고리 정의
 const categories = [
@@ -104,40 +105,11 @@ export function FormSelectionModal({
           {/* 양식 목록 */}
           <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
             {filteredForms.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredForms.map((form) => {
-                  const IconComponent = form.icon
-                  return (
-                    <GlassCard
-                      key={form.id}
-                      className="p-4 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-blue-200"
-                      onClick={() => handleFormSelect(form)}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: form.color }}>
-                          <IconComponent className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className={`${typography.h4} text-gray-800 truncate`}>
-                              {form.title}
-                            </h3>
-                            <Badge 
-                              variant="secondary" 
-                              className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-100"
-                            >
-                              {categories.find(cat => cat.id === form.category)?.name || form.category}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {form.description}
-                          </p>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  )
-                })}
-              </div>
+              <FormTemplatesGrid
+                forms={filteredForms}
+                onCardClick={handleFormSelect}
+                getCategoryName={(id) => categories.find(cat => cat.id === id)?.name || id}
+              />
             ) : (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />

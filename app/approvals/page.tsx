@@ -7,6 +7,7 @@ import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
 import { ApprovalModal } from "@/app/approvals/components/approval-modal"
 import { FormSelectionModal } from "@/app/approvals/components/form-selection-modal"
+import { FormManagementModal } from "@/app/approvals/components/form-management-modal"
 import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import approvals from "@/lib/mock-data/approvals"
@@ -62,6 +63,7 @@ export default function ApprovalsPage() {
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
   const [selectedFormTemplate, setSelectedFormTemplate] = useState<FormTemplate | null>(null)
+  const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
   // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
   const currentUser = "김철수"
@@ -162,10 +164,7 @@ export default function ApprovalsPage() {
   }
 
   const handleFormTemplateManagement = () => {
-    // 문서 양식 관리 페이지로 이동하거나 모달을 열기
-    console.log("문서 양식 관리 클릭")
-    // 실제로는 router.push('/settings/form-templates') 또는 모달 열기
-    alert("문서 양식 관리 기능은 준비 중입니다.")
+    setIsFormManagementOpen(true)
   }
 
   const handleFormSelect = (form: FormTemplate) => {
@@ -409,6 +408,12 @@ export default function ApprovalsPage() {
         isOpen={isFormSelectionOpen}
         onClose={() => setIsFormSelectionOpen(false)}
         onSelectForm={handleFormSelect}
+      />
+
+      {/* 문서 양식 관리 모달 */}
+      <FormManagementModal
+        isOpen={isFormManagementOpen}
+        onClose={() => setIsFormManagementOpen(false)}
       />
 
       {/* 문서 작성 모달 */}
