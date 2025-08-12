@@ -377,31 +377,53 @@ function ReferenceFilesManager({
     window.open(file.url, '_blank')
   }
 
+  // URL에서 실제 파일 이름 추출
+  const getFileNameFromUrl = (url: string) => {
+    try {
+      const urlObj = new URL(url)
+      const pathname = urlObj.pathname
+      const fileName = pathname.split('/').pop() || url
+      return decodeURIComponent(fileName)
+    } catch {
+      // URL이 유효하지 않은 경우 마지막 슬래시 이후 부분 반환
+      return url.split('/').pop() || url
+    }
+  }
+
   if (!referenceFiles || referenceFiles.length === 0) {
     return null
   }
 
   return (
-    <div className="space-y-3">
-      {referenceFiles.map((file, index) => (
-        <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-blue-900 truncate">{file.name}</p>
-            {file.description && (
-              <p className="text-xs text-blue-700 mt-1">{file.description}</p>
-            )}
+    <TooltipProvider>
+      <div className="space-y-3">
+        {referenceFiles.map((file, index) => (
+          <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-900 truncate">{file.name}</p>
+              {file.description && (
+                <p className="text-xs text-blue-700 mt-1">{file.description}</p>
+              )}
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDownload(file)}
+                  className="ml-3 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getFileNameFromUrl(file.url)}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDownload(file)}
-            className="ml-3 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </TooltipProvider>
   )
 }
 
@@ -718,7 +740,9 @@ export function FormWriterModal({
               {formTemplate.attachments !== 'disabled' && (
                 <div className="space-y-2 flex-shrink-0 mt-4">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-gray-700">첨부파일</h3>
+                    <h3 className="text-sm font-medium text-gray-700">
+                      첨부파일{attachments.length > 0 && ` (${attachments.length}개)`}
+                    </h3>
                     {formTemplate.attachments === 'required' && (
                       <Badge variant="destructive" className="text-xs">필수</Badge>
                     )}

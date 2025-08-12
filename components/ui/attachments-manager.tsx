@@ -153,10 +153,6 @@ export function AttachmentsManager({
       ) : (
         /* 파일이 있을 때: 컴팩트한 파일 목록과 드래그 앤 드롭 영역 */
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-700">첨부파일 ({attachments.length}개)</h4>
-          </div>
-          
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {attachments.map((attachment) => (
               <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
