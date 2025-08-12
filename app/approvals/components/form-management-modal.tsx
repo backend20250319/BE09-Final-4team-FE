@@ -8,21 +8,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Switch } from "@/components/ui/switch"
 import { FormTemplatesGrid } from "./form-templates-grid"
 import { colors, typography } from "@/lib/design-tokens"
-import { FormTemplate, formTemplates as initialTemplates } from "@/lib/mock-data/form-templates"
+import { FormTemplate, formTemplates as initialTemplates, categories as defaultCategories } from "@/lib/mock-data/form-templates"
 import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X } from "lucide-react"
 
 type Category = { id: string; name: string }
-
-const defaultCategories: Category[] = [
-  { id: "all", name: "전체" },
-  { id: "hr", name: "인사" },
-  { id: "finance", name: "재무" },
-  { id: "admin", name: "행정" },
-  { id: "business", name: "업무" },
-  { id: "travel", name: "출장" },
-  { id: "leave", name: "휴가" },
-  { id: "facility", name: "시설" },
-]
 
 interface FormManagementModalProps {
   isOpen: boolean

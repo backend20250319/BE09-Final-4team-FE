@@ -10,28 +10,9 @@ import { colors, typography } from "@/lib/design-tokens"
 import {
   Search,
   FileText,
-  Calendar,
-  User,
-  Building,
-  CreditCard,
-  Car,
-  Home,
-  Briefcase,
 } from "lucide-react"
-import { FormTemplate, formTemplates } from "@/lib/mock-data/form-templates"
+import { FormTemplate, formTemplates, categories } from "@/lib/mock-data/form-templates"
 import { FormTemplatesGrid } from "./form-templates-grid"
-
-// 카테고리 정의
-const categories = [
-  { id: "all", name: "전체", icon: FileText },
-  { id: "hr", name: "인사", icon: User },
-  { id: "finance", name: "재무", icon: CreditCard },
-  { id: "admin", name: "행정", icon: Building },
-  { id: "business", name: "업무", icon: Briefcase },
-  { id: "travel", name: "출장", icon: Car },
-  { id: "leave", name: "휴가", icon: Calendar },
-  { id: "facility", name: "시설", icon: Home },
-]
 
 interface FormSelectionModalProps {
   isOpen: boolean
@@ -84,21 +65,17 @@ export function FormSelectionModal({
 
             {/* 카테고리 필터 */}
             <div className="flex gap-2 overflow-x-auto pb-2">
-              {categories.map((category) => {
-                const IconComponent = category.icon
-                return (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id)}
-                    className="flex items-center gap-2 whitespace-nowrap flex-shrink-0"
-                  >
-                    <IconComponent className="w-4 h-4" />
-                    {category.name}
-                  </Button>
-                )
-              })}
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category.id)}
+                  className="whitespace-nowrap flex-shrink-0"
+                >
+                  {category.name}
+                </Button>
+              ))}
             </div>
           </div>
 

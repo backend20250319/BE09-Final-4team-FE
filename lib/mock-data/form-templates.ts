@@ -7,6 +7,18 @@ import {
   Briefcase,
 } from "lucide-react"
 
+// 카테고리 정의
+export const categories = [
+  { id: "all", name: "전체" },
+  { id: "hr", name: "인사" },
+  { id: "finance", name: "재무" },
+  { id: "admin", name: "행정" },
+  { id: "business", name: "업무" },
+  { id: "travel", name: "출장" },
+  { id: "leave", name: "휴가" },
+  { id: "facility", name: "시설" },
+]
+
 // 필드 타입 정의
 export type FieldType = 'text' | 'number' | 'money' | 'date' | 'select' | 'multiselect'
 
