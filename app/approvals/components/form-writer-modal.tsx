@@ -27,6 +27,7 @@ import {
   ArrowLeft,
   Send,
   CalendarDays,
+  Download,
 } from "lucide-react"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 
@@ -54,7 +55,7 @@ interface Reference {
   position: string
 }
 
-import { FormTemplate, FormField } from "@/lib/mock-data/form-templates"
+import { FormTemplate, FormField, ReferenceFile } from "@/lib/mock-data/form-templates"
 
 interface FormWriterModalProps {
   isOpen: boolean
@@ -76,7 +77,7 @@ function CollapsibleSection({
   children,
   defaultOpen = false
 }: {
-  title: string
+  title: string | React.ReactNode
   children: React.ReactNode
   defaultOpen?: boolean
 }) {
@@ -363,6 +364,47 @@ function ReferencesManager({
   )
 }
 
+// 참고파일 다운로드 컴포넌트
+function ReferenceFilesManager({
+  referenceFiles
+}: {
+  referenceFiles: ReferenceFile[]
+}) {
+  const handleDownload = (file: ReferenceFile) => {
+    // 실제로는 파일 다운로드 로직 구현
+    console.log("다운로드:", file.name, file.url)
+    // 임시로 새 탭에서 열기
+    window.open(file.url, '_blank')
+  }
+
+  if (!referenceFiles || referenceFiles.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="space-y-3">
+      {referenceFiles.map((file, index) => (
+        <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-blue-900 truncate">{file.name}</p>
+            {file.description && (
+              <p className="text-xs text-blue-700 mt-1">{file.description}</p>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDownload(file)}
+            className="ml-3 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // 필드별 입력 컴포넌트 렌더러
 function FormFieldRenderer({
   field,
@@ -508,9 +550,23 @@ export function FormWriterModal({
   const [formFieldValues, setFormFieldValues] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 모달이 닫힐 때 상태 초기화
+  // 모달이 열릴 때 기본 콘텐츠 설정, 닫힐 때 상태 초기화
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen && formTemplate) {
+      // 모달이 열릴 때 템플릿의 기본 콘텐츠로 초기화
+      setContent(formTemplate.defaultContent || "")
+      setAttachments([])
+      setApprovalStages([
+        {
+          id: "stage-1",
+          name: "1단계",
+          approvers: []
+        }
+      ])
+      setReferences([])
+      setFormFieldValues({})
+    } else if (!isOpen) {
+      // 모달이 닫힐 때 상태 초기화
       setContent("")
       setAttachments([])
       setApprovalStages([
@@ -523,7 +579,7 @@ export function FormWriterModal({
       setReferences([])
       setFormFieldValues({})
     }
-  }, [isOpen])
+  }, [isOpen, formTemplate])
 
   // 사용 가능한 사용자 목록 (실제로는 API에서 가져옴)
   const availableUsers: User[] = [
@@ -535,7 +591,9 @@ export function FormWriterModal({
   ]
 
   const handleSubmit = async () => {
-    if (!content.trim()) {
+    if (!formTemplate) return
+
+    if (formTemplate.content === 'enabled' && !content.trim()) {
       alert("내용을 입력해주세요.")
       return
     }
@@ -546,7 +604,7 @@ export function FormWriterModal({
     }
 
     // 필수 필드 검증
-    if (formTemplate?.fields) {
+    if (formTemplate.fields) {
       const missingFields = formTemplate.fields
         .filter(field => field.required)
         .filter(field => !formFieldValues[field.name] || 
@@ -557,6 +615,12 @@ export function FormWriterModal({
         alert(`다음 필수 필드를 입력해주세요: ${missingFields.map(f => f.name).join(', ')}`)
         return
       }
+    }
+
+    // 첨부파일 필수 검증
+    if (formTemplate.attachments === 'required' && attachments.length === 0) {
+      alert("첨부파일을 업로드해주세요.")
+      return
     }
 
     setIsSubmitting(true)
@@ -640,27 +704,48 @@ export function FormWriterModal({
               )}
 
               {/* 본문 작성 */}
-              <div className="space-y-2 flex-1 flex flex-col min-h-0">
-                <Textarea
-                  placeholder="내용을 입력하세요"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="flex-1 min-h-0 resize-none overflow-y-auto"
-                />
-              </div>
+              {formTemplate.content === 'enabled' && (
+                <div className="space-y-2 flex-1 flex flex-col min-h-0">
+                  <Textarea
+                    placeholder="내용을 입력하세요"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="flex-1 min-h-0 resize-none overflow-y-auto"
+                  />
+                </div>
+              )}
 
               {/* 첨부파일 */}
-              <div className="space-y-2 flex-shrink-0 mt-4">
-                <AttachmentsManager
-                  attachments={attachments}
-                  onAttachmentsChange={setAttachments}
-                />
-              </div>
+              {formTemplate.attachments !== 'disabled' && (
+                <div className="space-y-2 flex-shrink-0 mt-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-gray-700">첨부파일</h3>
+                    {formTemplate.attachments === 'required' && (
+                      <Badge variant="destructive" className="text-xs">필수</Badge>
+                    )}
+                  </div>
+                  <AttachmentsManager
+                    attachments={attachments}
+                    onAttachmentsChange={setAttachments}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* 오른쪽 컬럼 - 승인 단계 및 참조자 */}
+            {/* 오른쪽 컬럼 - 참고파일, 승인 단계 및 참조자 */}
             <div className="w-80 flex-shrink-0 flex flex-col min-h-0">
               <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50 rounded-lg p-4 min-h-0">
+                {/* 참고파일 */}
+                {formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+                  <>
+                    <div className="space-y-3">
+                      <h3 className={`${typography.h4} text-gray-800`}>참고 파일</h3>
+                      <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+                    </div>
+                    <Separator />
+                  </>
+                )}
+
                 {/* 승인 단계 */}
                 <div className="space-y-3">
                   <h3 className={`${typography.h4} text-gray-800`}>승인 단계</h3>
@@ -733,16 +818,25 @@ export function FormWriterModal({
                 </CollapsibleSection>
               )}
 
+              {/* 참고파일 */}
+              {formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+                <CollapsibleSection title="참고 파일">
+                  <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+                </CollapsibleSection>
+              )}
+
               {/* 본문 작성 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">추가 설명</label>
-                <Textarea
-                  placeholder="추가 설명이나 상세 내용을 작성하세요..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="min-h-[200px] resize-none"
-                />
-              </div>
+              {formTemplate.content === 'enabled' && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">추가 설명</label>
+                  <Textarea
+                    placeholder="추가 설명이나 상세 내용을 작성하세요..."
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    className="min-h-[200px] resize-none"
+                  />
+                </div>
+              )}
 
               {/* 승인 단계 */}
               <CollapsibleSection title="승인 단계" defaultOpen={true}>
@@ -763,14 +857,25 @@ export function FormWriterModal({
               </CollapsibleSection>
 
               {/* 첨부파일 */}
-              <CollapsibleSection title="첨부파일">
-                <div className="max-h-64 overflow-y-auto">
-                  <AttachmentsManager
-                    attachments={attachments}
-                    onAttachmentsChange={setAttachments}
-                  />
-                </div>
-              </CollapsibleSection>
+              {formTemplate.attachments !== 'disabled' && (
+                <CollapsibleSection 
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>첨부파일</span>
+                      {formTemplate.attachments === 'required' && (
+                        <Badge variant="destructive" className="text-xs">필수</Badge>
+                      )}
+                    </div>
+                  }
+                >
+                  <div className="max-h-64 overflow-y-auto">
+                    <AttachmentsManager
+                      attachments={attachments}
+                      onAttachmentsChange={setAttachments}
+                    />
+                  </div>
+                </CollapsibleSection>
+              )}
 
               {/* 결재 요청 버튼 - 모바일에서는 하단 고정 */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 mt-4">
