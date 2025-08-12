@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -18,7 +19,9 @@ import {
   Calendar as CalendarIcon,
   Building2,
   Crown,
-  Shield
+  Shield,
+  ArrowLeft,
+  X
 } from "lucide-react"
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -224,14 +227,27 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-hide-default-close className={`max-w-4xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
-            프로필
-          </DialogTitle>
-          <DialogDescription>
-            사용자의 프로필 정보를 확인하고 수정할 수 있습니다.
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="뒤로가기"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
+            <button
+              type="button"
+              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

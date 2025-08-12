@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import styles from './date-input.module.css'
+import modalStyles from './members-modal.module.css'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import SimpleDropdown from "./SimpleDropdown"
@@ -73,6 +75,38 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false)
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false)
   const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false)
+  const orgTriggerRef = useRef<HTMLDivElement | null>(null)
+  const orgButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [orgContentWidth, setOrgContentWidth] = useState<number | undefined>(undefined)
+  const policyTriggerRef = useRef<HTMLDivElement | null>(null)
+  const policyButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [policyContentWidth, setPolicyContentWidth] = useState<number | undefined>(undefined)
+
+  const recomputePopoverWidths = () => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined
+      const rect = el.getBoundingClientRect()
+      return rect.width || el.offsetWidth
+    }
+    const w1 = readWidth(orgButtonRef.current) ?? readWidth(orgTriggerRef.current as any)
+    if (w1) setOrgContentWidth(w1)
+    const w2 = readWidth(policyButtonRef.current) ?? readWidth(policyTriggerRef.current as any)
+    if (w2) setPolicyContentWidth(w2)
+  }
+
+  useLayoutEffect(() => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined
+      const rect = el.getBoundingClientRect()
+      return rect.width || el.offsetWidth
+    }
+    const update = () => recomputePopoverWidths()
+    update()
+    const ro = new ResizeObserver(update)
+    if (orgTriggerRef.current) ro.observe(orgTriggerRef.current)
+    if (policyTriggerRef.current) ro.observe(policyTriggerRef.current)
+    return () => ro.disconnect()
+  }, [orgContentWidth, policyContentWidth])
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = isOwnProfile || user?.isAdmin
@@ -250,14 +284,34 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[75vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent data-hide-default-close className={`max-w-[75vw] max-h-[95vh] overflow-y-auto ${modalStyles.membersModal}`}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
-            구성원 정보 수정
-          </DialogTitle>
-          <DialogDescription>
-            구성원의 개인정보, 조직정보, 근무정책을 수정할 수 있습니다.
-          </DialogDescription>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="뒤로가기"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1 text-center">
+              <DialogTitle className="text-2xl font-bold text-gray-900 text-center">
+                구성원 정보 수정
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                구성원의 개인정보, 조직정보, 근무정책을 수정할 수 있습니다.
+              </DialogDescription>
+            </div>
+            <button
+              type="button"
+              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -318,43 +372,44 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>조직 *</Label>
-                    <div className="relative organization-dropdown">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-between"
-                        onClick={() => setOrganizationDropdownOpen(!organizationDropdownOpen)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {editedEmployee?.organizations?.length && editedEmployee.organizations.length > 0 
-                            ? `${editedEmployee.organizations?.length ?? 0}개 조직 선택됨`
-                            : '조직을 선택하세요'
-                          }
-                        </div>
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                      
-                      {organizationDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                          {organizations.map((org) => (
-                            <div
-                              key={org}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleOrganizationToggle(org)}
-                            >
-                              <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
-                                {editedEmployee?.organizations?.includes(org) && (
-                                  <Check className="w-3 h-3 text-blue-600" />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{org}</div>
-                              </div>
+                    <Popover open={organizationDropdownOpen} onOpenChange={(open)=>{ setOrganizationDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={orgTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={orgButtonRef}
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              {editedEmployee?.organizations?.length && editedEmployee.organizations.length > 0 
+                                ? `${editedEmployee.organizations?.length ?? 0}개 조직 선택됨`
+                                : '조직을 선택하세요'
+                              }
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: orgContentWidth, minWidth: orgContentWidth, maxWidth: orgContentWidth }}>
+                        {organizations.map((org) => (
+                          <div
+                            key={org}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleOrganizationToggle(org)}
+                          >
+                            <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
+                              {editedEmployee?.organizations?.includes(org) && (
+                                <Check className="w-3 h-3 text-blue-600" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{org}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
                     
                     {editedEmployee?.organizations && editedEmployee.organizations.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-2">
@@ -477,38 +532,40 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
 
                   <div className="space-y-2">
                     <Label>근무 정책</Label>
-                    <div className="relative work-policy-dropdown">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-between"
-                        onClick={() => setWorkPolicyDropdownOpen(!workPolicyDropdownOpen)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
-                            ? (workPolicies.find(p => p.id === (editedEmployee?.workPolicies?.[0] ?? ''))?.label ?? '근무 정책을 선택하세요')
-                            : '근무 정책을 선택하세요'
-                          }
-                        </div>
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                      {workPolicyDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                      {workPolicies.map((policy) => (
-                        <div
-                          key={policy.id}
-                          className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                          onClick={() => handleWorkPolicyToggle(policy.id)}
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">{policy.label}</div>
-                            <div className="text-sm text-gray-500">{policy.description}</div>
+                    <Popover open={workPolicyDropdownOpen} onOpenChange={(open)=>{ setWorkPolicyDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={policyTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={policyButtonRef}
+                            type="button"
+                            variant="outline"
+                            className="w-full justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
+                                ? (workPolicies.find(p => p.id === (editedEmployee?.workPolicies?.[0] ?? ''))?.label ?? '근무 정책을 선택하세요')
+                                : '근무 정책을 선택하세요'
+                              }
+                            </div>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: policyContentWidth, minWidth: policyContentWidth, maxWidth: policyContentWidth }}>
+                        {workPolicies.map((policy) => (
+                          <div
+                            key={policy.id}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => handleWorkPolicyToggle(policy.id)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{policy.label}</div>
+                              <div className="text-sm text-gray-500">{policy.description}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {canResetPassword && (
@@ -552,22 +609,18 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
           </div>
 
             <div className="flex justify-between pt-6 border-t">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로가기
-              </Button>
-              {canDelete && (
-                <Button variant="destructive" onClick={handleDelete}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  삭제
-                </Button>
-              )}
-            </div>
+              <div className="flex gap-2">
+                {canDelete && (
+                  <Button variant="destructive" onClick={handleDelete}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    삭제
+                  </Button>
+                )}
+              </div>
               <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
-              저장하기
-            </Button>
-          </div>
+                저장하기
+              </Button>
+            </div>
         </DialogContent>
       </Dialog>
   )

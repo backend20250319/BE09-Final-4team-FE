@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -211,11 +212,29 @@ export default function AddOrganizationModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent data-hide-default-close className={`max-w-2xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}>
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900">
-              {organization ? '조직 수정' : '조직 추가'}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={requestClose}
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                {organization ? '조직 수정' : '조직 추가'}
+              </DialogTitle>
+              <button
+                type="button"
+                className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={requestClose}
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">
