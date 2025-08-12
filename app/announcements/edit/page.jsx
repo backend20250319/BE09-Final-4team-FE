@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
@@ -21,19 +21,105 @@ const Editor = dynamic(() => import("../write/components/Editor"), {
   ),
 });
 
+// 더미 데이터 (실제로는 API에서 받아올 데이터)
+const DUMMY_ANNOUNCEMENT = {
+  id: 1,
+  title: "2025년 하반기 인사발령",
+  contentSummary: "2025년 하반기 인사발령에 관한 공지사항입니다.",
+  displayAuthor: "인사팀",
+  createdAt: "2025-07-15",
+  views: 45,
+  commentCnt: 3,
+  content: {
+    root: {
+      children: [
+        {
+          children: [
+            {
+              text: "2025년 하반기 인사발령이 발표되었습니다. 주요 인사 변동 사항은 다음과 같습니다.",
+              type: "text"
+            }
+          ],
+          type: "paragraph"
+        }
+      ],
+      type: "root"
+    }
+  },
+  attachment: {
+    id: "file-1",
+    name: "2025_하반기_인사발령.pdf",
+    size: "2.1 MB",
+    url: "/file-1.pdf"
+  }
+};
+
 export default function AnnouncementEditPage() {
   const router = useRouter();
-  const [title, setTitle] = useState("2025년 하반기 인사발령");
-  const [author, setAuthor] = useState("인사팀");
+  const searchParams = useSearchParams();
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
   const [content, setContent] = useState("");
-  const [attachments, setAttachments] = useState([
-    {
-      id: "file-1",
-      name: "2025_하반기_인사발령.pdf",
-      size: "2.1 MB",
-      url: "/file-1.pdf"
+  const [attachments, setAttachments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // URL 파라미터에서 공지사항 ID를 받아와서 데이터 로드
+    const announcementId = searchParams.get('id');
+
+    // 실제로는 API 호출로 데이터를 가져와야 함
+    // 지금은 더미 데이터 사용
+    const loadAnnouncementData = async () => {
+      try {
+        // TODO: API 호출로 실제 데이터 가져오기
+        // const response = await fetch(`/api/announcements/${announcementId}`);
+        // const data = await response.json();
+
+        // 더미 데이터 사용
+        const data = DUMMY_ANNOUNCEMENT;
+
+        setTitle(data.title || "");
+        setAuthor(data.displayAuthor || "");
+        setContent(JSON.stringify(data.content || ""));
+
+        if (data.attachment) {
+          setAttachments([
+            {
+              id: data.attachment.id || data.attachment.name,
+              name: data.attachment.name,
+              size: data.attachment.size,
+              url: data.attachment.url,
+            },
+          ]);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error("공지사항 데이터 로드 실패:", error);
+        setLoading(false);
+      }
+    };
+
+    if (announcementId) {
+      loadAnnouncementData();
+    } else {
+      // ID가 없으면 기본값으로 설정
+      setTitle(DUMMY_ANNOUNCEMENT.title);
+      setAuthor(DUMMY_ANNOUNCEMENT.displayAuthor);
+      setContent(JSON.stringify(DUMMY_ANNOUNCEMENT.content));
+      if (DUMMY_ANNOUNCEMENT.attachment) {
+        setAttachments([
+          {
+            id: DUMMY_ANNOUNCEMENT.attachment.id,
+            name: DUMMY_ANNOUNCEMENT.attachment.name,
+            size: DUMMY_ANNOUNCEMENT.attachment.size,
+            url: DUMMY_ANNOUNCEMENT.attachment.url,
+          },
+        ]);
+      }
+      setLoading(false);
     }
-  ]);
+  }, [searchParams]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -41,9 +127,23 @@ export default function AnnouncementEditPage() {
     console.log("제목:", title);
     console.log("작성자:", author);
     console.log("본문(JSON):", content);
+    console.log("첨부파일:", attachments);
     alert("공지사항이 수정되었습니다.");
     router.push("/announcements");
   };
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">공지사항을 불러오는 중...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
