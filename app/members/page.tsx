@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
@@ -747,13 +747,48 @@ export default function MembersPage() {
     })
   }
 
-  const filteredOrgStructure = orgSearchTerm ? 
-    orgStructure.filter(org => 
-      org.name.toLowerCase().includes(orgSearchTerm.toLowerCase()) ||
-      org.children?.some(child => 
-        child.name.toLowerCase().includes(orgSearchTerm.toLowerCase())
-      )
-    ) : orgStructure
+  const filteredOrgStructure = useMemo(() => {
+    if (!orgSearchTerm) return orgStructure
+    const term = orgSearchTerm.toLowerCase()
+
+    const collectExactMatches = (orgs: OrgStructure[], matches: OrgStructure[] = []): OrgStructure[] => {
+      for (const org of orgs) {
+        if (org.name.toLowerCase() === term) matches.push(org)
+        if (org.children) collectExactMatches(org.children, matches)
+      }
+      return matches
+    }
+    
+    const filterTree = (orgs: OrgStructure[]): OrgStructure[] => {
+      const result: OrgStructure[] = []
+      for (const org of orgs) {
+        const selfMatch = org.name.toLowerCase().includes(term)
+        const filteredChildren = org.children ? filterTree(org.children) : undefined
+
+        if (selfMatch) {
+          if (filteredChildren && filteredChildren.length > 0) {
+            result.push({ ...org, isExpanded: true, children: filteredChildren })
+          } else {
+            result.push({ ...org, isExpanded: false, children: undefined })
+          }
+          continue
+        }
+
+        if (filteredChildren && filteredChildren.length > 0) {
+          result.push({ ...org, isExpanded: true, children: filteredChildren })
+        }
+      }
+      return result
+    }
+
+    const exactMatches = collectExactMatches(orgStructure)
+    if (exactMatches.length === 1) {
+      const m = exactMatches[0]
+      return [{ ...m, isExpanded: false, children: undefined }]
+    }
+
+    return filterTree(orgStructure)
+  }, [orgStructure, orgSearchTerm])
 
   useEffect(() => {
     if (orgSearchTerm) {
