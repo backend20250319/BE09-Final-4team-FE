@@ -218,20 +218,14 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
 
   const handleWorkPolicyToggle = (policyId: string) => {
     if (!editedEmployee) return
-    const currentPolicies = editedEmployee.workPolicies || []
-    const isSelected = currentPolicies.includes(policyId)
-    let newPolicies: string[]
-    
-    if (isSelected) {
-      newPolicies = currentPolicies.filter(id => id !== policyId)
-    } else {
-      newPolicies = [...currentPolicies, policyId]
-    }
-    
+    const currentSelected = editedEmployee.workPolicies && editedEmployee.workPolicies[0] ? editedEmployee.workPolicies[0] : null
+    const newPolicies: string[] = currentSelected === policyId ? [] : [policyId]
+
     setEditedEmployee({
       ...editedEmployee,
       workPolicies: newPolicies
     })
+    setWorkPolicyDropdownOpen(false)
   }
 
   const handleOrganizationToggle = (orgName: string) => {
@@ -492,7 +486,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       >
                         <div className="flex items-center gap-2">
                           {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
-                            ? `${editedEmployee.workPolicies.length}개 정책 선택됨`
+                            ? (workPolicies.find(p => p.id === (editedEmployee?.workPolicies?.[0] ?? ''))?.label ?? '근무 정책을 선택하세요')
                             : '근무 정책을 선택하세요'
                           }
                         </div>
@@ -500,56 +494,21 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       </Button>
                       {workPolicyDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                          {workPolicies.map((policy) => (
-                            <div
-                              key={policy.id}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleWorkPolicyToggle(policy.id)}
-                            >
-                              <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
-                                {editedEmployee?.workPolicies?.includes(policy.id) && (
-                                  <Check className="w-3 h-3 text-blue-600" />
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{policy.label}</div>
-                                <div className="text-sm text-gray-500">{policy.description}</div>
-                              </div>
-                            </div>
-                          ))}
+                      {workPolicies.map((policy) => (
+                        <div
+                          key={policy.id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleWorkPolicyToggle(policy.id)}
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{policy.label}</div>
+                            <div className="text-sm text-gray-500">{policy.description}</div>
+                          </div>
+                        </div>
+                      ))}
                         </div>
                       )}
                     </div>
-                    {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {editedEmployee.workPolicies.map((policyId) => {
-                          const policy = workPolicies.find(p => p.id === policyId);
-                          return policy ? (
-                            <Badge
-                              key={policyId}
-                              variant="secondary"
-                              className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
-                              onClick={() => {
-                                setWorkPolicyDropdownOpen(false)
-                                handleWorkPolicyToggle(policyId)
-                              }}
-                              role="button"
-                              aria-label={`${policy.label} 정책 제거`}
-                            >
-                              {policy.label}
-                              <X
-                                className="w-3 h-3 cursor-pointer hover:text-red-500"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setWorkPolicyDropdownOpen(false)
-                                  handleWorkPolicyToggle(policyId)
-                                }}
-                              />
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
                   </div>
 
                   {canResetPassword && (

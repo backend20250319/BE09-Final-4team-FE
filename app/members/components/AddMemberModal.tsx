@@ -139,24 +139,19 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const handleWorkPolicyToggle = (policyId: string) => {
     setFormData(prev => {
       const currentPolicies = prev.workPolicies || [];
-      const isSelected = currentPolicies.includes(policyId);
-      
-      let newPolicies;
-      if (isSelected) {
-        newPolicies = currentPolicies.filter(id => id !== policyId);
-      } else {
-        newPolicies = [...currentPolicies, policyId];
-      }
-      
+      const currentSelected = currentPolicies[0] ?? null;
+      const newPolicies = currentSelected === policyId ? [] : [policyId];
+
       setTimeout(() => {
-        validateField('workPolicies', '');
+        validateField('workPolicies', newPolicies);
       }, 0);
-      
+
       return {
         ...prev,
         workPolicies: newPolicies
       };
     });
+    setWorkPolicyDropdownOpen(false);
   };
 
   const handleOrganizationToggle = (orgName: string) => {
@@ -182,18 +177,18 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
     });
   };
 
-  const validateField = (field: string, value: string) => {
+  const validateField = (field: string, value: string | string[]) => {
     let isValid = false;
     let errorMessage = '';
 
     switch (field) {
       case 'name':
-        isValid = value.trim().length >= 2;
+        isValid = typeof value === 'string' && value.trim().length >= 2;
         errorMessage = isValid ? '' : '이름을 2자 이상 입력해주세요.';
         break;
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        isValid = emailRegex.test(value);
+        isValid = typeof value === 'string' && emailRegex.test(value);
         errorMessage = isValid ? '' : '올바른 이메일 형식을 입력해주세요.';
         break;
       case 'organizations':
@@ -208,20 +203,30 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         errorMessage = '';
         break;
       case 'joinDate':
-        isValid = value.trim().length > 0;
+        isValid = typeof value === 'string' && value.trim().length > 0;
         errorMessage = isValid ? '' : '입사일을 선택해주세요.';
         break;
-      case 'workPolicies':
-        isValid = Array.isArray(formData.workPolicies) && formData.workPolicies.length > 0;
-        errorMessage = isValid ? '' : '최소 1개 이상의 근무 정책을 선택해주세요.';
+      case 'workPolicies': {
+        const selected = Array.isArray(value) ? value : formData.workPolicies;
+        isValid = Array.isArray(selected) && selected.length > 0;
+        errorMessage = isValid ? '' : '필수 입력 항목입니다.';
         break;
+      }
       default:
         isValid = true;
         errorMessage = '';
     }
 
     setValidFields(prev => ({ ...prev, [field]: isValid }));
-    setErrors(prev => ({ ...prev, [field]: errorMessage }));
+    if (field === 'workPolicies') {
+      if (isValid) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      } else if (submitted) {
+        setErrors(prev => ({ ...prev, [field]: errorMessage }));
+      }
+    } else {
+      setErrors(prev => ({ ...prev, [field]: errorMessage }));
+    }
     
     return isValid;
   };
@@ -263,10 +268,9 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       }
     });
 
-    // 근무 정책 필수 검사
     if (!formData.workPolicies || formData.workPolicies.length === 0) {
       isValid = false;
-      if (submitted) newErrors['workPolicies'] = '최소 1개 이상의 근무 정책을 선택해주세요.';
+      if (submitted) newErrors['workPolicies'] = '필수 입력 항목입니다.';
     }
 
     setErrors(newErrors);
@@ -573,60 +577,32 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       >
                         <div className="flex items-center gap-2">
                           {formData.workPolicies?.length > 0 
-                            ? `${formData.workPolicies.length}개 정책 선택됨`
+                            ? (workPolicies.find(p => p.id === formData.workPolicies[0])?.label ?? '근무 정책을 선택하세요')
                             : '근무 정책을 선택하세요'
                           }
                         </div>
                         <ChevronDown className="w-4 h-4" />
                       </Button>
                       
-                      {workPolicyDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                          {workPolicies.map((policy) => (
-                            <div
-                              key={policy.id}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleWorkPolicyToggle(policy.id)}
-                            >
-                              <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
-                                {formData.workPolicies?.includes(policy.id) && (
-                                  <Check className="w-3 h-3 text-blue-600" />
-                                )}
+                        {workPolicyDropdownOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                            {workPolicies.map((policy) => (
+                              <div
+                                key={policy.id}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                onClick={() => handleWorkPolicyToggle(policy.id)}
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">{policy.label}</div>
+                                  <div className="text-sm text-gray-500">{policy.description}</div>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{policy.label}</div>
-                                <div className="text-sm text-gray-500">{policy.description}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                            ))}
+                          </div>
+                        )}
                     </div>
                     
-                                         {formData.workPolicies?.length > 0 && (
-                       <div className="flex flex-wrap gap-2 mt-2">
-                         {formData.workPolicies.map((policyId) => {
-                           const policy = workPolicies.find(p => p.id === policyId);
-                           return policy ? (
-                             <Badge 
-                               key={policyId} 
-                               variant="secondary" 
-                               className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
-                               onClick={() => handleWorkPolicyToggle(policyId)}
-                             >
-                               {policy.label}
-                               <X 
-                                 className="w-3 h-3 hover:text-red-500" 
-                               />
-                             </Badge>
-                           ) : null;
-                         })}
-                       </div>
-                     )}
                     
-                    {errors.workPolicies && (
-                      <p className="text-sm text-red-500">{errors.workPolicies}</p>
-                    )}
                   </div>
                 </div>
 
