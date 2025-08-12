@@ -85,7 +85,7 @@ export function FormSelectionModal({
               <FormTemplatesGrid
                 forms={filteredForms}
                 onCardClick={handleFormSelect}
-                getCategoryName={(id) => categories.find(cat => cat.id === id)?.name || id}
+                getCategoryName={(id) => categories.find(cat => cat.id === id)?.name}
               />
             ) : (
               <div className="text-center py-12">

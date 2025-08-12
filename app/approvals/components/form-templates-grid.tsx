@@ -46,9 +46,9 @@ export function FormTemplatesGrid<T extends FormTemplate = FormTemplate>({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className={`${typography.h4} text-gray-800 truncate`}>{form.title}</h3>
-                  {getCategoryName ? (
+                  {getCategoryName && form.category && getCategoryName(form.category) ? (
                     <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-100">
-                      {getCategoryName(form.category) || form.category}
+                      {getCategoryName(form.category)}
                     </Badge>
                   ) : null}
                   {hidden ? (

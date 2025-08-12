@@ -33,12 +33,12 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
     return templates.filter((form) => {
       const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         form.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = selectedCategory === "all" || form.category === selectedCategory
+      const matchesCategory = selectedCategory === "all" || 
+        form.category === selectedCategory ||
+        (selectedCategory === "" && !form.category)
       return matchesSearch && matchesCategory
     })
   }, [templates, searchTerm, selectedCategory])
-
-  const getCategoryName = (id: string) => categories.find((c) => c.id === id)?.name || id
 
   const handleNewForm = () => {
     if (onOpenFormEditor) return onOpenFormEditor(null)
@@ -100,10 +100,9 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
 
   const handleRemoveCategory = (categoryId: string) => {
     if (categoryId === "all") return
-    // 해당 카테고리를 사용하는 양식들을 다른 카테고리로 이동
-    const firstAvailableCategory = categories.find(c => c.id !== "all" && c.id !== categoryId)?.id || "hr"
+    // 해당 카테고리를 사용하는 양식들은 분류 미지정 상태로 변경
     setTemplates((prev) => prev.map((t) => 
-      t.category === categoryId ? { ...t, category: firstAvailableCategory } : t
+      t.category === categoryId ? { ...t, category: "" } : t
     ))
     setCategories((prev) => prev.filter((c) => c.id !== categoryId))
     if (selectedCategory === categoryId) {
@@ -171,7 +170,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <Input
                     placeholder="새 분류 이름"
                     value={newCategoryName}
@@ -202,6 +201,17 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                     {category.name}
                   </Button>
                 ))}
+                {/* 분류 미지정 양식이 있는 경우에만 표시 */}
+                {templates.some(t => !t.category) && (
+                  <Button
+                    variant={selectedCategory === "" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory("")}
+                    className="flex items-center gap-2 whitespace-nowrap text-gray-500"
+                  >
+                    분류 미지정
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -210,7 +220,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
             <FormTemplatesGrid
               forms={filteredForms}
               onCardClick={handleEditForm}
-              getCategoryName={getCategoryName}
+              getCategoryName={(id) => categories.find(cat => cat.id === id)?.name}
               renderOverlay={(form) => (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
