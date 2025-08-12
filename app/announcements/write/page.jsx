@@ -8,7 +8,7 @@ import { GradientButton } from "@/components/ui/gradient-button";
 import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
 import dynamic from "next/dynamic";
-import { X, UploadCloud } from "lucide-react";
+import { X, UploadCloud, ArrowLeft } from "lucide-react";
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 
 const Editor = dynamic(() => import("./components/Editor"), {
@@ -54,14 +54,24 @@ export default function NoticeWritePage() {
     router.push("/announcements");
   };
 
-
   return (
     <MainLayout>
       <div className="mb-8">
-        <h1 className={`${typography.h1} text-gray-800`}>공지사항 작성</h1>
-        <p className="text-gray-600">새로운 공지사항을 작성하고 게시하세요.</p>
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div>
+            <h1 className={`${typography.h1} text-gray-800`}>공지사항 작성</h1>
+            <p className="text-gray-600">새로운 공지사항을 작성하고 게시하세요.</p>
+          </div>
+        </div>
       </div>
-      <GlassCard className="p-8 max-w-4xl mx-auto">
+
+      <div className="bg-white rounded-xl border border-gray-200 p-8">
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -71,6 +81,7 @@ export default function NoticeWritePage() {
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 required
+                className="h-12 text-lg"
               />
             </div>
             <div>
@@ -80,34 +91,42 @@ export default function NoticeWritePage() {
                 value={author}
                 onChange={e => setAuthor(e.target.value)}
                 required
+                className="h-12 text-lg"
               />
             </div>
           </div>
+
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold">내용</label>
             <Editor json={null} onChange={setContent} />
           </div>
+
           {/* 파일 업로드 */}
-          <AttachmentsManager
-            attachments={attachments}
-            onAttachmentsChange={setAttachments}
-          />
-          <div className="flex justify-between items-center mt-8">
+          <div className="mb-8">
+            <AttachmentsManager
+              attachments={attachments}
+              onAttachmentsChange={setAttachments}
+              maxFiles={10}
+              maxFileSize={50}
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-6 border-t border-gray-200">
             <button
               type="button"
-              className="px-6 py-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition cursor-pointer"
+              className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
               onClick={() => router.back()}
             >
+              <X className="w-4 h-4" />
               취소
             </button>
-            <div className="flex gap-2">
-              <GradientButton type="submit" variant="primary">
-                게시하기
-              </GradientButton>
-            </div>
+            <GradientButton type="submit" variant="primary" className="px-6 py-3">
+              <UploadCloud className="w-4 h-4 mr-2" />
+              게시하기
+            </GradientButton>
           </div>
         </form>
-      </GlassCard>
+      </div>
     </MainLayout>
   );
 }
