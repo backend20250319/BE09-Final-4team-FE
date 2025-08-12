@@ -122,6 +122,12 @@ export function FormSelectionModal({
                             <h3 className={`${typography.h4} text-gray-800 truncate`}>
                               {form.title}
                             </h3>
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-100"
+                            >
+                              {categories.find(cat => cat.id === form.category)?.name || form.category}
+                            </Badge>
                           </div>
                           <p className="text-sm text-gray-600 line-clamp-2">
                             {form.description}
