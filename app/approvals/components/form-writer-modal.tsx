@@ -55,7 +55,7 @@ interface Reference {
   position: string
 }
 
-import { FormTemplate, FormField, ReferenceFile } from "@/lib/mock-data/form-templates"
+import { FormTemplate, FormField, ReferenceFile, getIconComponent } from "@/lib/mock-data/form-templates"
 
 interface FormWriterModalProps {
   isOpen: boolean
@@ -397,8 +397,8 @@ function ReferenceFilesManager({
   return (
     <TooltipProvider>
       <div className="space-y-3">
-        {referenceFiles.map((file, index) => (
-          <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        {referenceFiles.map((file) => (
+          <div key={file.id || file.name} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-blue-900 truncate">{file.name}</p>
               {file.description && (
@@ -664,7 +664,7 @@ export function FormWriterModal({
 
   if (!formTemplate) return null
 
-  const IconComponent = formTemplate.icon
+  const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
 
   return (
     <TooltipProvider>

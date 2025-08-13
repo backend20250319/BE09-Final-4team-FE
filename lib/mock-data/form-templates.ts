@@ -5,7 +5,51 @@ import {
   Car,
   Home,
   Briefcase,
+  FileText,
+  Settings,
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  ShoppingCart,
+  DollarSign,
+  Award,
+  Target,
+  Zap,
+  Heart,
+  Star,
+  Bookmark
 } from "lucide-react"
+
+// 아이콘 매핑 유틸리티
+export const iconMap = {
+  Calendar,
+  User,
+  CreditCard,
+  Car,
+  Home,
+  Briefcase,
+  FileText,
+  Settings,
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  ShoppingCart,
+  DollarSign,
+  Award,
+  Target,
+  Zap,
+  Heart,
+  Star,
+  Bookmark
+}
+
+export const getIconComponent = (iconName: string) => {
+  return iconMap[iconName as keyof typeof iconMap] || FileText
+}
 
 // 카테고리 정의
 export const categories = [
@@ -32,8 +76,10 @@ export interface FormField {
 
 // 참고 파일 타입 정의
 export interface ReferenceFile {
+  id: string
   name: string
   url: string
+  size?: string
   description?: string
 }
 
@@ -43,7 +89,7 @@ export interface FormTemplate {
   title: string
   description: string
   category: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string }> | string
   color: string
   fields: FormField[]
   defaultContent: string // 기본 콘텐츠 추가
@@ -70,6 +116,7 @@ export const formTemplates: FormTemplate[] = [
     defaultContent: "출장 일정:\n- 이동 경로: \n- 숙박 장소: \n- 주요 일정: \n\n출장 성과 목표:\n- ",
     referenceFiles: [
       { 
+        id: "ref-1",
         name: "출장 신청 가이드", 
         url: "/files/business-trip-guide.pdf",
         description: "출장 신청 시 필요한 절차와 주의사항"
@@ -108,11 +155,13 @@ export const formTemplates: FormTemplate[] = [
     defaultContent: "채용 배경:\n- \n- \n\n주요 업무:\n- \n- \n- \n\n채용 일정:\n- 공고 게시: \n- 서류 심사: \n- 면접 일정: ",
     referenceFiles: [
       { 
+        id: "ref-2",
         name: "채용 규정", 
         url: "/files/recruitment-policy.pdf",
         description: "회사 채용 절차 및 규정 안내"
       },
       { 
+        id: "ref-3",
         name: "직무 기술서 양식", 
         url: "/files/job-description-template.docx",
         description: "직무 기술서 작성 양식"
@@ -152,6 +201,7 @@ export const formTemplates: FormTemplate[] = [
     defaultContent: "계약 개요:\n- 계약 필요성: \n- 예상 효과: \n- 리스크 분석: \n\n계약 조건:\n- 지불 조건: \n- 납기: \n- 품질 보증: \n\n첨부 서류:\n- \n- \n- ",
     referenceFiles: [
       { 
+        id: "ref-4",
         name: "계약서 샘플", 
         url: "/files/contract-template.pdf",
         description: "기본 계약서 서식 및 양식"
@@ -190,6 +240,7 @@ export const formTemplates: FormTemplate[] = [
     defaultContent: "요청 배경:\n- \n- \n- \n\n세부 예산 계획:\n1. \n2. \n3. \n\n투자 대비 효과:\n- \n- \n\nROI 분석:\n- \n- ",
     referenceFiles: [
       { 
+        id: "ref-5",
         name: "예산 기획서 예시", 
         url: "/files/budget-plan-sample.xlsx",
         description: "예산 요청서 작성 예시 및 템플릿"

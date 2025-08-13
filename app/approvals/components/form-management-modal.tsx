@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { FormTemplatesGrid } from "./form-templates-grid"
+import { FormEditorModal } from "./form-editor-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import { FormTemplate, formTemplates as initialTemplates, categories as defaultCategories } from "@/lib/mock-data/form-templates"
 import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X } from "lucide-react"
@@ -26,8 +27,9 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   const [templates, setTemplates] = useState<(FormTemplate & { hidden?: boolean })[]>(() => initialTemplates)
   const [isEditingCategories, setIsEditingCategories] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
+  const [isFormEditorOpen, setIsFormEditorOpen] = useState(false)
   const [editingForm, setEditingForm] = useState<FormTemplate | null>(null)
-  const [showEditModal, setShowEditModal] = useState(false)
+
 
   const filteredForms = useMemo(() => {
     return templates.filter((form) => {
@@ -41,27 +43,27 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   }, [templates, searchTerm, selectedCategory])
 
   const handleNewForm = () => {
-    if (onOpenFormEditor) return onOpenFormEditor(null)
-    const draft: FormTemplate = {
-      id: `new-${Math.random().toString(36).slice(2, 8)}`,
-      title: "새 양식",
-      description: "",
-      category: selectedCategory === "all" ? (categories[1]?.id || "hr") : selectedCategory,
-      icon: FileText,
-      color: "#93c5fd",
-      fields: [],
-      defaultContent: "",
-      attachments: "optional",
-      content: "enabled",
-    }
-    setEditingForm(draft)
-    setShowEditModal(true)
+    setEditingForm(null)
+    setIsFormEditorOpen(true)
   }
 
   const handleEditForm = (form: FormTemplate) => {
-    if (onOpenFormEditor) return onOpenFormEditor(form)
     setEditingForm(form)
-    setShowEditModal(true)
+    setIsFormEditorOpen(true)
+  }
+
+  const handleFormSave = (savedForm: FormTemplate) => {
+    if (editingForm) {
+      // 기존 양식 수정
+      setTemplates((prev) => prev.map((t) => 
+        t.id === editingForm.id ? { ...savedForm, hidden: (t as any).hidden } : t
+      ))
+    } else {
+      // 새 양식 추가
+      setTemplates((prev) => [savedForm, ...prev])
+    }
+    setIsFormEditorOpen(false)
+    setEditingForm(null)
   }
 
   const handleDuplicate = (form: FormTemplate) => {
@@ -220,7 +222,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
             <FormTemplatesGrid
               forms={filteredForms}
               onCardClick={handleEditForm}
-              getCategoryName={(id) => categories.find(cat => cat.id === id)?.name}
+              getCategoryName={(id) => categories.find(cat => cat.id === id)?.name || ""}
               renderOverlay={(form) => (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -229,6 +231,9 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[180px]">
+                    <DropdownMenuItem onClick={() => handleEditForm(form)}>
+                      <Edit className="w-4 h-4" /> 양식 편집
+                    </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>양식 분류 변경</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
@@ -262,82 +267,13 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
         </div>
       </DialogContent>
 
-
-
-    {/* 양식 수정 모달 */}
-    <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle className={`${typography.h3} text-gray-800`}>{editingForm?.id?.startsWith("new-") ? "새 양식 만들기" : "양식 수정"}</DialogTitle>
-        </DialogHeader>
-        {editingForm ? (
-          <EditForm
-            value={editingForm}
-            categories={categories}
-            onCancel={() => setShowEditModal(false)}
-            onSave={(next) => {
-              setTemplates((prev) => {
-                const exists = prev.some((t) => t.id === next.id)
-                if (exists) return prev.map((t) => (t.id === next.id ? { ...t, ...next } : t))
-                return [next, ...prev]
-              })
-              setShowEditModal(false)
-            }}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+      {/* 양식 편집기 모달 */}
+      <FormEditorModal
+        isOpen={isFormEditorOpen}
+        onClose={() => setIsFormEditorOpen(false)}
+        formTemplate={editingForm}
+        onSave={handleFormSave}
+      />
     </Dialog>
   )
 }
-
-
-
-function EditForm({
-  value,
-  categories,
-  onCancel,
-  onSave,
-}: {
-  value: FormTemplate
-  categories: { id: string; name: string }[]
-  onCancel: () => void
-  onSave: (next: FormTemplate) => void
-}) {
-  const [local, setLocal] = useState<FormTemplate>(value)
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm text-gray-700">양식명</label>
-        <Input value={local.title} onChange={(e) => setLocal({ ...local, title: e.target.value })} />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm text-gray-700">설명</label>
-        <Input value={local.description} onChange={(e) => setLocal({ ...local, description: e.target.value })} />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm text-gray-700">분류</label>
-        <select
-          className="border rounded-md h-9 px-3"
-          value={local.category}
-          onChange={(e) => setLocal({ ...local, category: e.target.value })}
-        >
-          {categories.filter(c => c.id !== 'all').map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm text-gray-700">대표 색상</label>
-        <Input type="color" value={local.color} onChange={(e) => setLocal({ ...local, color: e.target.value })} />
-      </div>
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>취소</Button>
-        <Button onClick={() => onSave(local)} className="bg-blue-600 hover:bg-blue-700">저장</Button>
-      </div>
-    </div>
-  )
-}
-
-

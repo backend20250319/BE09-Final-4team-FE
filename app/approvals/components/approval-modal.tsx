@@ -37,7 +37,7 @@ import {
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
 import { Attachment } from "@/components/ui/attachments-manager"
-import { formTemplates } from "@/lib/mock-data/form-templates"
+import { formTemplates, getIconComponent } from "@/lib/mock-data/form-templates"
 
 // 타입 정의
 export interface User {
@@ -123,7 +123,10 @@ function ApprovalHeader({ approval }: { approval: Approval }) {
   return (
     <div className="flex items-center gap-5">
       <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
-        <formTemplate.icon className="w-6 h-6 text-white" />
+        {(() => {
+          const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
+          return <IconComponent className="w-6 h-6 text-white" />
+        })()}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">

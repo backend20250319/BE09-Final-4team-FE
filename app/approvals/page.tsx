@@ -11,7 +11,7 @@ import { FormManagementModal } from "@/app/approvals/components/form-management-
 import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import approvals from "@/lib/mock-data/approvals"
-import { FormTemplate, formTemplates } from "@/lib/mock-data/form-templates"
+import { FormTemplate, formTemplates, getIconComponent } from "@/lib/mock-data/form-templates"
 import {
   Search,
   Plus,
@@ -243,7 +243,10 @@ export default function ApprovalsPage() {
             className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
             style={{ backgroundColor: formTemplate.color }}
           >
-            <formTemplate.icon className="w-6 h-6 text-white" />
+            {(() => {
+              const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
+              return <IconComponent className="w-6 h-6 text-white" />
+            })()}
           </div>
           <div className="flex-1 flex flex-col justify-center h-full">
             <div className="flex items-center gap-3 mb-1 min-w-0">

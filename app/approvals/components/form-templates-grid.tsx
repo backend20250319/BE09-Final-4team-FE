@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import { typography } from "@/lib/design-tokens"
-import { FormTemplate } from "@/lib/mock-data/form-templates"
+import { FormTemplate, getIconComponent } from "@/lib/mock-data/form-templates"
 import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
 
@@ -23,7 +23,7 @@ export function FormTemplatesGrid<T extends FormTemplate = FormTemplate>({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {forms.map((form) => {
-        const IconComponent = form.icon
+        const IconComponent = typeof form.icon === 'string' ? getIconComponent(form.icon) : form.icon
         const hidden = (form as any).hidden as boolean | undefined
         return (
           <GlassCard
