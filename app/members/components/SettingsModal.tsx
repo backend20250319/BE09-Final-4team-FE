@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react";
 import OrganizationSettingsModal from './OrganizationSettingsModal';
+import TitlesManager from './TitlesManager';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -43,32 +44,34 @@ const menuItems = [
   },
   {
     id: 4,
-    title: "역할 권한",
-    description: "사용자 역할과 권한을 설정합니다",
+    title: "직위 관리",
+    description: "구성원의 직위를 설정하고 관리합니다",
     icon: Shield
   },
-  {
-    id: 5,
-    title: "업무 분류",
-    description: "업무 카테고리를 관리합니다",
-    icon: Briefcase
-  },
+  
   {
     id: 6,
-    title: "등급 설정",
-    description: "구성원 등급을 설정하고 관리합니다",
+    title: "직책 관리",
+    description: "구성원의 직책을 설정하고 관리합니다",
     icon: Star
   }
 ];
 
 export default function SettingsModal({ isOpen, onClose, onAddMember }: SettingsModalProps) {
   const [showOrgSettings, setShowOrgSettings] = useState(false);
+  const [managerType, setManagerType] = useState<null | 'rank' | 'position' | 'job'>(null);
 
   const handleMenuItemClick = (itemId: number) => {
     if (itemId === 1) {
       onAddMember();
     } else if (itemId === 2) {
       setShowOrgSettings(true);
+    } else if (itemId === 3) {
+      setManagerType('rank');
+    } else if (itemId === 4) {
+      setManagerType('position');
+    } else if (itemId === 6) {
+      setManagerType('job');
     } else {
       alert('준비 중인 기능입니다.');
     }
@@ -84,9 +87,6 @@ export default function SettingsModal({ isOpen, onClose, onAddMember }: Settings
                 <h2 className="text-2xl font-bold text-gray-900">구성원 설정</h2>
                 <p className="text-sm text-gray-600 mt-1">구성원 관리 옵션을 선택하세요</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
             </DialogTitle>
           </DialogHeader>
           
@@ -124,6 +124,14 @@ export default function SettingsModal({ isOpen, onClose, onAddMember }: Settings
         isOpen={showOrgSettings}
         onClose={() => setShowOrgSettings(false)}
       />
+
+      {managerType && (
+        <TitlesManager
+          isOpen={managerType !== null}
+          onClose={() => setManagerType(null)}
+          type={managerType}
+        />
+      )}
     </>
   );
 } 

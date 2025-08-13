@@ -1,11 +1,18 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import styles from './date-input.module.css'
+import modalStyles from './members-modal.module.css'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import SimpleDropdown from "./SimpleDropdown"
+import { Badge } from "@/components/ui/badge"
+import { useOrganizationsList, useTitlesFromMembers } from '@/hooks/use-members-derived-data'
+import { Switch } from "@/components/ui/switch"
 import { 
   User, 
   Mail, 
@@ -18,7 +25,11 @@ import {
   Copy,
   RefreshCw,
   Trash2,
-  ArrowLeft
+  ArrowLeft,
+  Clock,
+  ChevronDown,
+  Check,
+  X
 } from "lucide-react"
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
@@ -30,7 +41,7 @@ interface Employee {
   phone?: string
   address?: string
   joinDate: string
-  organization: string
+  organizations: string[]
   position: string
   role: string
   job: string
@@ -46,6 +57,7 @@ interface Employee {
     date: string
     time?: string
   }>
+  workPolicies?: string[]
 }
 
 interface EditModalProps {
@@ -59,20 +71,101 @@ interface EditModalProps {
 export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelete }: EditModalProps) {
   const { user } = useAuth()
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
+  const joinDateRef = useRef<HTMLInputElement | null>(null)
   const [tempPassword, setTempPassword] = useState<string>('')
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false)
+  const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false)
+  const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false)
+  const [concurrentDropdownOpen, setConcurrentDropdownOpen] = useState(false)
+  const orgTriggerRef = useRef<HTMLDivElement | null>(null)
+  const orgButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [orgContentWidth, setOrgContentWidth] = useState<number | undefined>(undefined)
+  const policyTriggerRef = useRef<HTMLDivElement | null>(null)
+  const policyButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [policyContentWidth, setPolicyContentWidth] = useState<number | undefined>(undefined)
+  const concurrentTriggerRef = useRef<HTMLDivElement | null>(null)
+  const concurrentButtonRef = useRef<HTMLButtonElement | null>(null)
+  const [concurrentContentWidth, setConcurrentContentWidth] = useState<number | undefined>(undefined)
+  const [memberOrganizations, setMemberOrganizations] = useState<{ main: string | null; concurrent: string[] }>({ main: null, concurrent: [] })
+  const { organizations, loading: orgLoading, error: orgError } = useOrganizationsList()
+  const { ranks, positions, jobs, roles, loading: titleLoading, error: titleError } = useTitlesFromMembers()
+
+  const recomputePopoverWidths = () => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined
+      const rect = el.getBoundingClientRect()
+      return rect.width || el.offsetWidth
+    }
+    const w1 = readWidth(orgButtonRef.current) ?? readWidth(orgTriggerRef.current as any)
+    if (w1) setOrgContentWidth(w1)
+    const w2 = readWidth(policyButtonRef.current) ?? readWidth(policyTriggerRef.current as any)
+    if (w2) setPolicyContentWidth(w2)
+    const w3 = readWidth(concurrentButtonRef.current) ?? readWidth(concurrentTriggerRef.current as any)
+    if (w3) setConcurrentContentWidth(w3)
+  }
+
+  useLayoutEffect(() => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined
+      const rect = el.getBoundingClientRect()
+      return rect.width || el.offsetWidth
+    }
+    const update = () => recomputePopoverWidths()
+    update()
+    const ro = new ResizeObserver(update)
+    if (orgTriggerRef.current) ro.observe(orgTriggerRef.current)
+    if (policyTriggerRef.current) ro.observe(policyTriggerRef.current)
+    if (concurrentTriggerRef.current) ro.observe(concurrentTriggerRef.current)
+    return () => ro.disconnect()
+  }, [orgContentWidth, policyContentWidth])
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = isOwnProfile || user?.isAdmin
   const canDelete = user?.isAdmin
   const canResetPassword = user?.isAdmin
 
+  const workPolicies = [
+    { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무', color: 'bg-blue-100 text-blue-800' },
+    { id: 'flexible', label: '유연근무', description: '코어타임 내 자유로운 출퇴근', color: 'bg-green-100 text-green-800' },
+    { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무', color: 'bg-purple-100 text-purple-800' },
+    { id: 'remote', label: '재택근무', description: '원격 근무 가능', color: 'bg-orange-100 text-orange-800' },
+    { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무', color: 'bg-indigo-100 text-indigo-800' }
+  ]
+
+  // options는 실데이터에서 가져옵니다
+
   useEffect(() => {
     if (employee) {
-      setEditedEmployee(employee)
+      setEditedEmployee({
+        ...employee,
+        workPolicies: employee.workPolicies || []
+      })
+      const initialOrgs = (employee.organizations && employee.organizations.length > 0) ? employee.organizations : []
+      const main = initialOrgs.length > 0 ? initialOrgs[0] : null
+      const concurrent = initialOrgs.length > 1 ? initialOrgs.slice(1) : []
+      setMemberOrganizations({ main, concurrent })
       setTempPassword('')
     }
   }, [employee])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      
+      if (workPolicyDropdownOpen && !target.closest('.work-policy-dropdown')) {
+        setWorkPolicyDropdownOpen(false)
+      }
+      
+      if (organizationDropdownOpen && !target.closest('.organization-dropdown')) {
+        setOrganizationDropdownOpen(false)
+      }
+    }
+
+    if (workPolicyDropdownOpen || organizationDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [workPolicyDropdownOpen, organizationDropdownOpen])
 
   const generateRandomPassword = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
@@ -165,198 +258,388 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     })
   }
 
+  const handleWorkPolicyToggle = (policyId: string) => {
+    if (!editedEmployee) return
+    const currentSelected = editedEmployee.workPolicies && editedEmployee.workPolicies[0] ? editedEmployee.workPolicies[0] : null
+    const newPolicies: string[] = currentSelected === policyId ? [] : [policyId]
+    
+    setEditedEmployee({
+      ...editedEmployee,
+      workPolicies: newPolicies
+    })
+    setWorkPolicyDropdownOpen(false)
+  }
 
+  const updateEditedEmployeeOrgs = (next: { main: string | null; concurrent: string[] }) => {
+    if (!editedEmployee) return
+    const legacy = [next.main, ...next.concurrent].filter(Boolean) as string[]
+    setEditedEmployee({ ...editedEmployee, organizations: legacy })
+  }
+
+  const handleSelectMainOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      const next = { main: orgName, concurrent: prev.concurrent.filter(o => o !== orgName) }
+      updateEditedEmployeeOrgs(next)
+      return next
+    })
+    setOrganizationDropdownOpen(false)
+  }
+
+  const handleToggleConcurrentOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      if (prev.main === orgName) return prev
+      const isSelected = prev.concurrent.includes(orgName)
+      const next = { main: prev.main, concurrent: isSelected ? prev.concurrent.filter(o => o !== orgName) : [...prev.concurrent, orgName] }
+      updateEditedEmployeeOrgs(next)
+      return next
+    })
+  }
 
   if (!employee || !canEdit) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent data-hide-default-close className={`max-w-6xl w-[96vw] max-h-screen overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-2xl ${modalStyles.membersModal}`}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
+          <div className="flex items-center justify-between bg-white border-b border-gray-200 pb-3">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="뒤로가기"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="flex-1 text-center">
+              <DialogTitle className="text-2xl font-bold text-gray-900 text-center">
             구성원 정보 수정
           </DialogTitle>
+              <DialogDescription className="text-center">
+            구성원의 개인정보, 조직정보, 근무정책을 수정할 수 있습니다.
+          </DialogDescription>
+            </div>
+            <button
+              type="button"
+              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* 기본 정보 */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">기본 정보</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">이름</Label>
-                <Input
-                  id="name"
-                  value={editedEmployee?.name || ''}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="이름을 입력하세요"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">이메일</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={editedEmployee?.email || ''}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="이메일을 입력하세요"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">전화번호</Label>
-                <Input
-                  id="phone"
-                  value={editedEmployee?.phone || ''}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="전화번호를 입력하세요"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">주소</Label>
-                <Input
-                  id="address"
-                  value={editedEmployee?.address || ''}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="주소를 입력하세요"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 회사 정보 */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">회사 정보</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="joinDate">입사일</Label>
-                <Input
-                  id="joinDate"
-                  type="date"
-                  value={editedEmployee?.joinDate || ''}
-                  onChange={(e) => handleInputChange('joinDate', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="organization">조직</Label>
-                <Select
-                  value={editedEmployee?.organization || ''}
-                  onValueChange={(value) => handleInputChange('organization', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="조직을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="경영진">경영진</SelectItem>
-                    <SelectItem value="개발본부">개발본부</SelectItem>
-                    <SelectItem value="마케팅팀">마케팅팀</SelectItem>
-                    <SelectItem value="영업팀">영업팀</SelectItem>
-                    <SelectItem value="인사팀">인사팀</SelectItem>
-                    <SelectItem value="경영팀">경영팀</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">직위</Label>
-                <Select
-                  value={editedEmployee?.position || ''}
-                  onValueChange={(value) => handleInputChange('position', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="직위를 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CEO">CEO</SelectItem>
-                    <SelectItem value="CTO">CTO</SelectItem>
-                    <SelectItem value="CFO">CFO</SelectItem>
-                    <SelectItem value="팀장">팀장</SelectItem>
-                    <SelectItem value="과장">과장</SelectItem>
-                    <SelectItem value="대리">대리</SelectItem>
-                    <SelectItem value="사원">사원</SelectItem>
-                    <SelectItem value="인턴">인턴</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="job">직책</Label>
-                <Input
-                  id="job"
-                  value={editedEmployee?.job || ''}
-                  onChange={(e) => handleInputChange('job', e.target.value)}
-                  placeholder="직책을 입력하세요"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rank">직급</Label>
-                <Select
-                  value={editedEmployee?.rank || ''}
-                  onValueChange={(value) => handleInputChange('rank', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="직급을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="사장">사장</SelectItem>
-                    <SelectItem value="부사장">부사장</SelectItem>
-                    <SelectItem value="이사">이사</SelectItem>
-                    <SelectItem value="부장">부장</SelectItem>
-                    <SelectItem value="차장">차장</SelectItem>
-                    <SelectItem value="과장">과장</SelectItem>
-                    <SelectItem value="대리">대리</SelectItem>
-                    <SelectItem value="주임">주임</SelectItem>
-                    <SelectItem value="사원">사원</SelectItem>
-                    <SelectItem value="인턴">인턴</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* 임시 비밀번호 재설정 (관리자만) */}
-          {canResetPassword && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">임시 비밀번호 재설정</h3>
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={tempPassword}
-                    placeholder="임시 비밀번호가 여기에 표시됩니다"
-                    readOnly
-                  />
-                  <Button
-                    onClick={handleGeneratePassword}
-                    disabled={isGeneratingPassword}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {isGeneratingPassword ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    onClick={handleCopyPassword}
-                    disabled={!tempPassword}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  기본 정보
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">이름 *</Label>
+                    <Input
+                      id="name"
+                      value={editedEmployee?.name || ''}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="이름을 입력하세요"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">이메일 *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={editedEmployee?.email || ''}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="이메일을 입력하세요"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">전화번호</Label>
+                    <Input
+                      id="phone"
+                      value={editedEmployee?.phone || ''}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="전화번호를 입력하세요"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">주소</Label>
+                    <Input
+                      id="address"
+                      value={editedEmployee?.address || ''}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="주소를 입력하세요"
+                    />
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500">
-                  생성된 임시 비밀번호는 구성원에게 전달해주세요.
-                </p>
-              </div>
-            </div>
-          )}
+              </CardContent>
+            </Card>
 
-          {/* 버튼들 */}
-          <div className="flex justify-between pt-6">
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  조직 정보
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-semibold">메인 조직 *</Label>
+                    <Popover open={organizationDropdownOpen} onOpenChange={(open)=>{ setOrganizationDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={orgTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                      <Button
+                            ref={orgButtonRef}
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-between"
+                          >
+                            <div className="flex items-center gap-2">{memberOrganizations.main || '메인 조직을 선택하세요'}</div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                        </PopoverTrigger>
+                              </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: orgContentWidth, minWidth: orgContentWidth, maxWidth: orgContentWidth }}>
+                        {orgLoading && <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>}
+                        {orgError && !orgLoading && <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          const selected = memberOrganizations.main === org
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleSelectMainOrg(org)}>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                              </div>
+                              <div className="flex-1"><div className="font-medium text-gray-900">{org}</div></div>
+                            </div>
+                          )
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    </div>
+                    
+                  <div className="space-y-2">
+                    <Label className="font-semibold">겸직 조직</Label>
+                    <Popover open={concurrentDropdownOpen} onOpenChange={setConcurrentDropdownOpen}>
+                      <div ref={concurrentTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                          <Button ref={concurrentButtonRef} type="button" variant="outline" className="w-full justify-between">
+                            <div className="truncate">{memberOrganizations.concurrent.length > 0 ? `${memberOrganizations.concurrent.length}개 선택됨` : '겸직 조직을 선택하세요'}</div>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: concurrentContentWidth, minWidth: concurrentContentWidth, maxWidth: concurrentContentWidth }}>
+                        {orgLoading && <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>}
+                        {orgError && !orgLoading && <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          if (memberOrganizations.main === org) return null
+                          const selected = memberOrganizations.concurrent.includes(org)
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                              <div className={`w-4 h-4 border border-gray-300 rounded flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <Check className="w-3 h-3 text-blue-600" />}
+                              </div>
+                              <div className="flex-1"><div className="font-medium text-gray-900">{org}</div></div>
+                            </div>
+                          )
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    {memberOrganizations.concurrent.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {memberOrganizations.concurrent.map((org) => (
+                          <span key={org} className="px-2 py-1 text-xs rounded border bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                            {org}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rank">직급</Label>
+                    <SimpleDropdown
+                        options={ranks}
+                      value={editedEmployee?.rank || ''}
+                      onChange={(value) => handleInputChange('rank', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName="bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
+                      menuClassName="bg-white border border-gray-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position">직위</Label>
+                    <SimpleDropdown
+                        options={positions}
+                      value={editedEmployee?.position || ''}
+                      onChange={(value) => handleInputChange('position', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName="bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
+                      menuClassName="bg-white border border-gray-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="job">직책</Label>
+                    <SimpleDropdown
+                      options={jobs}
+                      value={editedEmployee?.job || ''}
+                      onChange={(value) => handleInputChange('job', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName="bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
+                      menuClassName="bg-white border border-gray-200"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="role">직무</Label>
+                    <Input
+                      id="role"
+                      value={editedEmployee?.role || ''}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      placeholder="직무를 입력하세요"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  계정 정보
+                </h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="joinDate">입사일 *</Label>
+                    <div
+                      className="relative"
+                      onPointerDown={() => {
+                        const input = joinDateRef.current
+                        if (!input) return
+                        input.focus()
+                        try {
+                          input.showPicker?.()
+                        } catch {}
+                        input.click()
+                      }}
+                    >
+                      <Input
+                        id="joinDate"
+                        ref={joinDateRef}
+                        type="date"
+                        placeholder="연도-월-일"
+                        value={editedEmployee?.joinDate || ''}
+                        onChange={(e) => handleInputChange('joinDate', e.target.value)}
+                        className={`cursor-pointer ${styles.dateInput}`}
+                      />
+                      <button
+                        type="button"
+                        aria-label="달력 열기"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        // wrapper handles opening
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>관리자 권한</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={editedEmployee?.isAdmin}
+                        onCheckedChange={(checked) => handleInputChange('isAdmin', checked)}
+                        className="cursor-pointer"
+                      />
+                      <span className="text-sm text-gray-600">관리자 권한 부여</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>근무 정책</Label>
+                    <Popover open={workPolicyDropdownOpen} onOpenChange={(open)=>{ setWorkPolicyDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={policyTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                      <Button
+                            ref={policyButtonRef}
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
+                                ? (workPolicies.find(p => p.id === (editedEmployee?.workPolicies?.[0] ?? ''))?.label ?? '근무 정책을 선택하세요')
+                            : '근무 정책을 선택하세요'
+                          }
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: policyContentWidth, minWidth: policyContentWidth, maxWidth: policyContentWidth }}>
+                          {workPolicies.map((policy) => (
+                            <div
+                              key={policy.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleWorkPolicyToggle(policy.id)}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{policy.label}</div>
+                                <div className="text-sm text-gray-500">{policy.description}</div>
+                              </div>
+                            </div>
+                          ))}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {canResetPassword && (
+                    <div className="space-y-2">
+                      <Label>임시 비밀번호 재설정</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={tempPassword}
+                          placeholder="임시 비밀번호가 여기에 표시됩니다"
+                          readOnly
+                        />
+                        <Button
+                          onClick={handleGeneratePassword}
+                          disabled={isGeneratingPassword}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {isGeneratingPassword ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          onClick={handleCopyPassword}
+                          disabled={!tempPassword}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        생성된 임시 비밀번호는 구성원에게 전달해주세요.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+            <div className="flex justify-between pt-6 border-t">
             <div className="flex gap-2">
-              <Button variant="outline" onClick={onClose}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로가기
-              </Button>
               {canDelete && (
                 <Button variant="destructive" onClick={handleDelete}>
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -364,12 +647,11 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 </Button>
               )}
             </div>
-            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
               저장하기
             </Button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
   )
-} 
+}

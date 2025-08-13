@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { 
   Search, 
   ChevronRight, 
   ChevronDown, 
   Plus,
-  Building2
+  Building2,
+  ArrowLeft,
+  X
 } from "lucide-react"
 import { toast } from 'sonner'
 import AddOrganizationModal from './AddOrganizationModal'
@@ -40,81 +42,22 @@ interface OrganizationSettingsModalProps {
 export default function OrganizationSettingsModal({ isOpen, onClose }: OrganizationSettingsModalProps) {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [expandedOrgs, setExpandedOrgs] = useState<Set<string>>(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
 
   useEffect(() => {
-    const sampleOrgs: Organization[] = [
-      {
-        id: "1",
-        name: "CEE",
-        members: [
-          { id: "1", name: "비니비니", role: "CEO", email: "binibini@hermesai.com", phone: "010-1234-5678" },
-          { id: "2", name: "이혜빈", role: "CTO", email: "lee.hb@company.com", phone: "010-2345-6789" },
-          { id: "3", name: "조석근", role: "Manager", email: "jo.sg@company.com", phone: "010-3456-7890" },
-          { id: "4", name: "박준범", role: "Senior Engineer", email: "park.jb@company.com", phone: "010-4567-8901" }
-        ],
-        leader: { id: "1", name: "비니비니", role: "CEO", email: "binibini@hermesai.com", phone: "010-1234-5678" },
-        children: [
-          {
-            id: "2",
-            name: "Management",
-            parentId: "1",
-            members: [
-              { id: "5", name: "김철수", role: "Manager", email: "kim.cs@company.com", phone: "010-5678-9012" },
-              { id: "6", name: "이영희", role: "Senior Manager", email: "lee.yh@company.com", phone: "010-6789-0123" }
-            ],
-            leader: { id: "5", name: "김철수", role: "Manager", email: "kim.cs@company.com", phone: "010-5678-9012" },
-            children: [
-              {
-                id: "3",
-                name: "Application 2",
-                parentId: "2",
-                members: [
-                  { id: "7", name: "박준범", role: "Senior Engineer", email: "park.jb@company.com", phone: "010-7890-1234" },
-                  { id: "8", name: "이석진", role: "Senior Engineer", email: "lee.sj@company.com", phone: "010-8901-2345" }
-                ],
-                leader: { id: "7", name: "박준범", role: "Senior Engineer", email: "park.jb@company.com", phone: "010-7890-1234" },
-                children: [
-                  {
-                    id: "4",
-                    name: "Dev - Team 1",
-                    parentId: "3",
-                    members: [
-                      { id: "9", name: "정수민", role: "Engineer", email: "jung.sm@company.com", phone: "010-9012-3456" },
-                      { id: "10", name: "김미영", role: "Engineer", email: "kim.my@company.com", phone: "010-0123-4567" }
-                    ],
-                    leader: { id: "9", name: "정수민", role: "Engineer", email: "jung.sm@company.com", phone: "010-9012-3456" }
-                  },
-                  {
-                    id: "5",
-                    name: "Dev - Team 2",
-                    parentId: "3",
-                    members: [
-                      { id: "11", name: "박지성", role: "Engineer", email: "park.js@company.com", phone: "010-1234-5678" },
-                      { id: "12", name: "이동욱", role: "Engineer", email: "lee.dw@company.com", phone: "010-2345-6789" }
-                    ],
-                    leader: { id: "11", name: "박지성", role: "Engineer", email: "park.js@company.com", phone: "010-1234-5678" }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            id: "6",
-            name: "Application 1",
-            parentId: "1",
-            members: [
-              { id: "13", name: "최민수", role: "Senior Engineer", email: "choi.ms@company.com", phone: "010-3456-7890" },
-              { id: "14", name: "김태영", role: "Engineer", email: "kim.ty@company.com", phone: "010-4567-8901" }
-            ],
-            leader: { id: "13", name: "최민수", role: "Senior Engineer", email: "choi.ms@company.com", phone: "010-3456-7890" }
-          }
-        ]
+    const load = async () => {
+      try {
+        const res = await fetch('/organizations.json')
+        const data = await res.json()
+        setOrganizations(data as Organization[])
+      } catch (e) {
+        setOrganizations([])
       }
-    ]
-    setOrganizations(sampleOrgs)
+    }
+    load()
   }, [])
 
   const toggleExpanded = (orgId: string) => {
@@ -143,20 +86,93 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
   }
 
   const handleOrgSave = (org: Organization) => {
+
+    const removeById = (orgs: Organization[], targetId: string): { tree: Organization[]; removed?: Organization } => {
+      let removed: Organization | undefined
+      const tree = orgs
+        .map(o => {
+          if (o.id === targetId) {
+            removed = { ...o }
+            return null
+          }
+          if (o.children && o.children.length > 0) {
+            const res = removeById(o.children, targetId)
+            if (res.removed) removed = res.removed
+            return { ...o, children: res.tree }
+          }
+          return o
+        })
+        .filter(Boolean) as Organization[]
+      return { tree, removed }
+    }
+
+
+    const insertUnderParent = (orgs: Organization[], parentId: string, node: Organization): Organization[] => {
+      return orgs.map(o => {
+        if (o.id === parentId) {
+          const children = o.children ? [...o.children, node] : [node]
+          return { ...o, children }
+        }
+        if (o.children && o.children.length > 0) {
+          return { ...o, children: insertUnderParent(o.children, parentId, node) }
+        }
+        return o
+      })
+    }
+
     if (editingOrg) {
+      const parentChanged = (editingOrg.parentId || '') !== (org.parentId || '')
+      if (parentChanged) {
+        setOrganizations(prev => {
+          const { tree, removed } = removeById(prev, org.id)
+          const node: Organization = {
+            ...(removed || org),
+            name: org.name,
+            parentId: org.parentId,
+            leader: org.leader,
+            members: org.members,
+            children: removed?.children || org.children || []
+          }
+          if (org.parentId) {
+            return insertUnderParent(tree, org.parentId, node)
+          }
+          return [...tree, node]
+        })
+      } else {
+        const update = (orgs: Organization[]): Organization[] =>
+          orgs.map(o => o.id === org.id
+            ? { ...o, name: org.name, parentId: org.parentId, leader: org.leader, members: org.members }
+            : { ...o, children: o.children ? update(o.children) : o.children }
+          )
+        setOrganizations(prev => update(prev))
+      }
       toast.success('조직이 성공적으로 수정되었습니다.')
     } else {
+      setOrganizations(prev => {
+        const node: Organization = { ...org, children: org.children || [] }
+        if (org.parentId) {
+          return insertUnderParent(prev, org.parentId, node)
+        }
+        return [...prev, node]
+      })
       toast.success('조직이 성공적으로 추가되었습니다.')
     }
     handleAddModalClose()
+  }
+
+  const handleOrgDelete = (id: string) => {
+    const remove = (orgs: Organization[]): Organization[] =>
+      orgs
+        .filter(o => o.id !== id)
+        .map(o => ({ ...o, children: o.children ? remove(o.children) : o.children }))
+    setOrganizations(prev => remove(prev))
+    toast.success('조직이 삭제되었습니다.')
   }
 
   const renderOrgTree = (orgs: Organization[], level = 0) => {
     return orgs.map(org => {
       const isExpanded = expandedOrgs.has(org.id)
       const hasChildren = org.children && org.children.length > 0
-      const memberCount = org.members.length
-
       return (
         <div key={org.id}>
           <div 
@@ -172,7 +188,7 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
                     e.stopPropagation()
                     toggleExpanded(org.id)
                   }}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  className="p-1 hover:bg-gray-200 rounded cursor-pointer"
                 >
                   {isExpanded ? (
                     <ChevronDown className="w-4 h-4" />
@@ -184,9 +200,6 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
               <Building2 className="w-4 h-4 text-gray-500" />
               <span className="font-medium">{org.name}</span>
             </div>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {memberCount}
-            </Badge>
           </div>
           {hasChildren && isExpanded && (
             <div className="border-l border-gray-200 ml-3">
@@ -198,18 +211,71 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
     })
   }
 
-  const filteredOrgs = organizations.filter(org => 
-    org.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchTerm])
+
+  const filteredOrgs = useMemo(() => {
+    if (!debouncedSearch) return organizations
+    const term = debouncedSearch.toLowerCase()
+    return organizations.filter(org => org.name.toLowerCase().includes(term))
+  }, [organizations, debouncedSearch])
+
+  const allOrgIds = useMemo(() => {
+    const all = new Set<string>()
+    const collectIds = (orgs: Organization[]) => {
+      orgs.forEach(o => {
+        all.add(o.id)
+        if (o.children && o.children.length > 0) collectIds(o.children)
+      })
+    }
+    collectIds(organizations)
+    return all
+  }, [organizations])
+
+  const expandAll = () => {
+    const collectIds = (orgs: Organization[], acc: Set<string>) => {
+      orgs.forEach(o => {
+        acc.add(o.id)
+        if (o.children && o.children.length > 0) collectIds(o.children, acc)
+      })
+    }
+    const all = new Set<string>()
+    collectIds(organizations, all)
+    setExpandedOrgs(all)
+  }
+
+  const collapseAll = () => setExpandedOrgs(new Set())
+
+  const isAllExpanded = allOrgIds.size > 0 && expandedOrgs.size >= allOrgIds.size
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent data-hide-default-close className={`max-w-2xl max-h-[80vh] overflow-y-auto ${modalStyles.membersModal}`}>
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900">
-              조직도 설정
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={onClose}
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                조직도 설정
+              </DialogTitle>
+              <button
+                type="button"
+                className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={onClose}
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -223,6 +289,17 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
               />
             </div>
 
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => (isAllExpanded ? collapseAll() : expandAll())}
+                className="cursor-pointer"
+              >
+                {isAllExpanded ? '모두 접기' : '모두 펼치기'}
+              </Button>
+            </div>
+
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               {renderOrgTree(filteredOrgs)}
             </div>
@@ -230,7 +307,7 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
             <div className="flex justify-center pt-4">
               <Button 
                 onClick={handleAddOrg}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 조직 추가
@@ -245,6 +322,8 @@ export default function OrganizationSettingsModal({ isOpen, onClose }: Organizat
         onClose={handleAddModalClose}
         organization={editingOrg}
         onSave={handleOrgSave}
+        onDelete={handleOrgDelete}
+        organizations={organizations}
       />
     </>
   )

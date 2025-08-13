@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import styles from './date-input.module.css';
+import modalStyles from './members-modal.module.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SimpleDropdown from "./SimpleDropdown";
+import { useOrganizationsList, useTitlesFromMembers } from '@/hooks/use-members-derived-data';
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,9 +26,18 @@ import {
   RefreshCw,
   ArrowLeft,
   Save,
-  X
+  X,
+  Clock,
+  ChevronDown,
+  Check
 } from "lucide-react";
 import { toast } from 'sonner';
+import { cn } from "@/lib/utils";
+
+interface MemberOrganizations {
+  main: string | null;
+  concurrent: string[];
+}
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -39,119 +52,255 @@ const initialFormData = {
   phone: '',
   address: '',
   joinDate: '',
-  organization: '',
+  organizations: [] as string[],
   position: '',
   role: '',
   job: '',
   rank: '',
   tempPassword: '',
-  isAdmin: false
+  isAdmin: false,
+  workPolicies: [] as string[]
 };
 
-const organizations = [
-  '개발팀', '디자인팀', '마케팅팀', '인사팀', '기획팀', '영업팀'
-];
+// options는 실데이터에서 가져옵니다
 
-const positions = [
-  '사원', '대리', '과장', '차장', '부장', '팀장', '이사', '대표'
-];
-
-const roles = [
-  '개발자', '디자이너', '마케터', '기획자', '영업원', '인사담당자', '관리자'
-];
-
-const jobs = [
-  '프론트엔드 개발', '백엔드 개발', 'UI/UX 디자인', '디지털 마케팅', 
-  '제품 기획', '영업 관리', '인사 관리', '시스템 관리'
-];
-
-const ranks = [
-  '사원', '대리', '과장', '차장', '부장', '팀장', '이사', '대표'
+const workPolicies = [
+  { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무' },
+  { id: 'flexible', label: '유연근무', description: '코어타임 내 자유로운 출퇴근' },
+  { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무' },
+  { id: 'remote', label: '재택근무', description: '원격 근무 가능' },
+  { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무' }
 ];
 
 export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddMemberModalProps) {
   const [formData, setFormData] = useState(initialFormData);
+  const joinDateRef = useRef<HTMLInputElement | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validFields, setValidFields] = useState<Record<string, boolean>>({});
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
+  const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false);
+  const [concurrentDropdownOpen, setConcurrentDropdownOpen] = useState(false);
+  const orgTriggerRef = useRef<HTMLDivElement | null>(null);
+  const orgButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [orgContentWidth, setOrgContentWidth] = useState<number | undefined>(undefined);
+  const policyTriggerRef = useRef<HTMLDivElement | null>(null);
+  const policyButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [policyContentWidth, setPolicyContentWidth] = useState<number | undefined>(undefined);
+  const concurrentTriggerRef = useRef<HTMLDivElement | null>(null);
+  const concurrentButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [concurrentContentWidth, setConcurrentContentWidth] = useState<number | undefined>(undefined);
+  const [memberOrganizations, setMemberOrganizations] = useState<MemberOrganizations>({ main: null, concurrent: [] });
+  const [submitted, setSubmitted] = useState(false);
+  const { organizations, loading: orgLoading, error: orgError } = useOrganizationsList();
+  const { ranks, positions, jobs, roles, loading: titleLoading, error: titleError } = useTitlesFromMembers();
 
   useEffect(() => {
     if (isOpen) {
       setFormData({ ...initialFormData });
       setErrors({});
       setValidFields({});
+      setTouched({});
+      setSubmitted(false);
       setShowSaveConfirm(false);
       setShowBackConfirm(false);
+      setWorkPolicyDropdownOpen(false);
+      setOrganizationDropdownOpen(false);
+      setConcurrentDropdownOpen(false);
+      setMemberOrganizations({ main: null, concurrent: [] });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      
+      if (workPolicyDropdownOpen && !target.closest('.work-policy-dropdown')) {
+        setWorkPolicyDropdownOpen(false);
+      }
+      
+      if (organizationDropdownOpen && !target.closest('.organization-dropdown')) {
+        setOrganizationDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [workPolicyDropdownOpen, organizationDropdownOpen]);
+
+  const recomputePopoverWidths = () => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined;
+      const rect = el.getBoundingClientRect();
+      return rect.width || el.offsetWidth;
+    };
+    const w1 = readWidth(orgButtonRef.current) ?? readWidth(orgTriggerRef.current as any);
+    if (w1) setOrgContentWidth(w1);
+    const w2 = readWidth(policyButtonRef.current) ?? readWidth(policyTriggerRef.current as any);
+    if (w2) setPolicyContentWidth(w2);
+    const w3 = readWidth(concurrentButtonRef.current) ?? readWidth(concurrentTriggerRef.current as any);
+    if (w3) setConcurrentContentWidth(w3);
+  };
+
+  useLayoutEffect(() => {
+    const readWidth = (el?: HTMLElement | null) => {
+      if (!el) return undefined;
+      const rect = el.getBoundingClientRect();
+      return rect.width || el.offsetWidth;
+    };
+    const update = () => recomputePopoverWidths();
+    update();
+    const ro = new ResizeObserver(update);
+    if (orgTriggerRef.current) ro.observe(orgTriggerRef.current);
+    if (policyTriggerRef.current) ro.observe(policyTriggerRef.current);
+    if (concurrentTriggerRef.current) ro.observe(concurrentTriggerRef.current);
+    return () => ro.disconnect();
+  }, [orgContentWidth, policyContentWidth]);
+
+  const updateOrganizationsFromMemberOrgs = (next: MemberOrganizations) => {
+    const legacy = [next.main, ...next.concurrent].filter(Boolean) as string[];
+    setFormData(prev => ({ ...prev, organizations: legacy }));
+    setTimeout(() => {
+      validateField('organizations', legacy as unknown as string);
+    }, 0);
+  };
+
+  const handleSelectMainOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      const next: MemberOrganizations = {
+        main: orgName,
+        concurrent: (prev.concurrent || []).filter(o => o !== orgName),
+      };
+      updateOrganizationsFromMemberOrgs(next);
+      return next;
+    });
+    setOrganizationDropdownOpen(false);
+  };
+
+  const handleToggleConcurrentOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      if (prev.main === orgName) return prev;
+      const isSelected = prev.concurrent.includes(orgName);
+      const next: MemberOrganizations = {
+        main: prev.main,
+        concurrent: isSelected ? prev.concurrent.filter(o => o !== orgName) : [...prev.concurrent, orgName],
+      };
+      updateOrganizationsFromMemberOrgs(next);
+      return next;
+    });
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    if (typeof value === 'string' && (!value || value.trim() === '')) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-      setValidFields(prev => ({ ...prev, [field]: false }));
-      return;
-    }
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-    
-    if (field === 'joinDate' && typeof value === 'string' && value && value !== '') {
-      setValidFields(prev => ({ ...prev, [field]: true }));
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+    if (typeof value === 'string') setValidFields(prev => ({ ...prev, [field]: value.trim().length > 0 }));
   };
 
-  const validateField = (field: string, value: string) => {
+  const handleWorkPolicyToggle = (policyId: string) => {
+    setFormData(prev => {
+      const currentPolicies = prev.workPolicies || [];
+      const currentSelected = currentPolicies[0] ?? null;
+      const newPolicies = currentSelected === policyId ? [] : [policyId];
+      
+      setTimeout(() => {
+        validateField('workPolicies', newPolicies);
+      }, 0);
+      
+      return {
+        ...prev,
+        workPolicies: newPolicies
+      };
+    });
+    setWorkPolicyDropdownOpen(false);
+  };
+
+  const handleOrganizationToggle = (orgName: string) => {
+    setFormData(prev => {
+      const currentOrgs = prev.organizations || [];
+      const isSelected = currentOrgs.includes(orgName);
+      
+      let newOrgs;
+      if (isSelected) {
+        newOrgs = currentOrgs.filter(org => org !== orgName);
+      } else {
+        newOrgs = [...currentOrgs, orgName];
+      }
+      
+      setTimeout(() => {
+        validateField('organizations', '');
+      }, 0);
+      
+      return {
+        ...prev,
+        organizations: newOrgs
+      };
+    });
+  };
+
+  const validateField = (field: string, value: string | string[]) => {
     let isValid = false;
     let errorMessage = '';
 
     switch (field) {
       case 'name':
-        isValid = value.trim().length >= 2;
+        isValid = typeof value === 'string' && value.trim().length >= 2;
         errorMessage = isValid ? '' : '이름을 2자 이상 입력해주세요.';
         break;
       case 'email':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        isValid = emailRegex.test(value);
+        isValid = typeof value === 'string' && emailRegex.test(value);
         errorMessage = isValid ? '' : '올바른 이메일 형식을 입력해주세요.';
         break;
-      case 'organization':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '조직을 선택해주세요.';
+      case 'organizations':
+        isValid = Array.isArray(formData.organizations) && formData.organizations.length > 0;
+        errorMessage = isValid ? '' : '최소 1개 이상의 조직을 선택해주세요.';
         break;
       case 'position':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '직급을 선택해주세요.';
-        break;
+      case 'rank':
       case 'role':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '역할을 선택해주세요.';
-        break;
       case 'job':
-        isValid = value.trim().length > 0;
-        errorMessage = isValid ? '' : '업무를 선택해주세요.';
+        isValid = true;
+        errorMessage = '';
         break;
       case 'joinDate':
-        isValid = value.trim().length > 0;
+        isValid = typeof value === 'string' && value.trim().length > 0;
         errorMessage = isValid ? '' : '입사일을 선택해주세요.';
         break;
+      case 'workPolicies': {
+        const selected = Array.isArray(value) ? value : formData.workPolicies;
+        isValid = Array.isArray(selected) && selected.length > 0;
+        errorMessage = isValid ? '' : '필수 입력 항목입니다.';
+        break;
+      }
       default:
         isValid = true;
         errorMessage = '';
     }
 
     setValidFields(prev => ({ ...prev, [field]: isValid }));
+    if (field === 'workPolicies') {
+      if (isValid) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      } else if (submitted) {
+        setErrors(prev => ({ ...prev, [field]: errorMessage }));
+      }
+    } else {
     setErrors(prev => ({ ...prev, [field]: errorMessage }));
+    }
     
     return isValid;
   };
 
   const handleFieldBlur = (field: string, value: string) => {
-    validateField(field, value);
+    setTouched(prev => ({ ...prev, [field]: true }));
+    if (submitted) {
+      validateField(field, value);
+    }
   };
 
   const generatePassword = () => {
@@ -172,7 +321,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const validateForm = () => {
-    const requiredFields = ['name', 'email', 'organization', 'position', 'role', 'job', 'joinDate'];
+    const requiredFields = ['name', 'email', 'organizations', 'joinDate'];
     let isValid = true;
     const newErrors: Record<string, string> = {};
 
@@ -180,15 +329,21 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       const value = formData[field as keyof typeof formData] as string;
       if (!validateField(field, value)) {
         isValid = false;
-        newErrors[field] = errors[field] || '필수 항목입니다.';
+        if (submitted) newErrors[field] = '필수 항목입니다.';
       }
     });
+
+    if (!formData.workPolicies || formData.workPolicies.length === 0) {
+      isValid = false;
+      if (submitted) newErrors['workPolicies'] = '필수 입력 항목입니다.';
+    }
 
     setErrors(newErrors);
     return isValid;
   };
 
   const handleSave = () => {
+    setSubmitted(true);
     if (validateForm()) {
       setShowSaveConfirm(true);
     } else {
@@ -197,13 +352,18 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   };
 
   const hasData = () => {
-    return Object.values(formData).some(value => 
-      typeof value === 'string' ? value.trim() !== '' : value !== false
-    );
+    const { name, email, joinDate, organizations, isAdmin, workPolicies, ...rest } = formData as any
+    const textChanged = [name, email, joinDate].some((v) => typeof v === 'string' && v.trim() !== '')
+    const orgChanged = Array.isArray(organizations) && organizations.length > 0
+    const policiesChanged = Array.isArray(workPolicies) && workPolicies.length > 0
+    const othersChanged = Object.values(rest).some((v) => typeof v === 'string' && v.trim() !== '')
+    return textChanged || orgChanged || policiesChanged || othersChanged
   };
 
+  const [initialSnapshot] = useState(JSON.stringify(initialFormData))
   const handleClose = () => {
-    if (hasData()) {
+    const currentSnapshot = JSON.stringify(formData)
+    if (currentSnapshot !== initialSnapshot && hasData()) {
       setShowBackConfirm(true);
     } else {
       onClose();
@@ -231,23 +391,40 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent data-hide-default-close className={`max-w-[75vw] max-h-[95vh] overflow-y-auto ${modalStyles.membersModal}`}>
           <DialogHeader>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={onBack || handleClose}
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
             <DialogTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
               구성원 추가
             </DialogTitle>
+              <button
+                type="button"
+                className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={handleClose}
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* 기본 정보 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <User className="w-4 h-4" />
                   기본 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">이름 *</Label>
                     <Input
@@ -258,7 +435,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       placeholder="이름을 입력하세요"
                       className={errors.name ? 'border-red-500' : ''}
                     />
-                    {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
+                    {touched.name && errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -272,7 +449,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       placeholder="이메일을 입력하세요"
                       className={errors.email ? 'border-red-500' : ''}
                     />
-                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                    {touched.email && errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -297,97 +474,200 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                 </div>
               </CardContent>
             </Card>
-
-            {/* 조직 정보 */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   조직 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="organization">조직 *</Label>
-                    <Select value={formData.organization} onValueChange={(value) => handleInputChange('organization', value)}>
-                      <SelectTrigger className={errors.organization ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="조직을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {organizations.map((org) => (
-                          <SelectItem key={org} value={org}>{org}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.organization && <p className="text-sm text-red-500">{errors.organization}</p>}
+                    <Label className="font-semibold">메인 조직 *</Label>
+                    <Popover open={organizationDropdownOpen} onOpenChange={(open)=>{ setOrganizationDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={orgTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                      <Button
+                            ref={orgButtonRef}
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.organizations ? 'border-red-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-2">
+                              {memberOrganizations.main ? memberOrganizations.main : '메인 조직을 선택하세요'}
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: orgContentWidth, minWidth: orgContentWidth, maxWidth: orgContentWidth }}>
+                        {orgLoading && (
+                          <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>
+                        )}
+                        {orgError && !orgLoading && (
+                          <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>
+                        )}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          const selected = memberOrganizations.main === org;
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleSelectMainOrg(org)}>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{org}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    {touched.organizations && errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="position">직급 *</Label>
-                    <Select value={formData.position} onValueChange={(value) => handleInputChange('position', value)}>
-                      <SelectTrigger className={errors.position ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="직급을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {positions.map((pos) => (
-                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="font-semibold">겸직 조직</Label>
+                    <Popover open={concurrentDropdownOpen} onOpenChange={(open)=>{ setConcurrentDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={concurrentTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                          <Button ref={concurrentButtonRef} type="button" variant="outline" className="w-full justify-between">
+                            <div className="truncate">
+                              {memberOrganizations.concurrent.length > 0 ? `${memberOrganizations.concurrent.length}개 선택됨` : '겸직 조직을 선택하세요'}
+                            </div>
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: concurrentContentWidth, minWidth: concurrentContentWidth, maxWidth: concurrentContentWidth }}>
+                        {orgLoading && (
+                          <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>
+                        )}
+                        {orgError && !orgLoading && (
+                          <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>
+                        )}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          if (memberOrganizations.main === org) return null;
+                          const selected = memberOrganizations.concurrent.includes(org);
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                              <div className={`w-4 h-4 border border-gray-300 rounded flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <Check className="w-3 h-3 text-blue-600" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{org}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
+
+                    {memberOrganizations.concurrent.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {memberOrganizations.concurrent.map((org) => (
+                          <span key={org} className="px-2 py-1 text-xs rounded border bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                            {org}
+                          </span>
+                          ))}
+                        </div>
+                      )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rank">직급</Label>
+                    <SimpleDropdown
+                      options={ranks}
+                      value={formData.rank}
+                      onChange={(value) => handleInputChange('rank', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.rank && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
+                    />
+                    {errors.rank && <p className="text-sm text-red-500">{errors.rank}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="position">직위</Label>
+                    <SimpleDropdown
+                      options={positions}
+                      value={formData.position}
+                      onChange={(value) => handleInputChange('position', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.position && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
+                    />
                     {errors.position && <p className="text-sm text-red-500">{errors.position}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="role">역할 *</Label>
-                    <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                      <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="역할을 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role} value={role}>{role}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
+                    <Label htmlFor="job">직책</Label>
+                    <SimpleDropdown
+                      options={jobs}
+                      value={formData.job}
+                      onChange={(value) => handleInputChange('job', value)}
+                      placeholder="선택(선택사항)"
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.job && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
+                    />
+                    {errors.job && <p className="text-sm text-red-500">{errors.job}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="job">업무 *</Label>
-                    <Select value={formData.job} onValueChange={(value) => handleInputChange('job', value)}>
-                      <SelectTrigger className={errors.job ? 'border-red-500' : ''}>
-                        <SelectValue placeholder="업무를 선택하세요" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {jobs.map((job) => (
-                          <SelectItem key={job} value={job}>{job}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.job && <p className="text-sm text-red-500">{errors.job}</p>}
+                    <Label htmlFor="role">직무</Label>
+                    <Input
+                      id="role"
+                      value={formData.role}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      placeholder="직무를 입력하세요"
+                      className={errors.role ? 'border-red-500' : ''}
+                    />
+                    {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 계정 정보 */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-5">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   계정 정보
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="joinDate">입사일 *</Label>
-                    <Input
-                      id="joinDate"
-                      type="date"
-                      value={formData.joinDate}
-                      onChange={(e) => handleInputChange('joinDate', e.target.value)}
-                      onBlur={(e) => handleFieldBlur('joinDate', e.target.value)}
-                      className={errors.joinDate ? 'border-red-500' : ''}
-                    />
-                    {errors.joinDate && <p className="text-sm text-red-500">{errors.joinDate}</p>}
+                    <div
+                      className="relative"
+                      onPointerDown={() => {
+                        const input = joinDateRef.current
+                        if (!input) return
+                        input.focus()
+                        try {
+                          input.showPicker?.()
+                        } catch {}
+                        // Fallback for browsers requiring a native click
+                        input.click()
+                      }}
+                    >
+                      <Input
+                        id="joinDate"
+                        ref={joinDateRef}
+                        type="date"
+                        placeholder="연도-월-일"
+                        value={formData.joinDate}
+                        onChange={(e) => handleInputChange('joinDate', e.target.value)}
+                        onBlur={(e) => handleFieldBlur('joinDate', e.target.value)}
+                        className={`${errors.joinDate ? 'border-red-500' : ''} cursor-pointer ${styles.dateInput}`}
+                      />
+                      <button
+                        type="button"
+                        aria-label="달력 열기"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        // Let the wrapper handle opening via event bubbling
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {touched.joinDate && errors.joinDate && <p className="text-sm text-red-500">{errors.joinDate}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -396,13 +676,53 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       <Switch
                         checked={formData.isAdmin}
                         onCheckedChange={(checked) => handleInputChange('isAdmin', checked)}
+                        className="cursor-pointer"
                       />
                       <span className="text-sm text-gray-600">관리자 권한 부여</span>
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>근무 정책 *</Label>
+                    <Popover open={workPolicyDropdownOpen} onOpenChange={(open)=>{ setWorkPolicyDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={policyTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                      <Button
+                            ref={policyButtonRef}
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.workPolicies ? 'border-red-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {formData.workPolicies?.length > 0 
+                                ? (workPolicies.find(p => p.id === formData.workPolicies[0])?.label ?? '근무 정책을 선택하세요')
+                            : '근무 정책을 선택하세요'
+                          }
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: policyContentWidth, minWidth: policyContentWidth, maxWidth: policyContentWidth }}>
+                          {workPolicies.map((policy) => (
+                            <div
+                              key={policy.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleWorkPolicyToggle(policy.id)}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{policy.label}</div>
+                                <div className="text-sm text-gray-500">{policy.description}</div>
+                              </div>
+                            </div>
+                          ))}
+                      </PopoverContent>
+                    </Popover>
+                    
+                    
+                  </div>
                 </div>
 
-                {/* 임시 비밀번호 */}
                 <div className="mt-4 space-y-2">
                   <Label>임시 비밀번호</Label>
                   <div className="flex gap-2">
@@ -438,19 +758,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
             </Card>
           </div>
 
-          {/* 버튼 */}
-          <div className="flex justify-end gap-2 pt-4">
-            {onBack && (
-              <Button variant="outline" onClick={onBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                뒤로
-              </Button>
-            )}
-            <Button variant="outline" onClick={handleClose}>
-              <X className="w-4 h-4 mr-2" />
-              취소
-            </Button>
-            <Button onClick={handleSave}>
+          <div className="flex justify-end gap-2 pt-6 border-t">
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
               <Save className="w-4 h-4 mr-2" />
               저장
             </Button>
@@ -458,7 +767,6 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         </DialogContent>
       </Dialog>
 
-      {/* 저장 확인 모달 */}
       <Dialog open={showSaveConfirm} onOpenChange={setShowSaveConfirm}>
         <DialogContent>
           <DialogHeader>
@@ -476,14 +784,13 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         </DialogContent>
       </Dialog>
 
-      {/* 뒤로가기 확인 모달 */}
       <Dialog open={showBackConfirm} onOpenChange={setShowBackConfirm}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>변경사항 저장</DialogTitle>
           </DialogHeader>
           <p>입력한 정보가 저장되지 않습니다. 정말 나가시겠습니까?</p>
-          <div className="flex justify-end gap-2">
+           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleBackCancel}>
               취소
             </Button>

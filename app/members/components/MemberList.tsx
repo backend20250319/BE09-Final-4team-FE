@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, Phone, Calendar, Building2, Crown } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Building2 } from "lucide-react";
 import ProfileModal from './ProfileModal';
 
 interface Employee {
@@ -15,7 +15,8 @@ interface Employee {
   phone?: string;
   address?: string;
   joinDate: string;
-  organization: string;
+  organization?: string;
+  organizations?: string[];
   position: string;
   role: string;
   job: string;
@@ -173,17 +174,11 @@ export default function MemberList({
                   {employee.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{employee.name}</h3>
-                  {employee.isAdmin && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      <Crown className="w-3 h-3 mr-1" />
-                      관리자
-                    </Badge>
-                  )}
+                  <h3 className="font-semibold text-gray-900 truncate">{employee.name}</h3>
                 </div>
-                <p className="text-sm text-gray-600">{employee.position}</p>
+                <p className="text-sm text-gray-600 truncate">{employee.position}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-1">
@@ -228,7 +223,6 @@ export default function MemberList({
 
   return (
     <div className="space-y-6">
-      {/* 검색바 */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
         <Input
@@ -239,14 +233,12 @@ export default function MemberList({
         />
       </div>
 
-      {/* 직원 리스트 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayedEmployees.map(employee => (
           <EmployeeCard key={employee.id} employee={employee} />
         ))}
       </div>
       
-      {/* 로딩 인디케이터 */}
       {displayedCount < employees.length && (
         <div ref={loadingRef} className="flex justify-center py-4">
           {isLoading ? (
@@ -273,7 +265,6 @@ export default function MemberList({
         </div>
       )}
 
-      {/* 프로필 모달 */}
       <ProfileModal
         isOpen={showProfileModal}
         onClose={handleProfileModalClose}

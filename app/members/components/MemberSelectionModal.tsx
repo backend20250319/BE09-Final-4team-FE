@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { 
   Search, 
   User,
-  ArrowLeft
+  ArrowLeft,
+  X
 } from "lucide-react"
 
 interface Member {
@@ -24,16 +26,19 @@ interface MemberSelectionModalProps {
   onClose: () => void
   onSelect: (members: Member[]) => void
   selectedMembers: Member[]
+  excludeMemberIds?: string[]
 }
 
 export default function MemberSelectionModal({ 
   isOpen, 
   onClose, 
   onSelect, 
-  selectedMembers 
+  selectedMembers,
+  excludeMemberIds = []
 }: MemberSelectionModalProps) {
   const [members, setMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(
     new Set(selectedMembers.map(member => member.id))
   )
@@ -73,20 +78,53 @@ export default function MemberSelectionModal({
     onSelect(selectedMembersList)
   }
 
-  const filteredMembers = members.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 300)
+    return () => clearTimeout(id)
+  }, [searchTerm])
+
+  useEffect(() => {
+    setSelectedMemberIds(new Set(selectedMembers.map(m => m.id)))
+  }, [selectedMembers, isOpen])
+
+  const filteredMembers = members.filter(member => {
+    if (excludeMemberIds.includes(member.id)) return false
+    
+    if (!debouncedSearch) return true
+    const term = debouncedSearch.toLowerCase()
+    return (
+      member.name.toLowerCase().includes(term) ||
+      member.role.toLowerCase().includes(term)
+    )
+  })
 
   const hasSelectedMembers = selectedMemberIds.size > 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent data-hide-default-close className={`max-w-2xl max-h-[80vh] overflow-y-auto ${modalStyles.membersModal}`}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-900">
-            조직원 선택
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="뒤로가기"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              조직원 선택
+            </DialogTitle>
+            <button
+              type="button"
+              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -139,7 +177,7 @@ export default function MemberSelectionModal({
             <Button 
               onClick={handleSave}
               disabled={!hasSelectedMembers}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
             >
               저장하기
             </Button>

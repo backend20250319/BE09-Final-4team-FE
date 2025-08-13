@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import {
   Bell,
@@ -17,6 +17,7 @@ import {
   CalendarDays,
   Gift,
   Star,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,13 +34,18 @@ import { GradientButton } from "@/components/ui/gradient-button";
 import { colors, typography } from "@/lib/design-tokens";
 import VacationModal from "./vacationmodal";
 import StyledPaging from "@/components/paging/styled-paging";
+import CalendarComponent from "./components/calendar";
+import { format } from "date-fns";
 
 export default function VacationPage() {
   const [selectedPeriod, setSelectedPeriod] = useState("2025.10~2025.12");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedVacationType, setSelectedVacationType] = useState("기본 연차");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef(null);
 
   // 1년을 3개월씩 나눈 기간들
   const periods = [
@@ -323,11 +329,23 @@ export default function VacationPage() {
     setCurrentPage(1);
   }, [startDate, endDate, selectedPeriod]);
 
+  // 외부 클릭 시 캘린더 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target)) {
+        setIsCalendarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const vacationStats = [
     {
       title: "기본 연차",
       count: 12,
-      unit: "일",
+      unit: "일 남음",
       description: "3일 사용됨",
       icon: CalendarDays,
       color: colors.primary.blue,
@@ -337,7 +355,7 @@ export default function VacationPage() {
     {
       title: "보상 연차",
       count: 4,
-      unit: "일",
+      unit: "일 남음",
       description: "1일 사용됨",
       icon: Gift,
       color: colors.status.success.gradient,
@@ -347,7 +365,7 @@ export default function VacationPage() {
     {
       title: "특별 연차",
       count: 1,
-      unit: "일",
+      unit: "일 남음",
       description: "0일 사용됨",
       icon: Star,
       color: colors.status.warning.gradient,
@@ -367,7 +385,14 @@ export default function VacationPage() {
       {/* Vacation Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         {vacationStats.map((stat, index) => (
-          <GlassCard key={index} className="p-6">
+          <GlassCard
+            key={index}
+            className="p-6 cursor-pointer hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+            onClick={() => {
+              setSelectedVacationType(stat.title);
+              setIsModalOpen(true);
+            }}
+          >
             <div className="flex items-center justify-between mb-4">
               <div
                 className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}
@@ -402,39 +427,60 @@ export default function VacationPage() {
         <div className="flex items-center justify-between mb-6">
           <h3 className={`${typography.h2} text-gray-800`}>휴가 기록</h3>
           <div className="flex items-center gap-4">
-            {/* 날짜 필터링 입력 */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm"
-                placeholder="시작일"
-              />
-              <span className="text-gray-500">~</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl text-sm"
-                placeholder="종료일"
-              />
+            {/* 날짜 필터링 - MUI Desktop variant */}
+            <div className="relative" ref={calendarRef}>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                  className="px-4 py-2 bg-card backdrop-blur-sm border-border rounded-lg text-sm flex items-center gap-2 text-card-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Calendar className="w-4 h-4" />
+                  {startDate && endDate
+                    ? `${startDate} ~ ${endDate}`
+                    : "날짜 범위 선택"}
+                </Button>
+              </div>
+
+              {/* Desktop Calendar Popover */}
+              {isCalendarOpen && (
+                <div className="absolute top-full left-0 mt-2 z-50">
+                  <div className="bg-popover backdrop-blur-sm border border-border rounded-xl shadow-2xl p-4 min-w-[320px]">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-popover-foreground">
+                        날짜 범위 선택
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsCalendarOpen(false)}
+                        className="w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <CalendarComponent
+                      startDate={startDate}
+                      endDate={endDate}
+                      onStartDateChange={(date) =>
+                        setStartDate(date ? format(date, "yyyy-MM-dd") : "")
+                      }
+                      onEndDateChange={(date) =>
+                        setEndDate(date ? format(date, "yyyy-MM-dd") : "")
+                      }
+                      selectedDates={[]}
+                      isFilterMode={true}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger className="w-48 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {periods.map((period) => (
-                  <SelectItem key={period.value} value={period.value}>
-                    {period.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <GradientButton
               variant="primary"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setSelectedVacationType("기본 연차");
+                setIsModalOpen(true);
+              }}
             >
               <Plus className="w-4 h-4 mr-2" />
               휴가 신청
@@ -524,6 +570,7 @@ export default function VacationPage() {
       <VacationModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        defaultVacationType={selectedVacationType}
         onSubmit={(vacationData) => {
           console.log("휴가 신청 데이터:", vacationData);
           // TODO: API 호출 또는 상태 업데이트 로직 추가

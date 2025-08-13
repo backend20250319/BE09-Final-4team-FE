@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
@@ -41,7 +41,8 @@ interface Employee {
   phone?: string
   address?: string
   joinDate: string
-  organization: string
+  organization?: string
+  organizations?: string[]
   position: string
   role: string
   job: string
@@ -568,9 +569,12 @@ export default function MembersPage() {
     const teamCounts: Record<string, number> = {}
     
     employees.forEach(emp => {
-      if (emp.organization) {
-        orgCounts[emp.organization] = (orgCounts[emp.organization] || 0) + 1
-      }
+      const orgList = Array.isArray(emp.organizations) && emp.organizations.length > 0
+        ? emp.organizations
+        : (emp.organization ? [emp.organization] : [])
+      orgList.forEach(orgName => {
+        orgCounts[orgName] = (orgCounts[orgName] || 0) + 1
+      })
       
       if (emp.teams) {
         emp.teams.forEach(team => {
@@ -677,7 +681,10 @@ export default function MembersPage() {
       filtered = filtered.filter(emp => {
         const searchLower = searchTerm.toLowerCase()
         const nameMatch = emp.name.toLowerCase().includes(searchLower)
-        const orgMatch = emp.organization.toLowerCase().includes(searchLower)
+        const orgMatch = (
+          (emp.organization && emp.organization.toLowerCase().includes(searchLower)) ||
+          (Array.isArray(emp.organizations) && emp.organizations.some(o => o.toLowerCase().includes(searchLower)))
+        )
         const teamMatch = emp.teams && emp.teams.some(team => 
           team.toLowerCase().includes(searchLower)
         )
@@ -687,7 +694,10 @@ export default function MembersPage() {
     
     if (selectedOrg) {
       filtered = filtered.filter(emp => {
-        const orgMatch = emp.organization === selectedOrg
+        const orgMatch = (
+          emp.organization === selectedOrg ||
+          (Array.isArray(emp.organizations) && emp.organizations.includes(selectedOrg))
+        )
         const teamMatch = emp.teams && emp.teams.includes(selectedOrg)
         return orgMatch || teamMatch
       })
@@ -737,13 +747,48 @@ export default function MembersPage() {
     })
   }
 
-  const filteredOrgStructure = orgSearchTerm ? 
-    orgStructure.filter(org => 
-      org.name.toLowerCase().includes(orgSearchTerm.toLowerCase()) ||
-      org.children?.some(child => 
-        child.name.toLowerCase().includes(orgSearchTerm.toLowerCase())
-      )
-    ) : orgStructure
+  const filteredOrgStructure = useMemo(() => {
+    if (!orgSearchTerm) return orgStructure
+    const term = orgSearchTerm.toLowerCase()
+
+    const collectExactMatches = (orgs: OrgStructure[], matches: OrgStructure[] = []): OrgStructure[] => {
+      for (const org of orgs) {
+        if (org.name.toLowerCase() === term) matches.push(org)
+        if (org.children) collectExactMatches(org.children, matches)
+      }
+      return matches
+    }
+    
+    const filterTree = (orgs: OrgStructure[]): OrgStructure[] => {
+      const result: OrgStructure[] = []
+      for (const org of orgs) {
+        const selfMatch = org.name.toLowerCase().includes(term)
+        const filteredChildren = org.children ? filterTree(org.children) : undefined
+
+        if (selfMatch) {
+          if (filteredChildren && filteredChildren.length > 0) {
+            result.push({ ...org, isExpanded: true, children: filteredChildren })
+          } else {
+            result.push({ ...org, isExpanded: false, children: undefined })
+          }
+          continue
+        }
+
+        if (filteredChildren && filteredChildren.length > 0) {
+          result.push({ ...org, isExpanded: true, children: filteredChildren })
+        }
+      }
+      return result
+    }
+
+    const exactMatches = collectExactMatches(orgStructure)
+    if (exactMatches.length === 1) {
+      const m = exactMatches[0]
+      return [{ ...m, isExpanded: false, children: undefined }]
+    }
+
+    return filterTree(orgStructure)
+  }, [orgStructure, orgSearchTerm])
 
   useEffect(() => {
     if (orgSearchTerm) {
@@ -797,6 +842,11 @@ export default function MembersPage() {
     setShowAddMemberModal(false)
   }
 
+  const handleAddMemberBack = () => {
+    setShowAddMemberModal(false)
+    setShowSettingsModal(true)
+  }
+
   const handleEmployeeUpdate = (updatedEmployee: Employee) => {
     setEmployees(prev => 
       prev.map(emp => emp.id === updatedEmployee.id ? updatedEmployee : emp)
@@ -832,6 +882,9 @@ export default function MembersPage() {
       const result = await response.json();
 
       if (result.success) {
+        const primaryOrg = Array.isArray(memberData.organizations) && memberData.organizations.length > 0
+          ? memberData.organizations[0]
+          : memberData.organization
         const newMember: Employee = {
           id: result.member.id,
           name: memberData.name,
@@ -839,13 +892,14 @@ export default function MembersPage() {
           phone: memberData.phone || '',
           address: memberData.address || '',
           joinDate: memberData.joinDate,
-          organization: memberData.organization,
+          organization: primaryOrg,
+          organizations: Array.isArray(memberData.organizations) ? memberData.organizations : undefined,
           position: memberData.position,
           role: memberData.role,
           job: memberData.job,
           rank: memberData.rank || '',
           isAdmin: Boolean(memberData.isAdmin),
-          teams: [memberData.organization]
+          teams: primaryOrg ? [primaryOrg] : []
         };
 
         const updatedEmployees = [...employees, newMember].sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
@@ -901,10 +955,10 @@ export default function MembersPage() {
     <div className="ml-4">
       <button
         onClick={() => handleOrgSelect(org.name)}
-        className={`w-full text-left p-2 rounded-lg transition-colors ${
+        className={`group w-full text-left p-2 rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 ${
           selectedOrg === org.name
-            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-            : 'hover:bg-gray-50'
+            ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200 hover:ring-blue-300'
+            : 'bg-white hover:bg-gray-50 ring-1 ring-transparent hover:ring-gray-200 hover:shadow-sm'
         }`}
       >
         <div className="flex items-center justify-between">
@@ -953,7 +1007,7 @@ export default function MembersPage() {
               variant="default" 
               size="sm" 
               onClick={handleSettingsClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
             >
               <Settings className="w-4 h-4 mr-2" />
               설정
@@ -1033,6 +1087,7 @@ export default function MembersPage() {
         isOpen={showAddMemberModal}
         onClose={handleAddMemberClose}
         onSave={handleAddMemberSave}
+        onBack={handleAddMemberBack}
       />
 
       {/* 설정 모달 */}
