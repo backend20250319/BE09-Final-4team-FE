@@ -10,7 +10,27 @@ import { FormTemplatesGrid } from "./form-templates-grid"
 import { FormEditorModal } from "./form-editor-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import { FormTemplate, formTemplates as initialTemplates, categories as defaultCategories } from "@/lib/mock-data/form-templates"
-import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X } from "lucide-react"
+import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X, GripVertical } from "lucide-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 type Category = { id: string; name: string }
 
@@ -18,6 +38,70 @@ interface FormManagementModalProps {
   isOpen: boolean
   onClose: () => void
   onOpenFormEditor?: (form: FormTemplate | null) => void // null: 새 양식
+}
+
+// 드래그 가능한 카테고리 아이템 컴포넌트
+interface SortableCategoryItemProps {
+  category: Category
+  onRename: (categoryId: string, newName: string) => void
+  onRemove: (categoryId: string) => void
+}
+
+function SortableCategoryItem({ category, onRename, onRemove }: SortableCategoryItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id, disabled: category.id === "all" })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? 'none' : transition,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 999 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-1 bg-gray-50 rounded-lg p-2 transition-all duration-200 ${
+        isDragging 
+          ? 'shadow-2xl border border-blue-200 bg-white scale-105' 
+          : 'hover:bg-gray-100 border border-transparent'
+      }`}
+    >
+      {category.id === "all" ? (
+        <span className="text-sm text-gray-600 px-2">{category.name}</span>
+      ) : (
+        <>
+          <div
+            {...attributes}
+            {...listeners}
+            className="cursor-grab hover:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
+          >
+            <GripVertical className="w-3 h-3 text-gray-400" />
+          </div>
+          <Input
+            className="text-sm w-20 h-7 px-2 bg-white"
+            value={category.name}
+            onChange={(e) => onRename(category.id, e.target.value)}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+            onClick={() => onRemove(category.id)}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </>
+      )}
+    </div>
+  )
 }
 
 export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormManagementModalProps) {
@@ -30,6 +114,37 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   const [isFormEditorOpen, setIsFormEditorOpen] = useState(false)
   const [editingForm, setEditingForm] = useState<FormTemplate | null>(null)
 
+  // 드래그 앤 드롭 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // 드래그 중 실시간 순서 변경 핸들러
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event
+
+    // '전체' 카테고리는 재정렬 대상에서 제외
+    if (!over) return
+    if (active.id === "all" || over.id === "all") return
+
+    if (active.id !== over.id) {
+      setCategories((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id)
+        const newIndex = items.findIndex((item) => item.id === over.id)
+
+        return arrayMove(items, oldIndex, newIndex)
+      })
+    }
+  }
+
+  // 드래그 완료 핸들러 (실제로는 handleDragOver에서 이미 처리되므로 빈 함수)
+  const handleDragEnd = (event: DragEndEvent) => {
+    // 실시간 업데이트는 handleDragOver에서 처리되므로 여기서는 별도 작업 없음
+    // 필요하다면 최종 상태 저장 등의 로직을 추가할 수 있음
+  }
 
   const filteredForms = useMemo(() => {
     return templates.filter((form) => {
@@ -147,31 +262,25 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
           <div className="px-6 pb-4 flex-shrink-0">
             {isEditingCategories ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center gap-1 bg-gray-50 rounded-lg p-2">
-                      {category.id === "all" ? (
-                        <span className="text-sm text-gray-600 px-2">{category.name}</span>
-                      ) : (
-                        <>
-                          <Input
-                            className="text-sm w-20 h-7 px-2 bg-white"
-                            value={category.name}
-                            onChange={(e) => handleRenameCategoryInline(category.id, e.target.value)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleRemoveCategory(category.id)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </>
-                      )}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragOver={handleDragOver}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext items={categories} strategy={verticalListSortingStrategy}>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((category) => (
+                        <SortableCategoryItem
+                          key={category.id}
+                          category={category}
+                          onRename={handleRenameCategoryInline}
+                          onRemove={handleRemoveCategory}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
                 <div className="flex items-center gap-2 mb-2">
                   <Input
                     placeholder="새 분류 이름"
