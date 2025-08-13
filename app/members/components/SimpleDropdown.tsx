@@ -64,7 +64,7 @@ export default function SimpleDropdown({
         </PopoverTrigger>
       </div>
       {!disabled && (
-        <PopoverContent align="start" side="bottom" className={cn("p-0 max-h-[60vh] overflow-y-auto overscroll-contain", menuClassName)} style={{ width: contentWidth }}>
+        <PopoverContent align="start" side="bottom" className={cn("p-0 max-h-[60vh] overflow-y-auto overscroll-contain bg-white border border-gray-200", menuClassName)} style={{ width: contentWidth }}>
           <div role="listbox" aria-activedescendant={selectedLabel || undefined}>
             {options.map((opt) => {
               const isSelected = opt === value
@@ -74,7 +74,7 @@ export default function SimpleDropdown({
                   key={opt}
                   className={cn(
                     "w-full flex items-center p-3 hover:bg-gray-50 text-left",
-                    isSelected && "bg-gray-50",
+                    isSelected && "bg-blue-50 text-blue-700",
                   )}
                   role="option"
                   aria-selected={isSelected}

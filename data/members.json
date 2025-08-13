@@ -5,40 +5,28 @@
     "position": "팀장",
     "email": "xeoithyun@hermes.com",
     "phone": "010-2985-3187",
-    "address": "서울특별시 서초구",
+    "address": "경기도 시흥시",
     "joinDate": "2024-12-27",
     "organization": "경영진",
-    "role": "팀장",
-    "job": "백엔드 개발",
+    "role": "매니저",
+    "job": "경영 기획",
     "rank": "인턴",
-    "isAdmin": false,
+    "isAdmin": true,
     "teams": [
       "모바일팀",
       "백엔드팀",
       "프론트엔드팀"
     ],
     "createdAt": "2025-08-07T03:45:20.899Z",
-    "updatedAt": "2025-08-07T05:00:40.817Z"
-  },
-  {
-    "id": "112",
-    "name": "준범",
-    "position": "대리",
-    "email": "jb@hermes.com",
-    "phone": "010-6496-8653",
-    "address": "서울특별시 송파구",
-    "joinDate": "2024-11-26",
-    "organization": "개발본부",
-    "role": "본부장",
-    "job": "사업 기획",
-    "rank": "주임",
-    "isAdmin": false,
-    "teams": [
-      "브랜드팀",
-      "콘텐츠팀"
+    "updatedAt": "2025-08-12T06:49:45.763Z",
+    "organizations": [
+      "경영진",
+      "경영팀",
+      "인사팀"
     ],
-    "createdAt": "2025-08-07T03:45:20.899Z",
-    "updatedAt": "2025-08-07T04:46:07.796Z"
+    "workPolicies": [
+      "fixed-9to6"
+    ]
   },
   {
     "id": "62",

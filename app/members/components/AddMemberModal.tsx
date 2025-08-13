@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SimpleDropdown from "./SimpleDropdown";
+import { useOrganizationsList, useTitlesFromMembers } from '@/hooks/use-members-derived-data';
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,12 @@ import {
   Check
 } from "lucide-react";
 import { toast } from 'sonner';
+import { cn } from "@/lib/utils";
+
+interface MemberOrganizations {
+  main: string | null;
+  concurrent: string[];
+}
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -55,28 +62,7 @@ const initialFormData = {
   workPolicies: [] as string[]
 };
 
-const organizations = [
-  '개발팀', '디자인팀', '마케팅팀', '인사팀', '기획팀', '영업팀'
-];
-
-// 직위 목록 (예시)
-const positions = [
-  'CEO', 'COO', 'CTO', 'CPO', 'CMO', 'VP', 'Director', 'Head', 'Manager'
-];
-
-const roles = [
-  '프론트엔드 개발', '백엔드 개발', 'UI/UX 디자인', '디지털 마케팅', 
-  '제품 기획', '영업 관리', '인사 관리', '시스템 관리'
-];
-
-const jobs = [
-  '프론트엔드 개발', '백엔드 개발', 'UI/UX 디자인', '디지털 마케팅', 
-  '제품 기획', '영업 관리', '인사 관리', '시스템 관리'
-];
-
-const ranks = [
-  '사원', '대리', '과장', '차장', '부장', '팀장', '이사', '대표'
-];
+// options는 실데이터에서 가져옵니다
 
 const workPolicies = [
   { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무' },
@@ -96,13 +82,20 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
   const [workPolicyDropdownOpen, setWorkPolicyDropdownOpen] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [organizationDropdownOpen, setOrganizationDropdownOpen] = useState(false);
+  const [concurrentDropdownOpen, setConcurrentDropdownOpen] = useState(false);
   const orgTriggerRef = useRef<HTMLDivElement | null>(null);
   const orgButtonRef = useRef<HTMLButtonElement | null>(null);
   const [orgContentWidth, setOrgContentWidth] = useState<number | undefined>(undefined);
   const policyTriggerRef = useRef<HTMLDivElement | null>(null);
   const policyButtonRef = useRef<HTMLButtonElement | null>(null);
   const [policyContentWidth, setPolicyContentWidth] = useState<number | undefined>(undefined);
+  const concurrentTriggerRef = useRef<HTMLDivElement | null>(null);
+  const concurrentButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [concurrentContentWidth, setConcurrentContentWidth] = useState<number | undefined>(undefined);
+  const [memberOrganizations, setMemberOrganizations] = useState<MemberOrganizations>({ main: null, concurrent: [] });
   const [submitted, setSubmitted] = useState(false);
+  const { organizations, loading: orgLoading, error: orgError } = useOrganizationsList();
+  const { ranks, positions, jobs, roles, loading: titleLoading, error: titleError } = useTitlesFromMembers();
 
   useEffect(() => {
     if (isOpen) {
@@ -115,6 +108,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       setShowBackConfirm(false);
       setWorkPolicyDropdownOpen(false);
       setOrganizationDropdownOpen(false);
+      setConcurrentDropdownOpen(false);
+      setMemberOrganizations({ main: null, concurrent: [] });
     }
   }, [isOpen]);
 
@@ -147,6 +142,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
     if (w1) setOrgContentWidth(w1);
     const w2 = readWidth(policyButtonRef.current) ?? readWidth(policyTriggerRef.current as any);
     if (w2) setPolicyContentWidth(w2);
+    const w3 = readWidth(concurrentButtonRef.current) ?? readWidth(concurrentTriggerRef.current as any);
+    if (w3) setConcurrentContentWidth(w3);
   };
 
   useLayoutEffect(() => {
@@ -160,8 +157,42 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
     const ro = new ResizeObserver(update);
     if (orgTriggerRef.current) ro.observe(orgTriggerRef.current);
     if (policyTriggerRef.current) ro.observe(policyTriggerRef.current);
+    if (concurrentTriggerRef.current) ro.observe(concurrentTriggerRef.current);
     return () => ro.disconnect();
   }, [orgContentWidth, policyContentWidth]);
+
+  const updateOrganizationsFromMemberOrgs = (next: MemberOrganizations) => {
+    const legacy = [next.main, ...next.concurrent].filter(Boolean) as string[];
+    setFormData(prev => ({ ...prev, organizations: legacy }));
+    setTimeout(() => {
+      validateField('organizations', legacy as unknown as string);
+    }, 0);
+  };
+
+  const handleSelectMainOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      const next: MemberOrganizations = {
+        main: orgName,
+        concurrent: (prev.concurrent || []).filter(o => o !== orgName),
+      };
+      updateOrganizationsFromMemberOrgs(next);
+      return next;
+    });
+    setOrganizationDropdownOpen(false);
+  };
+
+  const handleToggleConcurrentOrg = (orgName: string) => {
+    setMemberOrganizations(prev => {
+      if (prev.main === orgName) return prev; // 중복 방지
+      const isSelected = prev.concurrent.includes(orgName);
+      const next: MemberOrganizations = {
+        main: prev.main,
+        concurrent: isSelected ? prev.concurrent.filter(o => o !== orgName) : [...prev.concurrent, orgName],
+      };
+      updateOrganizationsFromMemberOrgs(next);
+      return next;
+    });
+  };
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -175,11 +206,11 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
       const currentPolicies = prev.workPolicies || [];
       const currentSelected = currentPolicies[0] ?? null;
       const newPolicies = currentSelected === policyId ? [] : [policyId];
-
+      
       setTimeout(() => {
         validateField('workPolicies', newPolicies);
       }, 0);
-
+      
       return {
         ...prev,
         workPolicies: newPolicies
@@ -259,7 +290,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
         setErrors(prev => ({ ...prev, [field]: errorMessage }));
       }
     } else {
-      setErrors(prev => ({ ...prev, [field]: errorMessage }));
+    setErrors(prev => ({ ...prev, [field]: errorMessage }));
     }
     
     return isValid;
@@ -371,10 +402,10 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <DialogTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                구성원 추가
-              </DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              구성원 추가
+            </DialogTitle>
               <button
                 type="button"
                 className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
@@ -451,65 +482,94 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>조직 *</Label>
+                    <Label className="font-semibold">메인 조직 *</Label>
                     <Popover open={organizationDropdownOpen} onOpenChange={(open)=>{ setOrganizationDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
                       <div ref={orgTriggerRef} className="w-full">
                         <PopoverTrigger asChild>
-                          <Button
+                      <Button
                             ref={orgButtonRef}
-                            type="button"
-                            variant="outline"
-                            className={`w-full justify-between ${errors.organizations ? 'border-red-500' : ''}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {formData.organizations?.length > 0 
-                                ? `${formData.organizations.length}개 조직 선택됨`
-                                : '조직을 선택하세요'
-                              }
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.organizations ? 'border-red-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-2">
+                              {memberOrganizations.main ? memberOrganizations.main : '메인 조직을 선택하세요'}
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                        </PopoverTrigger>
+                      </div>
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: orgContentWidth, minWidth: orgContentWidth, maxWidth: orgContentWidth }}>
+                        {orgLoading && (
+                          <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>
+                        )}
+                        {orgError && !orgLoading && (
+                          <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>
+                        )}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          const selected = memberOrganizations.main === org;
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleSelectMainOrg(org)}>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{org}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </PopoverContent>
+                    </Popover>
+                    {touched.organizations && errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-semibold">겸직 조직</Label>
+                    <Popover open={concurrentDropdownOpen} onOpenChange={(open)=>{ setConcurrentDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
+                      <div ref={concurrentTriggerRef} className="w-full">
+                        <PopoverTrigger asChild>
+                          <Button ref={concurrentButtonRef} type="button" variant="outline" className="w-full justify-between">
+                            <div className="truncate">
+                              {memberOrganizations.concurrent.length > 0 ? `${memberOrganizations.concurrent.length}개 선택됨` : '겸직 조직을 선택하세요'}
                             </div>
                             <ChevronDown className="w-4 h-4" />
                           </Button>
                         </PopoverTrigger>
                       </div>
-                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: orgContentWidth, minWidth: orgContentWidth, maxWidth: orgContentWidth }}>
-                        {organizations.map((org) => (
-                          <div
-                            key={org}
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleOrganizationToggle(org)}
-                          >
-                            <div className="w-4 h-4 border border-gray-300 rounded flex items-center justify-center">
-                              {formData.organizations?.includes(org) && (
-                                <Check className="w-3 h-3 text-blue-600" />
-                              )}
+                      <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: concurrentContentWidth, minWidth: concurrentContentWidth, maxWidth: concurrentContentWidth }}>
+                        {orgLoading && (
+                          <div className="p-3 text-sm text-gray-500">조직을 불러오는 중...</div>
+                        )}
+                        {orgError && !orgLoading && (
+                          <div className="p-3 text-sm text-red-500">조직을 불러오지 못했습니다.</div>
+                        )}
+                        {!orgLoading && !orgError && organizations.map((org) => {
+                          if (memberOrganizations.main === org) return null;
+                          const selected = memberOrganizations.concurrent.includes(org);
+                          return (
+                            <div key={org} className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                              <div className={`w-4 h-4 border border-gray-300 rounded flex items-center justify-center ${selected ? 'bg-blue-50' : ''}`}>
+                                {selected && <Check className="w-3 h-3 text-blue-600" />}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{org}</div>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{org}</div>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </PopoverContent>
                     </Popover>
-                    
-                                         {formData.organizations?.length > 0 && (
-                       <div className="flex flex-wrap gap-2 mt-2">
-                         {formData.organizations.map((org) => (
-                           <Badge 
-                             key={org} 
-                             variant="secondary" 
-                             className="flex items-center gap-1 cursor-pointer hover:bg-red-100"
-                             onClick={() => handleOrganizationToggle(org)}
-                           >
-                             {org}
-                             <X 
-                               className="w-3 h-3 hover:text-red-500" 
-                             />
-                           </Badge>
-                         ))}
-                       </div>
-                     )}
-                    
-                    {touched.organizations && errors.organizations && <p className="text-sm text-red-500">{errors.organizations}</p>}
+
+                    {memberOrganizations.concurrent.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {memberOrganizations.concurrent.map((org) => (
+                          <span key={org} className="px-2 py-1 text-xs rounded border bg-gray-50 cursor-pointer" onClick={() => handleToggleConcurrentOrg(org)}>
+                            {org}
+                          </span>
+                          ))}
+                        </div>
+                      )}
                   </div>
 
                   <div className="space-y-2">
@@ -519,7 +579,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       value={formData.rank}
                       onChange={(value) => handleInputChange('rank', value)}
                       placeholder="선택(선택사항)"
-                      triggerClassName={errors.rank ? 'border-red-500' : ''}
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.rank && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
                     />
                     {errors.rank && <p className="text-sm text-red-500">{errors.rank}</p>}
                   </div>
@@ -531,7 +592,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       value={formData.position}
                       onChange={(value) => handleInputChange('position', value)}
                       placeholder="선택(선택사항)"
-                      triggerClassName={errors.position ? 'border-red-500' : ''}
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.position && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
                     />
                     {errors.position && <p className="text-sm text-red-500">{errors.position}</p>}
                   </div>
@@ -543,7 +605,8 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                       value={formData.job}
                       onChange={(value) => handleInputChange('job', value)}
                       placeholder="선택(선택사항)"
-                      triggerClassName={errors.job ? 'border-red-500' : ''}
+                      triggerClassName={cn('bg-white border-gray-300 text-gray-900 hover:bg-gray-50', errors.job && 'border-red-500')}
+                      menuClassName="bg-white border border-gray-200"
                     />
                     {errors.job && <p className="text-sm text-red-500">{errors.job}</p>}
                   </div>
@@ -624,35 +687,35 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
                     <Popover open={workPolicyDropdownOpen} onOpenChange={(open)=>{ setWorkPolicyDropdownOpen(open); if(open) recomputePopoverWidths(); }}>
                       <div ref={policyTriggerRef} className="w-full">
                         <PopoverTrigger asChild>
-                          <Button
+                      <Button
                             ref={policyButtonRef}
-                            type="button"
-                            variant="outline"
-                            className={`w-full justify-between ${errors.workPolicies ? 'border-red-500' : ''}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {formData.workPolicies?.length > 0 
+                        type="button"
+                        variant="outline"
+                        className={`w-full justify-between ${errors.workPolicies ? 'border-red-500' : ''}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {formData.workPolicies?.length > 0 
                                 ? (workPolicies.find(p => p.id === formData.workPolicies[0])?.label ?? '근무 정책을 선택하세요')
-                                : '근무 정책을 선택하세요'
-                              }
-                            </div>
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
+                            : '근무 정책을 선택하세요'
+                          }
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
                         </PopoverTrigger>
                       </div>
                       <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: policyContentWidth, minWidth: policyContentWidth, maxWidth: policyContentWidth }}>
-                        {workPolicies.map((policy) => (
-                          <div
-                            key={policy.id}
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleWorkPolicyToggle(policy.id)}
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">{policy.label}</div>
-                              <div className="text-sm text-gray-500">{policy.description}</div>
+                          {workPolicies.map((policy) => (
+                            <div
+                              key={policy.id}
+                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleWorkPolicyToggle(policy.id)}
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{policy.label}</div>
+                                <div className="text-sm text-gray-500">{policy.description}</div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
                       </PopoverContent>
                     </Popover>
                     
