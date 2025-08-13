@@ -26,13 +26,15 @@ interface MemberSelectionModalProps {
   onClose: () => void
   onSelect: (members: Member[]) => void
   selectedMembers: Member[]
+  excludeMemberIds?: string[]
 }
 
 export default function MemberSelectionModal({ 
   isOpen, 
   onClose, 
   onSelect, 
-  selectedMembers 
+  selectedMembers,
+  excludeMemberIds = []
 }: MemberSelectionModalProps) {
   const [members, setMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -86,6 +88,8 @@ export default function MemberSelectionModal({
   }, [selectedMembers, isOpen])
 
   const filteredMembers = members.filter(member => {
+    if (excludeMemberIds.includes(member.id)) return false
+    
     if (!debouncedSearch) return true
     const term = debouncedSearch.toLowerCase()
     return (

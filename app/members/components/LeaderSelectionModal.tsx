@@ -26,13 +26,15 @@ interface LeaderSelectionModalProps {
   onClose: () => void
   onSelect: (leader: Member) => void
   selectedLeader?: Member | null
+  excludeMemberIds?: string[]
 }
 
 export default function LeaderSelectionModal({ 
   isOpen, 
   onClose, 
   onSelect, 
-  selectedLeader 
+  selectedLeader,
+  excludeMemberIds = []
 }: LeaderSelectionModalProps) {
   const [members, setMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -79,6 +81,8 @@ export default function LeaderSelectionModal({
   }, [selectedLeader, isOpen])
 
   const filteredMembers = members.filter(member => {
+    if (excludeMemberIds.includes(member.id)) return false
+    
     if (!debouncedSearch) return true
     const term = debouncedSearch.toLowerCase()
     return (

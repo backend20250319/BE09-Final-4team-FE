@@ -86,28 +86,28 @@ export default function AddOrganizationModal({
   }, [organizations, excludedIds])
 
   useEffect(() => {
-    if (organization) {
-      setOrgName(organization.name)
-      setParentOrg(organization.parentId || '')
-      setSelectedLeader(organization.leader || null)
-      setSelectedMembers(organization.members || [])
-      setIsDirty(false)
-    } else {
+    if (isOpen) {
+      if (organization) {
+        setOrgName(organization.name)
+        setParentOrg(organization.parentId || '')
+        setSelectedLeader(organization.leader || null)
+        setSelectedMembers(organization.members || [])
+        setIsDirty(false)
+      } else {
         setOrgName('')
-      setParentOrg('')
-      setSelectedLeader(null)
-      setSelectedMembers([])
-      setIsDirty(false)
+        setParentOrg('')
+        setSelectedLeader(null)
+        setSelectedMembers([])
+        setIsDirty(false)
+      }
     }
-  }, [organization])
+  }, [isOpen, organization])
 
   const handleSave = () => {
     if (!orgName.trim()) {
       toast.error('조직 이름을 입력해주세요.')
       return
     }
-
-
 
     const newOrg: Organization = {
       id: organization?.id || Date.now().toString(),
@@ -118,6 +118,8 @@ export default function AddOrganizationModal({
     }
 
     onSave(newOrg)
+    
+    resetForm()
   }
 
   const handleDeleteClick = () => {
@@ -135,11 +137,33 @@ export default function AddOrganizationModal({
     setShowDeleteConfirm(true)
   }
 
+  const resetForm = () => {
+    setOrgName('')
+    setParentOrg('')
+    setSelectedLeader(null)
+    setSelectedMembers([])
+    setIsDirty(false)
+    setShowCloseConfirm(false)
+    setShowDeleteConfirm(false)
+    setShowDeleteWarn(false)
+    setDeleteWarnMessage('')
+  }
+
+  const handleClose = () => {
+    if (isDirty) {
+      setShowCloseConfirm(true)
+    } else {
+      resetForm()
+      onClose()
+    }
+  }
+
   const performDelete = () => {
     if (!organization) return
     toast.success('조직이 성공적으로 삭제되었습니다.')
     setShowDeleteConfirm(false)
     onDelete?.(organization.id)
+    resetForm()
     onClose()
   }
 
@@ -191,6 +215,7 @@ export default function AddOrganizationModal({
         setShowCloseConfirm(true)
         return
       }
+      resetForm()
       onClose()
       return
     }
@@ -200,12 +225,14 @@ export default function AddOrganizationModal({
     if (isDirty) {
       setShowCloseConfirm(true)
     } else {
+      resetForm()
       onClose()
     }
   }
 
   const confirmDiscardAndClose = () => {
     setShowCloseConfirm(false)
+    resetForm()
     onClose()
   }
 
@@ -402,6 +429,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowLeaderModal(false)}
         onSelect={handleLeaderSelect}
         selectedLeader={selectedLeader}
+        excludeMemberIds={selectedMembers.map(member => member.id)}
       />
 
       <MemberSelectionModal
@@ -409,6 +437,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowMemberModal(false)}
         onSelect={handleMemberSelect}
         selectedMembers={selectedMembers}
+        excludeMemberIds={selectedLeader ? [selectedLeader.id] : []}
       />
     </>
   )

@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useAuth } from "@/hooks/useAuth"
 import { useOrganizationsList, useTitlesFromMembers } from "@/hooks/use-members-derived-data"
+import { useRouter } from "next/navigation"
 
 import modalStyles from "../members-modal.module.css"
 
@@ -50,18 +51,11 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
   const { user } = useAuth()
   const { organizations: orgOptions } = useOrganizationsList()
   const { ranks, positions, jobs, roles, loading: titleLoading } = useTitlesFromMembers()
+  const router = useRouter()
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [isEditingIntro, setIsEditingIntro] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [profileImage, setProfileImage] = useState<string>("")
   const [selfIntroduction, setSelfIntroduction] = useState<string>("")
-  const [editedEmployee, setEditedEmployee] = useState<MemberProfile | null>(null)
-
-  const [formState, setFormState] = useState<Partial<MemberProfile>>({})
-  const [concurrentTeamIds, setConcurrentTeamIds] = useState<string[]>([])
-  const [mainTeamId, setMainTeamId] = useState<string | null>(null)
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = true
@@ -69,33 +63,9 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
   useEffect(() => {
     if (!employee) return
-    setEditedEmployee(employee)
-    setFormState({
-      name: employee.name,
-      email: employee.email,
-      phone: employee.phone,
-      joinDate: employee.joinDate,
-      address: employee.address,
-      workPolicies: employee.workPolicies || [],
-      intro: employee.selfIntroduction || employee.intro,
-    })
     setProfileImage(employee.profileImage || employee.avatarUrl || "")
     setSelfIntroduction(employee.selfIntroduction || "")
-
-    const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-    setMainTeamId(orgs[0] || null)
-    setConcurrentTeamIds(orgs.slice(1))
   }, [employee])
-
-  const handleMainChange = (teamId: string | null) => {
-    setMainTeamId(teamId)
-    setConcurrentTeamIds((prev) => prev.filter((id) => id !== teamId))
-  }
-
-  const handleConcurrentChange = (teamIds: string[]) => {
-    const filtered = teamIds.filter((id) => id !== mainTeamId)
-    setConcurrentTeamIds(filtered)
-  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -141,64 +111,22 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
     reader.readAsDataURL(file)
   }
 
-  const handleSave = async () => {
-    if (!editedEmployee) return
-    setLoading(true)
-    try {
-      const updatedEmployee: MemberProfile = {
-        ...editedEmployee,
-        ...formState,
-        profileImage,
-        selfIntroduction,
-        organizations: [mainTeamId, ...concurrentTeamIds].filter(Boolean) as string[],
-      } as MemberProfile
-
-      onUpdate?.(updatedEmployee)
-      window.dispatchEvent(
-        new CustomEvent("employeeUpdated", { detail: updatedEmployee }) as Event
-      )
-      setIsEditing(false)
-      setIsEditingIntro(false)
-      toast.success("프로필이 성공적으로 업데이트되었습니다.")
-    } catch (e) {
-      toast.error("프로필 업데이트 중 오류가 발생했습니다.")
-    } finally {
-      setLoading(false)
-    }
+  const handleWorkScheduleClick = () => {
+    onClose()
+    router.push('/work')
   }
 
-  const handleCancel = () => {
-    if (!employee) return
-    setProfileImage(employee.profileImage || employee.avatarUrl || "")
-    setSelfIntroduction(employee.selfIntroduction || "")
-    const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-    setMainTeamId(orgs[0] || null)
-    setConcurrentTeamIds(orgs.slice(1))
-    setIsEditing(false)
-    setIsEditingIntro(false)
-  }
+
 
   const teamsOptions: TeamInfo[] = (orgOptions || []).map((org) => ({
     teamId: org,
     name: org,
   }))
 
-  const selectedMainTeam = teamsOptions.find((t) => t.teamId === mainTeamId) || null
-  const selectedConcurrentTeams = teamsOptions.filter((t) => concurrentTeamIds.includes(t.teamId))
-
-  const handleFormChange = (values: Partial<MemberProfile>) => {
-    setFormState((prev) => ({ ...prev, ...values }))
-    if (editedEmployee) {
-      setEditedEmployee((prev) => ({ ...prev!, ...values }))
-    }
-  }
-
   if (!employee) return null
 
   const currentUserData: MemberProfile = {
     ...employee,
-    ...(editedEmployee || {}),
-    ...formState,
     profileImage,
     avatarUrl: profileImage,
     selfIntroduction,
@@ -225,35 +153,15 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
               <h2 className="text-2xl font-bold text-gray-900">프로필</h2>
               <p className="text-sm text-gray-500 mt-1">구성원 정보를 확인하고 편집할 수 있습니다.</p>
             </div>
-            <div className="flex items-center gap-2">
-              {canEdit && (
-                (isEditing || isEditingIntro) ? (
-                  <>
-                    <Button
-                      onClick={handleSave}
-                      disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                    >
-                      {loading ? "저장 중..." : "저장하기"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleCancel}
-                      disabled={loading}
-                      className="bg-white hover:bg-gray-50 border-gray-300 text-gray-900 px-4 py-2 rounded-lg"
-                    >
-                      취소
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    onClick={() => setIsEditModalOpen(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-                  >
-                    편집하기
-                  </Button>
-                )
-              )}
+                         <div className="flex items-center gap-2">
+               {canEdit && (
+                 <Button
+                   onClick={() => setIsEditModalOpen(true)}
+                   className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                 >
+                   편집하기
+                 </Button>
+               )}
               <button
                 type="button"
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
@@ -316,80 +224,48 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                       </div>
                     </div>
                   </div>
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
-                   <DetailBlock joinDate={employee.joinDate} address={employee.address} isEditing={isEditing} formValues={{ joinDate: formState.joinDate, address: formState.address }} onChange={handleFormChange} />
-                 </div>
-                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-gray-700 font-semibold">자기소개</div>
-                      {canEdit && (
-                        isEditingIntro ? (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={handleSave}
-                              disabled={loading}
-                              className="text-xs px-2 py-1 h-auto bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              {loading ? "저장 중..." : "저장"}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleCancel}
-                              disabled={loading}
-                              className="text-xs px-2 py-1 h-auto bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-                            >
-                              취소
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsEditingIntro(!isEditingIntro)}
-                            className="text-xs px-2 py-1 h-auto bg-white hover:bg-gray-50 border-gray-300 text-gray-700"
-                          >
-                            <Edit3 className="w-3 h-3 mr-1" />
-                            수정
-                          </Button>
-                        )
-                      )}
-                    </div>
-                    <IntroBlock intro={selfIntroduction} isEditing={isEditingIntro} onChange={(intro) => setSelfIntroduction(intro)} />
+                                   <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                    <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
+                    <DetailBlock joinDate={employee.joinDate} address={employee.address} />
                   </div>
+                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                     <div className="text-gray-700 font-semibold mb-3">자기소개</div>
+                     <IntroBlock intro={selfIntroduction} />
+                   </div>
                </div>
 
                <div className="flex flex-col gap-4">
-                 {/* Schedule */}
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-700 font-semibold mb-3">근무 일정</div>
-                   <div className="flex items-end justify-between gap-2 h-20">
-                     {(() => {
-                       const today = new Date()
-                       const currentDay = today.getDay()
-                       const monday = new Date(today)
-                       monday.setDate(today.getDate() - (currentDay === 0 ? 6 : currentDay - 1))
-                       const workHours = ["0h", "8h", "8h", "8h", "8h", "8h", "0h"]
-                       return [...Array(7)].map((_, i) => {
-                         const date = new Date(monday)
-                         date.setDate(monday.getDate() + i)
-                         const isToday = date.toDateString() === today.toDateString()
-                         const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                         const height = isWeekend ? "25%" : "100%"
-                         const dayIndex = date.getDay()
-                         return (
-                           <div key={i} className="flex-1 flex flex-col items-center">
-                             <div className={`text-xs mb-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-600"}`}>{workHours[dayIndex]}</div>
-                             <div className={`w-full rounded-t-sm ${isToday ? "bg-blue-500" : isWeekend ? "bg-gray-300" : "bg-gray-500"}`} style={{ height }} />
-                             <div className={`text-xs mt-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{["일", "월", "화", "수", "목", "금", "토"][date.getDay()]}</div>
-                           </div>
-                         )
-                       })
-                     })()}
-                   </div>
-                 </div>
+                                   {/* Schedule */}
+                  <div 
+                    className="bg-white shadow p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={handleWorkScheduleClick}
+                  >
+                    <div className="text-gray-700 font-semibold mb-3">근무 일정</div>
+                    <div className="flex items-end justify-between gap-2 h-20">
+                      {(() => {
+                        const today = new Date()
+                        const currentDay = today.getDay()
+                        const sunday = new Date(today)
+                        sunday.setDate(today.getDate() - currentDay)
+                        const workHours = ["0h", "8h", "8h", "8h", "8h", "8h", "0h"]
+                        return [...Array(7)].map((_, i) => {
+                          const date = new Date(sunday)
+                          date.setDate(sunday.getDate() + i)
+                          const isToday = date.toDateString() === today.toDateString()
+                          const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                          const height = isWeekend ? "25%" : "100%"
+                          const dayIndex = date.getDay()
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center">
+                              <div className={`text-xs mb-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-600"}`}>{workHours[dayIndex]}</div>
+                              <div className={`w-full rounded-t-sm ${isToday ? "bg-blue-500" : isWeekend ? "bg-gray-300" : "bg-gray-500"}`} style={{ height }} />
+                              <div className={`text-xs mt-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{["일", "월", "화", "수", "목", "금", "토"][date.getDay()]}</div>
+                            </div>
+                          )
+                        })
+                      })()}
+                    </div>
+                  </div>
                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                    <div className="text-gray-500 text-sm mb-1">남은 연차</div>
                    <div className="text-2xl font-bold">{employee.remainingLeave || employee.remainingLeaveDays || 12}일</div>
@@ -404,15 +280,26 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
                                                            {/* Right column */}
                 <div className="flex flex-col gap-4">
-                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
-                    <OrganizationBlock main={selectedMainTeam} concurrent={selectedConcurrentTeams} isEditing={isEditing} onMainChange={handleMainChange} onConcurrentChange={handleConcurrentChange} teamsOptions={teamsOptions} user={employee} />
-                  </div>
+                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                     <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
+                     <OrganizationBlock 
+                       main={(() => {
+                         const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
+                         const mainOrg = orgs[0]
+                         return mainOrg ? { teamId: mainOrg, name: mainOrg } : null
+                       })()}
+                       concurrent={(() => {
+                         const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
+                         return orgs.slice(1).map(org => ({ teamId: org, name: org }))
+                       })()}
+                       user={employee} 
+                     />
+                   </div>
 
-                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
-                    <PolicyBlock workPolicies={formState.workPolicies ?? employee.workPolicies} isEditing={isEditing} onChange={(policies) => handleFormChange({ workPolicies: policies })} availablePolicies={workPolicies} />
-                  </div>
+                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                     <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
+                     <PolicyBlock workPolicies={employee.workPolicies} availablePolicies={workPolicies} />
+                   </div>
                 </div>
             </div>
           </div>

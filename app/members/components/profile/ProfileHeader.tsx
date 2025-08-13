@@ -1,7 +1,7 @@
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Crown, Mail, Phone, Edit3 } from "lucide-react";
+import { User, Mail, Phone, Edit3 } from "lucide-react";
 import { MemberProfile } from "./types";
 
 interface HeaderProps {
@@ -51,11 +51,7 @@ export default function ProfileHeader({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl font-extrabold text-white">{user.name}</h1>
-            {user.isAdmin && (
-              <Badge className="bg-yellow-500/20 text-yellow-300 border border-yellow-400/30">
-                <Crown className="w-3 h-3 mr-1" />관리자
-              </Badge>
-            )}
+
           </div>
           
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, Phone, Calendar, Building2, Crown } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Building2 } from "lucide-react";
 import ProfileModal from './ProfileModal';
 
 interface Employee {
@@ -174,17 +174,11 @@ export default function MemberList({
                   {employee.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{employee.name}</h3>
-                  {employee.isAdmin && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                      <Crown className="w-3 h-3 mr-1" />
-                      관리자
-                    </Badge>
-                  )}
+                  <h3 className="font-semibold text-gray-900 truncate">{employee.name}</h3>
                 </div>
-                <p className="text-sm text-gray-600">{employee.position}</p>
+                <p className="text-sm text-gray-600 truncate">{employee.position}</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-1">

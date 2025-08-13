@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Crown, RefreshCw, Copy, Trash2 } from "lucide-react";
+import { Shield, RefreshCw, Copy, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -39,35 +39,11 @@ export default function AccountInfoBlock({
 
       {!isEditing ? (
         <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <Crown className="w-5 h-5 text-gray-300 mt-0.5" />
-            <div className="flex-1">
-              <span className="text-sm text-gray-300 block mb-1">관리자 권한</span>
-              <div className="text-white font-medium">
-                {user.isAdmin ? (
-                  <Badge className="bg-yellow-500/20 text-yellow-300 border border-yellow-400/30">
-                    관리자
-                  </Badge>
-                ) : (
-                  <span className="text-gray-400">일반 사용자</span>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* 관리자 권한 표시 제거 */}
         </div>
       ) : (
         <div className="space-y-4">
-          <div>
-            <Label className="text-gray-300 mb-2 block">관리자 권한</Label>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={formValues.isAdmin ?? user.isAdmin ?? false}
-                onCheckedChange={(checked) => onChange({ isAdmin: checked })}
-                className="data-[state=checked]:bg-gray-600"
-              />
-              <span className="text-sm text-gray-300">관리자 권한 부여</span>
-            </div>
-          </div>
+          {/* 관리자 권한 편집 제거 */}
 
           {canResetPassword && (
             <div>
