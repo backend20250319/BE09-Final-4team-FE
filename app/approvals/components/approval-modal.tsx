@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
 import { Attachment } from "@/components/ui/attachments-manager"
+import { formTemplates, getIconComponent } from "@/lib/mock-data/form-templates"
 
 // 타입 정의
 export interface User {
@@ -84,22 +85,20 @@ interface Reference {
 
 export interface Approval {
   id: number
-  title: string
+  formTemplateId: string
   content: string
-  type: string
   department: string
   requester: string
   date: string
   status: 'pending' | 'approved' | 'rejected'
   priority?: 'low' | 'medium' | 'high'
   isMyApproval?: boolean
-  color: string
-  icon: React.ComponentType<{ className?: string }>
   attachments?: Attachment[]
   history?: TimelineItem[]
   comments?: TimelineItem[]
   approvalStages?: ApprovalStage[]
   references?: Reference[]
+  formFields?: Record<string, any>
 }
 
 interface ApprovalModalProps {
@@ -117,14 +116,21 @@ function ApprovalHeader({ approval }: { approval: Approval }) {
   const statusBgColor = getStatusColor(approval.status, approval.isMyApproval)
   const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
 
+  // formTemplate 찾기
+  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+  if (!formTemplate) return null
+
   return (
     <div className="flex items-center gap-5">
-      <div className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-lg flex items-center justify-center shadow-sm flex-shrink-0`}>
-        <approval.icon className="w-6 h-6 text-white" />
+      <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
+        {(() => {
+          const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
+          return <IconComponent className="w-6 h-6 text-white" />
+        })()}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className={`${typography.h3} text-gray-800 truncate`}>{approval.title}</h2>
+          <h2 className={`${typography.h3} text-gray-800 truncate`}>{formTemplate.title}</h2>
           {approval.priority === "high" && (
             <Badge variant="destructive" className="flex items-center gap-1 text-xs">
               <AlertCircle className="w-3 h-3" />
@@ -163,6 +169,66 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
           <p className="text-xs text-gray-500 font-medium">신청일</p>
           <p className="text-sm font-semibold text-gray-800">{approval.date}</p>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// 필드별 값 표시 컴포넌트
+function FormFieldDisplay({
+  field,
+  value
+}: {
+  field: { name: string; type: string; options?: string[] }
+  value: any
+}) {
+  const formatValue = () => {
+    if (!value && value !== 0) return '-'
+
+    switch (field.type) {
+      case 'money':
+        return `${value}원`
+      case 'date':
+        return new Date(value).toLocaleDateString('ko-KR')
+      case 'multiselect':
+        return Array.isArray(value) ? value.join(', ') : value
+
+      case 'select':
+      case 'text':
+      case 'number':
+      default:
+        return value.toString()
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs text-gray-500 font-medium">{field.name}</p>
+      <p className="text-sm font-semibold text-gray-800 break-words">
+        {formatValue()}
+      </p>
+    </div>
+  )
+}
+
+// 양식 필드 섹션 컴포넌트
+function FormFieldsSection({ approval }: { approval: Approval }) {
+  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+
+  if (!formTemplate?.fields || !approval.formFields) {
+    return null
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+        {formTemplate.fields.map((field) => (
+          <FormFieldDisplay
+            key={field.name}
+            field={field}
+            value={approval.formFields![field.name]}
+          />
+        ))}
       </div>
     </div>
   )
@@ -291,17 +357,25 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
     <div className="space-y-3">
       <div className="space-y-3">
         {stages.map((stage, stageIndex) => (
-          <div key={stage.id || `stage-${stageIndex}`} className="p-3">
+          <div 
+            key={stage.id || `stage-${stageIndex}`} 
+            className={`p-3 rounded-lg transition-all duration-300 ${
+              stage.status === "current" 
+                ? "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md" 
+                : ""
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${stage.status === "completed" ? "bg-green-100" :
-                    stage.status === "current" ? "bg-blue-100" :
-                      stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
-                  }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                  stage.status === "completed" ? "bg-green-100" :
+                  stage.status === "current" ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg" :
+                  stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
+                }`}>
                   {stage.status === "completed" ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   ) : stage.status === "current" ? (
-                    <Clock className="w-4 h-4 text-blue-600" />
+                    <Clock className="w-4 h-4 text-white animate-pulse" />
                   ) : stage.status === "pending" ? (
                     <AlertCircle className="w-4 h-4 text-yellow-600" />
                   ) : (
@@ -309,12 +383,13 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-800">
+                  <p className={`font-medium ${stage.status === "current" ? "text-blue-800" : "text-gray-800"}`}>
                     {stageIndex + 1}단계 승인
-                    <span className={`text-sm ml-2 ${stage.status === "completed" ? "text-green-600" :
-                        stage.status === "current" ? "text-blue-600" :
-                          stage.status === "pending" ? "text-yellow-600" : "text-red-600"
-                      }`}>
+                    <span className={`text-sm ml-2 font-semibold ${
+                      stage.status === "completed" ? "text-green-600" :
+                      stage.status === "current" ? "text-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" :
+                      stage.status === "pending" ? "text-yellow-600" : "text-red-600"
+                    }`}>
                       {stage.status === "completed" ? "완료" :
                         stage.status === "current" ? "진행중" :
                           stage.status === "pending" ? "대기중" : "반려됨"}
@@ -322,7 +397,9 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
                   </p>
                 </div>
               </div>
-              <div className="text-sm text-gray-500 flex-shrink-0">
+              <div className={`text-sm flex-shrink-0 ${
+                stage.status === "current" ? "text-blue-700 font-medium" : "text-gray-500"
+              }`}>
                 {stage.approvers.filter(a => a.status === "completed").length}/{stage.approvers.length} 승인
               </div>
             </div>
@@ -378,8 +455,8 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
             </div>
 
             <div className="space-y-1">
-                      {references.map((reference, index) => (
-          <div key={reference.id || `reference-${index}`} className="flex items-center gap-3 p-2">
+              {references.map((reference, index) => (
+                <div key={reference.id || `reference-${index}`} className="flex items-center gap-3 p-2">
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarImage src={reference.avatar} alt={reference.name} />
                     <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
@@ -417,8 +494,8 @@ function CollapsibleSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
-      return (
-      <div>
+  return (
+    <div>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors"
@@ -594,13 +671,14 @@ export function ApprovalModal({
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 pl-2">
               <ApprovalInfo approval={approval} />
 
-              <Separator />
+              {/* 양식 필드 */}
+              <FormFieldsSection approval={approval} />
 
               {/* 상세 내용 */}
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content}
+                    {approval.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>
@@ -608,7 +686,6 @@ export function ApprovalModal({
               {/* 첨부 파일 */}
               {approval.attachments && approval.attachments.length > 0 && (
                 <>
-                  <Separator />
                   <AttachmentsSection attachments={approval.attachments} />
                 </>
               )}
@@ -679,11 +756,16 @@ export function ApprovalModal({
             <div className="space-y-3 p-3">
               <ApprovalInfo approval={approval} />
 
+              {/* 양식 필드 */}
+              {approval.formFields && (
+                <FormFieldsSection approval={approval} />
+              )}
+
               {/* 상세 내용 */}
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content}
+                    {approval.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>

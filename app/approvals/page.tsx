@@ -6,10 +6,12 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
 import { ApprovalModal } from "@/app/approvals/components/approval-modal"
-import { FormSelectionModal, FormTemplate } from "@/app/approvals/components/form-selection-modal"
+import { FormSelectionModal } from "@/app/approvals/components/form-selection-modal"
+import { FormManagementModal } from "@/app/approvals/components/form-management-modal"
 import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import approvals from "@/lib/mock-data/approvals"
+import { FormTemplate, formTemplates, getIconComponent } from "@/lib/mock-data/form-templates"
 import {
   Search,
   Plus,
@@ -24,26 +26,25 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronRight,
+  Settings,
 } from "lucide-react"
 
 // 타입 정의
 interface Approval {
   id: number
-  title: string
-  type: string
+  formTemplateId: string
   requester: string
   department: string
   date: string
   status: string
   priority: string
   content: string
-  icon: any
-  color: string
   isMyApproval: boolean
   approvalStages: any[]
   references: any[]
   history: any[]
   comments: any[]
+  formFields?: Record<string, any>
 }
 
 export default function ApprovalsPage() {
@@ -57,26 +58,28 @@ export default function ApprovalsPage() {
   })
   const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  
+
   // 결재 신청 관련 상태
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
   const [selectedFormTemplate, setSelectedFormTemplate] = useState<FormTemplate | null>(null)
+  const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
   // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
   const currentUser = "김철수"
 
   const filteredApprovals = approvals.filter((approval: Approval) => {
-    const matchesSearch = approval.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         approval.requester.toLowerCase().includes(searchTerm.toLowerCase())
+    const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+    const matchesSearch = (formTemplate?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      approval.requester.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
   // 섹션별로 결재 분류
-  const myPendingApprovals = filteredApprovals.filter((a: Approval) => 
+  const myPendingApprovals = filteredApprovals.filter((a: Approval) =>
     a.status === "pending" && a.isMyApproval === true
   )
-  const inProgressApprovals = filteredApprovals.filter((a: Approval) => 
+  const inProgressApprovals = filteredApprovals.filter((a: Approval) =>
     a.status === "pending" && a.isMyApproval === false
   )
   // approved와 rejected를 구분하지 않고, 기존 approvals 배열의 순서를 유지하여 완료된 결재를 필터링
@@ -160,6 +163,10 @@ export default function ApprovalsPage() {
     setIsFormSelectionOpen(true)
   }
 
+  const handleFormTemplateManagement = () => {
+    setIsFormManagementOpen(true)
+  }
+
   const handleFormSelect = (form: FormTemplate) => {
     setSelectedFormTemplate(form)
     setIsFormWriterOpen(true)
@@ -170,6 +177,7 @@ export default function ApprovalsPage() {
     attachments: any[]
     approvalStages: any[]
     references: any[]
+    formFields: Record<string, any>
   }) => {
     // 실제로는 API 호출을 통해 결재 신청
     console.log("결재 신청:", {
@@ -191,13 +199,12 @@ export default function ApprovalsPage() {
           {visibleApprovers.map((approver: any, index: number) => (
             <div
               key={approver.userId}
-              className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-sm font-medium shadow-sm ${
-                approver.status === 'completed' 
-                  ? 'bg-green-500 text-white' 
+              className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-sm font-medium shadow-sm ${approver.status === 'completed'
+                  ? 'bg-green-500 text-white'
                   : approver.status === 'rejected'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-300 text-gray-600'
-              }`}
+                    ? 'bg-red-500 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}
               title={`${approver.name} (${approver.position})`}
             >
               {approver.name.charAt(0)}
@@ -217,21 +224,29 @@ export default function ApprovalsPage() {
     const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
     const statusBgColor = getStatusBgColor(approval.status, approval.isMyApproval)
     const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
-    
+
+    // formTemplate 찾기
+    const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
+    if (!formTemplate) return null
+
     // 모든 승인자 정보 수집
     const allApprovers = approval.approvalStages.flatMap((stage: any) => stage.approvers)
-    
+
     return (
-      <GlassCard 
-        key={approval.id} 
-        className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden"
+      <GlassCard
+        key={approval.id}
+        className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden relative"
         onClick={() => handleApprovalClick(approval)}
       >
         <div className="flex items-center gap-4 h-full">
           <div
-            className={`w-12 h-12 bg-gradient-to-r ${approval.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
+            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
+            style={{ backgroundColor: formTemplate.color }}
           >
-            <approval.icon className="w-6 h-6 text-white" />
+            {(() => {
+              const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
+              return <IconComponent className="w-6 h-6 text-white" />
+            })()}
           </div>
           <div className="flex-1 flex flex-col justify-center h-full">
             <div className="flex items-center gap-3 mb-1 min-w-0">
@@ -242,10 +257,10 @@ export default function ApprovalsPage() {
               </div>
               <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
                 <StatusIcon className="w-3 h-3" />
-                {approval.status === "pending" ? 
+                {approval.status === "pending" ?
                   (approval.isMyApproval ? "승인 필요" : "진행중") :
-                 approval.status === "approved" ? "승인됨" :
-                 approval.status === "rejected" ? "반려됨" : approval.status}
+                  approval.status === "approved" ? "승인됨" :
+                    approval.status === "rejected" ? "반려됨" : approval.status}
               </div>
               {approval.priority === "high" && (
                 <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium flex-shrink-0">
@@ -254,7 +269,7 @@ export default function ApprovalsPage() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{approval.title}</h4>
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{formTemplate.title}</h4>
               <p className="text-gray-600 flex-1 truncate">{approval.content}</p>
               <div className="flex-shrink-0">
                 <ApproverAvatars approvers={allApprovers} />
@@ -263,37 +278,6 @@ export default function ApprovalsPage() {
           </div>
         </div>
       </GlassCard>
-    )
-  }
-
-  const renderSection = (title: string, approvals: Approval[], status: string, IconComponent: any, color: string) => {
-    if (approvals.length === 0) return null
-
-    return (
-      <div className="space-y-4">
-        <div 
-          className="flex items-center gap-3 p-4 bg-white/40 backdrop-blur-sm rounded-xl cursor-pointer hover:bg-white/60 transition-colors"
-          onClick={() => toggleSection(status)}
-        >
-          <div className={`w-8 h-8 bg-gradient-to-r ${color} rounded-lg flex items-center justify-center`}>
-            <IconComponent className="w-4 h-4 text-white" />
-          </div>
-          <h2 className={`${typography.h3} text-gray-800 flex-1`}>
-            {title} ({approvals.length}건)
-          </h2>
-          {collapsedSections[status] ? (
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          ) : (
-            <ChevronDown className="w-5 h-5 text-gray-500" />
-          )}
-        </div>
-        
-        {!collapsedSections[status] && (
-          <div className="space-y-4 pl-4">
-            {approvals.map(renderApprovalCard)}
-          </div>
-        )}
-      </div>
     )
   }
 
@@ -310,31 +294,35 @@ export default function ApprovalsPage() {
             className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
           />
         </div>
-        <GradientButton variant="primary" onClick={handleNewApprovalClick}>
-          <Plus className="w-4 h-4 mr-2" />
-          결재 신청
-        </GradientButton>
+        <div className="flex gap-3">
+          <GradientButton variant="secondary" onClick={handleFormTemplateManagement}>
+            <Settings className="w-4 h-4 mr-2" />
+            문서 양식 관리
+          </GradientButton>
+          <GradientButton variant="primary" onClick={handleNewApprovalClick}>
+            <Plus className="w-4 h-4 mr-2" />
+            문서 작성
+          </GradientButton>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setActiveTab("inProgress")}
-          className={`px-6 py-3 text-sm font-medium transition-colors ${
-            activeTab === "inProgress"
+          className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "inProgress"
               ? "text-blue-600 border-b-2 border-blue-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           진행중
         </button>
         <button
           onClick={() => setActiveTab("completed")}
-          className={`px-6 py-3 text-sm font-medium transition-colors ${
-            activeTab === "completed"
+          className={`px-6 py-3 text-sm font-medium transition-colors ${activeTab === "completed"
               ? "text-blue-600 border-b-2 border-blue-600"
               : "text-gray-500 hover:text-gray-700"
-          }`}
+            }`}
         >
           완료
         </button>
@@ -343,12 +331,42 @@ export default function ApprovalsPage() {
       {/* Tab Content */}
       {activeTab === "inProgress" && (
         <div className="space-y-6">
-          {/* 승인 필요 - 가장 우선적으로 표시 */}
-          {renderSection("승인 필요", myPendingApprovals, "myPending", AlertCircle, colors.status.warning.gradient)}
-          
-          {/* 진행중 - 타인의 승인을 기다리는 결재 */}
-          {renderSection("진행중", inProgressApprovals, "inProgress", Clock, colors.status.info.gradient)}
-          
+          {/* 내 승인 필요 섹션 */}
+          {myPendingApprovals.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-red-200">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <h2 className="text-lg font-semibold text-red-700">내 승인 필요</h2>
+                </div>
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm font-medium">
+                  {myPendingApprovals.length}건
+                </span>
+              </div>
+              <div className="space-y-4">
+                {myPendingApprovals.map(renderApprovalCard)}
+              </div>
+            </div>
+          )}
+
+          {/* 진행중 섹션 */}
+          {inProgressApprovals.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-blue-200">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-lg font-semibold text-blue-700">진행중</h2>
+                </div>
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-medium">
+                  {inProgressApprovals.length}건
+                </span>
+              </div>
+              <div className="space-y-4">
+                {inProgressApprovals.map(renderApprovalCard)}
+              </div>
+            </div>
+          )}
+
           {/* 검색 결과가 없을 때 */}
           {inProgressData.length === 0 && (
             <div className="text-center py-12">
@@ -367,7 +385,7 @@ export default function ApprovalsPage() {
               {completedData.map(renderApprovalCard)}
             </div>
           )}
-          
+
           {/* 검색 결과가 없을 때 */}
           {completedData.length === 0 && (
             <div className="text-center py-12">
@@ -393,6 +411,12 @@ export default function ApprovalsPage() {
         isOpen={isFormSelectionOpen}
         onClose={() => setIsFormSelectionOpen(false)}
         onSelectForm={handleFormSelect}
+      />
+
+      {/* 문서 양식 관리 모달 */}
+      <FormManagementModal
+        isOpen={isFormManagementOpen}
+        onClose={() => setIsFormManagementOpen(false)}
       />
 
       {/* 문서 작성 모달 */}
