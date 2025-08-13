@@ -842,6 +842,11 @@ export default function MembersPage() {
     setShowAddMemberModal(false)
   }
 
+  const handleAddMemberBack = () => {
+    setShowAddMemberModal(false)
+    setShowSettingsModal(true)
+  }
+
   const handleEmployeeUpdate = (updatedEmployee: Employee) => {
     setEmployees(prev => 
       prev.map(emp => emp.id === updatedEmployee.id ? updatedEmployee : emp)
@@ -1082,6 +1087,7 @@ export default function MembersPage() {
         isOpen={showAddMemberModal}
         onClose={handleAddMemberClose}
         onSave={handleAddMemberSave}
+        onBack={handleAddMemberBack}
       />
 
       {/* 설정 모달 */}

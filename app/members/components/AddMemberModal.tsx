@@ -397,7 +397,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
               <button
                 type="button"
                 className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
-                onClick={handleClose}
+                onClick={onBack || handleClose}
                 aria-label="뒤로가기"
               >
                 <ArrowLeft className="w-5 h-5" />
