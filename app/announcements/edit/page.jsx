@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -54,7 +54,8 @@ const DUMMY_ANNOUNCEMENT = {
   }
 };
 
-export default function AnnouncementEditPage() {
+// useSearchParams를 사용하는 컴포넌트를 별도로 분리
+function AnnouncementEditContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [title, setTitle] = useState("");
@@ -218,5 +219,28 @@ export default function AnnouncementEditPage() {
         </form>
       </div>
     </MainLayout>
+  );
+}
+
+// 로딩 컴포넌트
+function LoadingFallback() {
+  return (
+    <MainLayout>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">페이지를 불러오는 중...</p>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+// 메인 컴포넌트 - Suspense로 감싸기
+export default function AnnouncementEditPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AnnouncementEditContent />
+    </Suspense>
   );
 }
