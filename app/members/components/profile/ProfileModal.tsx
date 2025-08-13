@@ -105,7 +105,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
     reader.onload = (ev) => {
              const img = new Image()
        img.onload = () => {
-         // 고정된 크기의 정사각형 캔버스 생성 (512x512)
          const canvas = document.createElement('canvas')
          const ctx = canvas.getContext('2d')
          const size = 512
@@ -114,21 +113,17 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
          canvas.height = size
          
                                          if (ctx) {
-                       // 캔버스를 흰색으로 채우기
                        ctx.fillStyle = '#ffffff'
                        ctx.fillRect(0, 0, size, size)
                        
-                       // 이미지가 원형 영역을 완전히 채우도록 확대
                        const scale = Math.max(size / img.width, size / img.height)
                        const scaledWidth = img.width * scale
                        const scaledHeight = img.height * scale
                        const x = (size - scaledWidth) / 2
                        const y = (size - scaledHeight) / 2
                        
-                       // 이미지를 확대하여 캔버스 전체에 그리기 (원형 영역을 완전히 채움)
                        ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
            
-           // 캔버스를 base64로 변환
            const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8)
           setProfileImage(croppedImageUrl)
           const updatedEmployee = { ...employee, profileImage: croppedImageUrl }
@@ -321,12 +316,10 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                       </div>
                     </div>
                   </div>
-                 {/* Detail */}
                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                    <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
                    <DetailBlock joinDate={employee.joinDate} address={employee.address} isEditing={isEditing} formValues={{ joinDate: formState.joinDate, address: formState.address }} onChange={handleFormChange} />
                  </div>
-                                   {/* Intro */}
                   <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <div className="text-gray-700 font-semibold">자기소개</div>
@@ -368,7 +361,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                   </div>
                </div>
 
-                             {/* Center column */}
                <div className="flex flex-col gap-4">
                  {/* Schedule */}
                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
@@ -398,7 +390,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                      })()}
                    </div>
                  </div>
-                 {/* Remaining leaves */}
                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                    <div className="text-gray-500 text-sm mb-1">남은 연차</div>
                    <div className="text-2xl font-bold">{employee.remainingLeave || employee.remainingLeaveDays || 12}일</div>
@@ -413,12 +404,11 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
                                                            {/* Right column */}
                 <div className="flex flex-col gap-4">
-                  {/* Organization */}
                   <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                     <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
                     <OrganizationBlock main={selectedMainTeam} concurrent={selectedConcurrentTeams} isEditing={isEditing} onMainChange={handleMainChange} onConcurrentChange={handleConcurrentChange} teamsOptions={teamsOptions} user={employee} />
                   </div>
-                  {/* Policy */}
+
                   <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                     <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
                     <PolicyBlock workPolicies={formState.workPolicies ?? employee.workPolicies} isEditing={isEditing} onChange={(policies) => handleFormChange({ workPolicies: policies })} availablePolicies={workPolicies} />
@@ -428,7 +418,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           </div>
         </div>
 
-        {/* Bottom action bar removed: 편집은 기존 EditModal로 처리 */}
         <EditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}

@@ -183,7 +183,7 @@ export default function AddMemberModal({ isOpen, onClose, onSave, onBack }: AddM
 
   const handleToggleConcurrentOrg = (orgName: string) => {
     setMemberOrganizations(prev => {
-      if (prev.main === orgName) return prev; // 중복 방지
+      if (prev.main === orgName) return prev;
       const isSelected = prev.concurrent.includes(orgName);
       const next: MemberOrganizations = {
         main: prev.main,

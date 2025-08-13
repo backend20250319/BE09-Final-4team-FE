@@ -137,7 +137,6 @@ export default function OrganizationBlock({
             </select>
           </div>
 
-          {/* Concurrent Teams Selection */}
           <div>
             <label className="block text-sm text-gray-700 mb-2">겸직 조직</label>
             <div className="max-h-40 overflow-y-auto bg-gray-50 rounded-md p-2 border border-gray-200">
