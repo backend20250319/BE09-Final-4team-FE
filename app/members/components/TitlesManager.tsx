@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { X, Plus } from 'lucide-react'
+import { X, Plus, ArrowLeft } from 'lucide-react'
 
 type TitleKind = 'rank' | 'position' | 'duty' | 'job'
 
@@ -80,10 +81,28 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent data-hide-default-close className={`max-w-md max-h-[80vh] overflow-y-auto ${modalStyles.membersModal}`}>
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="뒤로가기"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <DialogTitle className="text-2xl font-bold text-gray-900">{current.title}</DialogTitle>
-          </DialogHeader>
+            <button
+              type="button"
+              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </DialogHeader>
 
           <div className="space-y-3">
             <div className="space-y-2">
@@ -114,8 +133,7 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
               <Plus className="w-4 h-4 mr-2" /> 새 항목 추가
             </Button>
 
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={onClose}>뒤로가기</Button>
+            <div className="flex justify-end pt-4">
               <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">저장하기</Button>
             </div>
           </div>
@@ -123,7 +141,7 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
       </Dialog>
 
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-sm">
+        <DialogContent data-hide-default-close className={`max-w-sm ${modalStyles.membersModal}`}>
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-gray-900">
               {current.title.replace('설정', '추가')}
@@ -144,7 +162,7 @@ export default function TitlesManager({ isOpen, onClose, type }: TitlesManagerPr
       </Dialog>
 
       <Dialog open={confirmIndex !== null} onOpenChange={() => setConfirmIndex(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent data-hide-default-close className={`max-w-sm ${modalStyles.membersModal}`}>
           <DialogHeader>
             <DialogTitle>삭제하시겠습니까?</DialogTitle>
             <DialogDescription>이 작업은 되돌릴 수 없습니다.</DialogDescription>

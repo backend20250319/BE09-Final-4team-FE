@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import modalStyles from './members-modal.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -85,28 +86,28 @@ export default function AddOrganizationModal({
   }, [organizations, excludedIds])
 
   useEffect(() => {
-    if (organization) {
-      setOrgName(organization.name)
-      setParentOrg(organization.parentId || '')
-      setSelectedLeader(organization.leader || null)
-      setSelectedMembers(organization.members || [])
-      setIsDirty(false)
-    } else {
+    if (isOpen) {
+      if (organization) {
+        setOrgName(organization.name)
+        setParentOrg(organization.parentId || '')
+        setSelectedLeader(organization.leader || null)
+        setSelectedMembers(organization.members || [])
+        setIsDirty(false)
+      } else {
         setOrgName('')
-      setParentOrg('')
-      setSelectedLeader(null)
-      setSelectedMembers([])
-      setIsDirty(false)
+        setParentOrg('')
+        setSelectedLeader(null)
+        setSelectedMembers([])
+        setIsDirty(false)
+      }
     }
-  }, [organization])
+  }, [isOpen, organization])
 
   const handleSave = () => {
     if (!orgName.trim()) {
       toast.error('조직 이름을 입력해주세요.')
       return
     }
-
-
 
     const newOrg: Organization = {
       id: organization?.id || Date.now().toString(),
@@ -117,6 +118,8 @@ export default function AddOrganizationModal({
     }
 
     onSave(newOrg)
+    
+    resetForm()
   }
 
   const handleDeleteClick = () => {
@@ -134,11 +137,33 @@ export default function AddOrganizationModal({
     setShowDeleteConfirm(true)
   }
 
+  const resetForm = () => {
+    setOrgName('')
+    setParentOrg('')
+    setSelectedLeader(null)
+    setSelectedMembers([])
+    setIsDirty(false)
+    setShowCloseConfirm(false)
+    setShowDeleteConfirm(false)
+    setShowDeleteWarn(false)
+    setDeleteWarnMessage('')
+  }
+
+  const handleClose = () => {
+    if (isDirty) {
+      setShowCloseConfirm(true)
+    } else {
+      resetForm()
+      onClose()
+    }
+  }
+
   const performDelete = () => {
     if (!organization) return
     toast.success('조직이 성공적으로 삭제되었습니다.')
     setShowDeleteConfirm(false)
     onDelete?.(organization.id)
+    resetForm()
     onClose()
   }
 
@@ -190,6 +215,7 @@ export default function AddOrganizationModal({
         setShowCloseConfirm(true)
         return
       }
+      resetForm()
       onClose()
       return
     }
@@ -199,23 +225,43 @@ export default function AddOrganizationModal({
     if (isDirty) {
       setShowCloseConfirm(true)
     } else {
+      resetForm()
       onClose()
     }
   }
 
   const confirmDiscardAndClose = () => {
     setShowCloseConfirm(false)
+    resetForm()
     onClose()
   }
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent data-hide-default-close className={`max-w-2xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}>
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-gray-900">
-              {organization ? '조직 수정' : '조직 추가'}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={requestClose}
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <DialogTitle className="text-2xl font-bold text-gray-900">
+                {organization ? '조직 수정' : '조직 추가'}
+              </DialogTitle>
+              <button
+                type="button"
+                className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                onClick={requestClose}
+                aria-label="닫기"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -383,6 +429,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowLeaderModal(false)}
         onSelect={handleLeaderSelect}
         selectedLeader={selectedLeader}
+        excludeMemberIds={selectedMembers.map(member => member.id)}
       />
 
       <MemberSelectionModal
@@ -390,6 +437,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowMemberModal(false)}
         onSelect={handleMemberSelect}
         selectedMembers={selectedMembers}
+        excludeMemberIds={selectedLeader ? [selectedLeader.id] : []}
       />
     </>
   )
