@@ -140,18 +140,18 @@ export default function LoginPage() {
       </div>
 
       <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-white/80 border-0 shadow-2xl login-card">
-        <CardHeader className="text-center pb-8">
+        <CardHeader className="text-center">
           {/* 로고 */}
           <div className="flex justify-center mb-4 login-logo">
-            <Image src="/logo.png" alt="Hermes Logo" width={160} height={160} />
+            <Image src="/logo.png" alt="Hermes Logo" width={200} height={200} />
           </div>
           
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent tracking-wide login-title">
-            Access Your Account
+            Sign In
           </CardTitle>
-          <CardDescription className="text-gray-600 font-medium text-lg leading-relaxed login-description">
+          {/* <CardDescription className="text-gray-600 font-medium text-lg leading-relaxed login-description">
             에르메스의 특별한 경험을 시작하세요
-          </CardDescription>
+          </CardDescription> */}
         </CardHeader>
 
         <CardContent className="login-content">

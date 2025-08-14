@@ -357,10 +357,6 @@ export default function AddOrganizationModal({
 
               <div className="flex justify-between pt-6">
               <div className="flex gap-2">
-                <Button variant="outline" onClick={requestClose}>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  뒤로가기
-                </Button>
                 {organization && (
                   <Button variant="destructive" onClick={handleDeleteClick}>
                     <Trash2 className="w-4 h-4 mr-2" />
