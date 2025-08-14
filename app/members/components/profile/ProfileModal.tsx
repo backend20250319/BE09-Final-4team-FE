@@ -56,54 +56,77 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [profileImage, setProfileImage] = useState<string>("")
   const [selfIntroduction, setSelfIntroduction] = useState<string>("")
+  const [isEditingIntro, setIsEditingIntro] = useState(false)
+  const [editingIntroText, setEditingIntroText] = useState<string>("")
 
   const isOwnProfile = user?.email === employee?.email
-  const canEdit = true
-  const canEditProfileImage = true
+  const canEdit = isOwnProfile
+  const canEditProfileImage = isOwnProfile
 
   useEffect(() => {
     if (!employee) return
     setProfileImage(employee.profileImage || employee.avatarUrl || "")
     setSelfIntroduction(employee.selfIntroduction || "")
+    setEditingIntroText(employee.selfIntroduction || "")
   }, [employee])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !employee) return
     
     const reader = new FileReader()
-    reader.onload = (ev) => {
-             const img = new Image()
-       img.onload = () => {
-         const canvas = document.createElement('canvas')
-         const ctx = canvas.getContext('2d')
-         const size = 512
-         
-         canvas.width = size
-         canvas.height = size
-         
-                                         if (ctx) {
-                       ctx.fillStyle = '#ffffff'
-                       ctx.fillRect(0, 0, size, size)
-                       
-                       const scale = Math.max(size / img.width, size / img.height)
-                       const scaledWidth = img.width * scale
-                       const scaledHeight = img.height * scale
-                       const x = (size - scaledWidth) / 2
-                       const y = (size - scaledHeight) / 2
-                       
-                       ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
-           
-           const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8)
-          setProfileImage(croppedImageUrl)
-          const updatedEmployee = { ...employee, profileImage: croppedImageUrl }
-          onUpdate?.(updatedEmployee)
-          window.dispatchEvent(
-            new CustomEvent("employeeUpdated", {
-              detail: updatedEmployee,
-            }) as Event
-          )
-          toast.success("프로필 이미지가 성공적으로 업데이트되었습니다.")
+    reader.onload = async (ev) => {
+      const img = new Image()
+      img.onload = async () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const size = 512
+        
+        canvas.width = size
+        canvas.height = size
+        
+        if (ctx) {
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, size, size)
+          
+          const scale = Math.max(size / img.width, size / img.height)
+          const scaledWidth = img.width * scale
+          const scaledHeight = img.height * scale
+          const x = (size - scaledWidth) / 2
+          const y = (size - scaledHeight) / 2
+          
+          ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
+          
+          const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8)
+          
+          try {
+            const response = await fetch(`/api/members/${employee.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                profileImage: croppedImageUrl
+              })
+            })
+
+            if (!response.ok) {
+              throw new Error('프로필 이미지 업데이트에 실패했습니다.')
+            }
+
+            setProfileImage(croppedImageUrl)
+            const updatedEmployee = { ...employee, profileImage: croppedImageUrl }
+            onUpdate?.(updatedEmployee)
+            window.dispatchEvent(
+              new CustomEvent("employeeUpdated", {
+                detail: updatedEmployee,
+              }) as Event
+            )
+            toast.success("프로필 이미지가 성공적으로 업데이트되었습니다.")
+          } catch (error) {
+            console.error('프로필 이미지 업데이트 오류:', error)
+            toast.error("프로필 이미지 업데이트에 실패했습니다.")
+          }
         }
       }
       img.src = ev.target?.result as string
@@ -114,6 +137,52 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
   const handleWorkScheduleClick = () => {
     onClose()
     router.push('/work')
+  }
+
+  const handleIntroEdit = () => {
+    setIsEditingIntro(true)
+    setEditingIntroText(selfIntroduction)
+  }
+
+  const handleIntroSave = async () => {
+    if (!employee) return
+    
+    try {
+      const response = await fetch(`/api/members/${employee.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selfIntroduction: editingIntroText
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('자기소개 업데이트에 실패했습니다.')
+      }
+
+      const updatedEmployee = { ...employee, selfIntroduction: editingIntroText }
+      setSelfIntroduction(editingIntroText)
+      onUpdate?.(updatedEmployee)
+      
+      window.dispatchEvent(
+        new CustomEvent("employeeUpdated", {
+          detail: updatedEmployee,
+        }) as Event
+      )
+      
+      toast.success("자기소개가 성공적으로 업데이트되었습니다.")
+      setIsEditingIntro(false)
+    } catch (error) {
+      console.error('자기소개 업데이트 오류:', error)
+      toast.error("자기소개 업데이트에 실패했습니다.")
+    }
+  }
+
+  const handleIntroCancel = () => {
+    setIsEditingIntro(false)
+    setEditingIntroText(selfIntroduction)
   }
 
 
@@ -229,8 +298,48 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                     <DetailBlock joinDate={employee.joinDate} address={employee.address} />
                   </div>
                                      <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                     <div className="text-gray-700 font-semibold mb-3">자기소개</div>
-                     <IntroBlock intro={selfIntroduction} />
+                     <div className="flex items-center justify-between mb-3">
+                       <div className="text-gray-700 font-semibold">자기소개</div>
+                       {canEdit && !isEditingIntro && (
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={handleIntroEdit}
+                           className="text-xs px-2 py-1 h-7"
+                         >
+                           수정
+                         </Button>
+                       )}
+                     </div>
+                     {isEditingIntro ? (
+                       <div className="space-y-3">
+                         <textarea
+                           value={editingIntroText}
+                           onChange={(e) => setEditingIntroText(e.target.value)}
+                           className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           rows={4}
+                           placeholder="자기소개를 입력하세요..."
+                         />
+                                                   <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              onClick={handleIntroSave}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              저장
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleIntroCancel}
+                            >
+                              취소
+                            </Button>
+                          </div>
+                       </div>
+                     ) : (
+                       <IntroBlock intro={selfIntroduction} />
+                     )}
                    </div>
                </div>
 
