@@ -1003,15 +1003,10 @@ export default function MembersPage() {
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-bold text-gray-900">{getTitle()}</h1>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={handleSettingsClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
-            >
+            <GradientButton variant="primary" onClick={handleSettingsClick}>
               <Settings className="w-4 h-4 mr-2" />
               설정
-            </Button>
+            </GradientButton>
                 </div>
               </div>
         <p className="text-gray-600">{getSubtitle()}</p>
