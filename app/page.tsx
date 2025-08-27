@@ -1,5 +1,7 @@
 "use client"
 
+import { newsApi } from "@/app/news/api";
+import { NewsArticle } from "@/app/news/types";
 import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
@@ -76,6 +78,10 @@ export default function DashboardPage() {
     isCheckedOut: false,
     lastCheckInDate: null
   })
+  
+  // 뉴스 관련 상태 추가
+  const [newsData, setNewsData] = useState<NewsArticle[]>([])
+  const [newsLoading, setNewsLoading] = useState(true)
 
   useEffect(() => {
     const updateTime = () => {
@@ -133,6 +139,29 @@ export default function DashboardPage() {
       setPendingApprovals(2)
     }
   }, [])
+
+  // 뉴스 데이터 로드 useEffect 추가
+  useEffect(() => {
+    const loadNews = async () => {
+      try {
+        setNewsLoading(true);
+        const news = await newsApi.getRecentNewsForDashboard();
+        setNewsData(news);
+      } catch (error) {
+        console.error('Error loading news:', error);
+        // 에러 시 기본 뉴스 사용
+        setNewsData([
+          { id: 1, categoryId: 1, categoryName: '경제', press: '경제신문', title: '뉴스를 불러올 수 없습니다', content: '', reporter: '', date: '', link: '#', createdAt: '' },
+          { id: 2, categoryId: 2, categoryName: 'IT', press: 'IT뉴스', title: '잠시 후 다시 시도해주세요', content: '', reporter: '', date: '', link: '#', createdAt: '' },
+          { id: 3, categoryId: 3, categoryName: '사회', press: '법률신문', title: '서버 연결을 확인해주세요', content: '', reporter: '', date: '', link: '#', createdAt: '' }
+        ]);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+
+    loadNews();
+  }, []);
 
   const handleCheckIn = () => {
     const now = new Date()
@@ -235,12 +264,6 @@ export default function DashboardPage() {
       { title: '2025년 하반기 인사발령', date: '2025.08.01', borderColor: '#007BFF', bgColor: '#EEF6FC' },
       { title: '여름 휴가 신청 안내', date: '2025.07.30', borderColor: '#00C56B', bgColor: '#E8FFF2' },
       { title: '사무실 이전 공지', date: '2025.07.28', borderColor: '#8F8F8F', bgColor: '#F9FAFB' }
-    ],
-
-    news: [
-      { title: '2025년 최저임금 인상률 확정', source: '경제신문', time: '1시간 전', url: 'https://news.example.com/1' },
-      { title: '원격근무 확대 정책 발표', source: 'IT뉴스', time: '3시간 전', url: 'https://news.example.com/2' },
-      { title: '직장 내 괴롭힘 방지법 개정', source: '법률신문', time: '5시간 전', url: 'https://news.example.com/3' }
     ]
   }
 
@@ -302,8 +325,6 @@ export default function DashboardPage() {
       unread: false,
     },
   ]
-
-
 
   const renderUnifiedDashboard = () => (
     <>
@@ -429,33 +450,49 @@ export default function DashboardPage() {
           </CardContent>
         </GlassCard>
 
-        {/* 뉴스 Card */}
+        {/* 뉴스 Card - 실제 크롤링된 뉴스 사용 */}
         <GlassCard className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">뉴스</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {adminData.news.map((item, index) => (
-              <a
-                key={index}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-gray-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-800 text-sm">{item.title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="secondary" className="text-xs">{item.source}</Badge>
-                    <span className="text-xs text-gray-500">{item.time}</span>
+            {newsLoading ? (
+              // 로딩 중일 때
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 animate-pulse">
+                    <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
                   </div>
-                </div>
-                <ExternalLink className="w-4 h-4 text-gray-400" />
-              </a>
-            ))}
+                ))}
+              </div>
+            ) : (
+              // 실제 뉴스 데이터 표시
+              newsData.map((item) => (
+                <a
+                  key={item.id}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <Globe className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-800 text-sm line-clamp-2">{item.title}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs">{item.press}</Badge>
+                      <span className="text-xs text-gray-500">{item.categoryName}</span>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-gray-400" />
+                </a>
+              ))
+            )}
           </CardContent>
         </GlassCard>
 
