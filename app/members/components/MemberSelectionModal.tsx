@@ -322,50 +322,54 @@ export default function MemberSelectionModal({
                     )}
                   </div>
 
-                  {isSelected && (
-                    <div
-                      className="flex items-center gap-4"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <RadioGroup
-                        value={assignmentType}
-                        onValueChange={(value) =>
-                          handleAssignmentTypeChange(
-                            member.id,
-                            value as "main" | "concurrent"
-                          )
-                        }
-                        className="flex gap-4"
+                  {/* 메인/겸직 선택 UI - 고정된 위치 */}
+                  <div className="w-32 flex-shrink-0">
+                    {isSelected && (
+                      <div
+                        className="flex items-center gap-4"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="main"
-                            id={`main-${member.id}`}
-                          />
-                          <Label
-                            htmlFor={`main-${member.id}`}
-                            className="text-sm font-medium"
-                          >
-                            메인
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="concurrent"
-                            id={`concurrent-${member.id}`}
-                          />
-                          <Label
-                            htmlFor={`concurrent-${member.id}`}
-                            className="text-sm font-medium"
-                          >
-                            겸직
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  )}
+                        <RadioGroup
+                          value={assignmentType}
+                          onValueChange={(value) =>
+                            handleAssignmentTypeChange(
+                              member.id,
+                              value as "main" | "concurrent"
+                            )
+                          }
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="main"
+                              id={`member-main-${member.id}`}
+                            />
+                            <Label
+                              htmlFor={`member-main-${member.id}`}
+                              className="text-sm font-medium"
+                            >
+                              메인
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="concurrent"
+                              id={`member-concurrent-${member.id}`}
+                            />
+                            <Label
+                              htmlFor={`member-concurrent-${member.id}`}
+                              className="text-sm font-medium"
+                            >
+                              겸직
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="text-right text-xs text-gray-500">
+                  {/* 연락처 정보 - 고정된 위치 */}
+                  <div className="w-48 text-right text-xs text-gray-500 flex-shrink-0">
                     <div>{member.email}</div>
                     <div>{member.phone}</div>
                   </div>

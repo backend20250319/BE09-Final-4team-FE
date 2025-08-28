@@ -48,13 +48,19 @@ export default function LeaderSelectionModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  
+
   // 중복 선택을 위해 Set으로 변경
   const [selectedLeaderIds, setSelectedLeaderIds] = useState<Set<string>>(
     new Set(selectedLeader ? [selectedLeader.member.id] : [])
   );
-  const [selectedAssignmentTypes, setSelectedAssignmentTypes] = useState<Map<string, "main" | "concurrent">>(
-    new Map(selectedLeader ? [[selectedLeader.member.id, selectedLeader.assignmentType]] : [])
+  const [selectedAssignmentTypes, setSelectedAssignmentTypes] = useState<
+    Map<string, "main" | "concurrent">
+  >(
+    new Map(
+      selectedLeader
+        ? [[selectedLeader.member.id, selectedLeader.assignmentType]]
+        : []
+    )
   );
 
   // 경고 모달 상태
@@ -219,7 +225,10 @@ export default function LeaderSelectionModal({
   };
 
   // assignmentType 변경
-  const handleAssignmentTypeChange = (memberId: string, type: "main" | "concurrent") => {
+  const handleAssignmentTypeChange = (
+    memberId: string,
+    type: "main" | "concurrent"
+  ) => {
     setSelectedAssignmentTypes((prev) => {
       const newTypes = new Map(prev);
       newTypes.set(memberId, type);
@@ -239,9 +248,8 @@ export default function LeaderSelectionModal({
         return { member, assignmentType };
       })
       .filter(
-        (item) => 
-          item.assignmentType === "concurrent" && 
-          item.member.currentMainOrg
+        (item) =>
+          item.assignmentType === "concurrent" && item.member.currentMainOrg
       );
 
     if (mainOrgChanges.length > 0) {
@@ -264,7 +272,7 @@ export default function LeaderSelectionModal({
   // 경고 확인 후 저장 진행
   const handleWarningConfirm = () => {
     setShowMainOrgWarning(false);
-    
+
     const selectedLeaders = Array.from(selectedLeaderIds).map((id) => {
       const member = members.find((m) => m.id === id)!;
       const assignmentType = selectedAssignmentTypes.get(id) || "main";
@@ -283,7 +291,9 @@ export default function LeaderSelectionModal({
   useEffect(() => {
     if (selectedLeader) {
       setSelectedLeaderIds(new Set([selectedLeader.member.id]));
-      setSelectedAssignmentTypes(new Map([[selectedLeader.member.id, selectedLeader.assignmentType]]));
+      setSelectedAssignmentTypes(
+        new Map([[selectedLeader.member.id, selectedLeader.assignmentType]])
+      );
     } else {
       setSelectedLeaderIds(new Set());
       setSelectedAssignmentTypes(new Map());
@@ -350,8 +360,9 @@ export default function LeaderSelectionModal({
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {filteredMembers.map((member) => {
               const isSelected = selectedLeaderIds.has(member.id);
-              const assignmentType = selectedAssignmentTypes.get(member.id) || "main";
-              
+              const assignmentType =
+                selectedAssignmentTypes.get(member.id) || "main";
+
               return (
                 <div
                   key={member.id}
@@ -385,51 +396,54 @@ export default function LeaderSelectionModal({
                     )}
                   </div>
 
-                  {/* 메인/겸직 선택 UI - 선택된 경우에만 표시 */}
-                  {isSelected && (
-                    <div
-                      className="flex items-center gap-4"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <RadioGroup
-                        value={assignmentType}
-                        onValueChange={(value) =>
-                          handleAssignmentTypeChange(
-                            member.id,
-                            value as "main" | "concurrent"
-                          )
-                        }
-                        className="flex gap-4"
+                  {/* 메인/겸직 선택 UI - 고정된 위치 */}
+                  <div className="w-32 flex-shrink-0">
+                    {isSelected && (
+                      <div
+                        className="flex items-center gap-4"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="main"
-                            id={`leader-main-${member.id}`}
-                          />
-                          <Label
-                            htmlFor={`leader-main-${member.id}`}
-                            className="text-sm font-medium"
-                          >
-                            메인
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="concurrent"
-                            id={`leader-concurrent-${member.id}`}
-                          />
-                          <Label
-                            htmlFor={`leader-concurrent-${member.id}`}
-                            className="text-sm font-medium"
-                          >
-                            겸직
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  )}
+                        <RadioGroup
+                          value={assignmentType}
+                          onValueChange={(value) =>
+                            handleAssignmentTypeChange(
+                              member.id,
+                              value as "main" | "concurrent"
+                            )
+                          }
+                          className="flex gap-4"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="main"
+                              id={`member-main-${member.id}`}
+                            />
+                            <Label
+                              htmlFor={`member-main-${member.id}`}
+                              className="text-sm font-medium"
+                            >
+                              메인
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="concurrent"
+                              id={`member-concurrent-${member.id}`}
+                            />
+                            <Label
+                              htmlFor={`member-concurrent-${member.id}`}
+                              className="text-sm font-medium"
+                            >
+                              겸직
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="text-right text-xs text-gray-500">
+                  {/* 연락처 정보 - 고정된 위치 */}
+                  <div className="w-48 text-right text-xs text-gray-500 flex-shrink-0">
                     <div>{member.email}</div>
                     <div>{member.phone}</div>
                   </div>
@@ -467,9 +481,7 @@ export default function LeaderSelectionModal({
                 >
                   취소
                 </Button>
-                <Button onClick={handleWarningConfirm}>
-                  확인
-                </Button>
+                <Button onClick={handleWarningConfirm}>확인</Button>
               </div>
             </div>
           </div>
