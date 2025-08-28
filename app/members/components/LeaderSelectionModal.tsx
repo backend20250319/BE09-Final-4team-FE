@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Search, User, ArrowLeft, X } from "lucide-react";
+import { Search, User, ArrowLeft, X, AlertTriangle } from "lucide-react";
 
 interface Member {
   id: string;
@@ -33,7 +33,7 @@ interface SelectedLeader {
 interface LeaderSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (leader: SelectedLeader) => void;
+  onSelect: (leaders: SelectedLeader[]) => void;
   selectedLeader: SelectedLeader | null;
   excludeMemberIds?: string[];
 }
@@ -48,12 +48,18 @@ export default function LeaderSelectionModal({
   const [members, setMembers] = useState<Member[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedLeaderId, setSelectedLeaderId] = useState<string | null>(
-    selectedLeader?.member.id || null
+  
+  // 중복 선택을 위해 Set으로 변경
+  const [selectedLeaderIds, setSelectedLeaderIds] = useState<Set<string>>(
+    new Set(selectedLeader ? [selectedLeader.member.id] : [])
   );
-  const [selectedAssignmentType, setSelectedAssignmentType] = useState<
-    "main" | "concurrent"
-  >(selectedLeader?.assignmentType || "main");
+  const [selectedAssignmentTypes, setSelectedAssignmentTypes] = useState<Map<string, "main" | "concurrent">>(
+    new Map(selectedLeader ? [[selectedLeader.member.id, selectedLeader.assignmentType]] : [])
+  );
+
+  // 경고 모달 상태
+  const [showMainOrgWarning, setShowMainOrgWarning] = useState(false);
+  const [warningMembers, setWarningMembers] = useState<SelectedLeader[]>([]);
 
   useEffect(() => {
     const sampleMembers: Member[] = [
@@ -187,29 +193,86 @@ export default function LeaderSelectionModal({
     setMembers(sampleMembers);
   }, []);
 
-  const handleMemberClick = (member: Member) => {
-    if (selectedLeaderId === member.id) {
-      setSelectedLeaderId(null);
-    } else {
-      setSelectedLeaderId(member.id);
-    }
+  // 멤버 선택/해제 토글 - 중복 선택 가능
+  const toggleMemberSelection = (memberId: string) => {
+    setSelectedLeaderIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(memberId)) {
+        newSet.delete(memberId);
+        // 선택 해제 시 assignmentType도 제거
+        setSelectedAssignmentTypes((prevTypes) => {
+          const newTypes = new Map(prevTypes);
+          newTypes.delete(memberId);
+          return newTypes;
+        });
+      } else {
+        newSet.add(memberId);
+        // 새로 선택 시 기본값은 'main'
+        setSelectedAssignmentTypes((prevTypes) => {
+          const newTypes = new Map(prevTypes);
+          newTypes.set(memberId, "main");
+          return newTypes;
+        });
+      }
+      return newSet;
+    });
   };
 
-  const handleAssignmentTypeChange = (type: "main" | "concurrent") => {
-    setSelectedAssignmentType(type);
+  // assignmentType 변경
+  const handleAssignmentTypeChange = (memberId: string, type: "main" | "concurrent") => {
+    setSelectedAssignmentTypes((prev) => {
+      const newTypes = new Map(prev);
+      newTypes.set(memberId, type);
+      return newTypes;
+    });
   };
 
+  // 저장 시 호출
   const handleSave = () => {
-    if (!selectedLeaderId) return;
+    if (selectedLeaderIds.size === 0) return;
 
-    const selectedMember = members.find((m) => m.id === selectedLeaderId);
-    if (selectedMember) {
-      const selectedLeader: SelectedLeader = {
-        member: selectedMember,
-        assignmentType: selectedAssignmentType,
-      };
-      onSelect(selectedLeader);
+    // 메인 조직 변경 경고 체크 - 기존 메인 조직을 겸직으로 변경할 때만
+    const mainOrgChanges = Array.from(selectedLeaderIds)
+      .map((id) => {
+        const member = members.find((m) => m.id === id)!;
+        const assignmentType = selectedAssignmentTypes.get(id) || "main";
+        return { member, assignmentType };
+      })
+      .filter(
+        (item) => 
+          item.assignmentType === "concurrent" && 
+          item.member.currentMainOrg
+      );
+
+    if (mainOrgChanges.length > 0) {
+      setWarningMembers(mainOrgChanges);
+      setShowMainOrgWarning(true);
+      return;
     }
+
+    // 선택된 모든 조직장들을 배열로 변환하여 전달
+    const selectedLeaders = Array.from(selectedLeaderIds).map((id) => {
+      const member = members.find((m) => m.id === id)!;
+      const assignmentType = selectedAssignmentTypes.get(id) || "main";
+      return { member, assignmentType };
+    });
+
+    onSelect(selectedLeaders);
+    onClose();
+  };
+
+  // 경고 확인 후 저장 진행
+  const handleWarningConfirm = () => {
+    setShowMainOrgWarning(false);
+    
+    const selectedLeaders = Array.from(selectedLeaderIds).map((id) => {
+      const member = members.find((m) => m.id === id)!;
+      const assignmentType = selectedAssignmentTypes.get(id) || "main";
+      return { member, assignmentType };
+    });
+
+    onSelect(selectedLeaders);
+    onClose();
   };
 
   useEffect(() => {
@@ -219,12 +282,15 @@ export default function LeaderSelectionModal({
 
   useEffect(() => {
     if (selectedLeader) {
-      setSelectedLeaderId(selectedLeader.member.id);
-      setSelectedAssignmentType(selectedLeader.assignmentType);
+      setSelectedLeaderIds(new Set([selectedLeader.member.id]));
+      setSelectedAssignmentTypes(new Map([[selectedLeader.member.id, selectedLeader.assignmentType]]));
     } else {
-      setSelectedLeaderId(null);
-      setSelectedAssignmentType("main");
+      setSelectedLeaderIds(new Set());
+      setSelectedAssignmentTypes(new Map());
     }
+    // 경고 상태 초기화
+    setShowMainOrgWarning(false);
+    setWarningMembers([]);
   }, [selectedLeader, isOpen]);
 
   const filteredMembers = members.filter((member) => {
@@ -238,7 +304,7 @@ export default function LeaderSelectionModal({
     );
   });
 
-  const hasSelectedLeader = selectedLeaderId !== null;
+  const hasSelectedLeader = selectedLeaderIds.size > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -283,8 +349,9 @@ export default function LeaderSelectionModal({
 
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {filteredMembers.map((member) => {
-              const isSelected = selectedLeaderId === member.id;
-
+              const isSelected = selectedLeaderIds.has(member.id);
+              const assignmentType = selectedAssignmentTypes.get(member.id) || "main";
+              
               return (
                 <div
                   key={member.id}
@@ -293,7 +360,7 @@ export default function LeaderSelectionModal({
                       ? "bg-blue-50 border-blue-200"
                       : "bg-white border-gray-200 hover:bg-gray-50"
                   }`}
-                  onClick={() => handleMemberClick(member)}
+                  onClick={() => toggleMemberSelection(member.id)}
                 >
                   <Avatar
                     className={`w-10 h-10 ${
@@ -318,15 +385,17 @@ export default function LeaderSelectionModal({
                     )}
                   </div>
 
+                  {/* 메인/겸직 선택 UI - 선택된 경우에만 표시 */}
                   {isSelected && (
                     <div
                       className="flex items-center gap-4"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <RadioGroup
-                        value={selectedAssignmentType}
+                        value={assignmentType}
                         onValueChange={(value) =>
                           handleAssignmentTypeChange(
+                            member.id,
                             value as "main" | "concurrent"
                           )
                         }
@@ -370,7 +439,6 @@ export default function LeaderSelectionModal({
           </div>
 
           <div className="flex justify-end pt-4">
-            {/* 뒤로가기 버튼 제거 - 저장하기 버튼만 남김 */}
             <Button
               onClick={handleSave}
               disabled={!hasSelectedLeader}
@@ -380,6 +448,32 @@ export default function LeaderSelectionModal({
             </Button>
           </div>
         </div>
+
+        {/* 메인 조직 변경 경고 모달 */}
+        {showMainOrgWarning && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
+              <div className="flex items-center space-x-3 mb-4">
+                <AlertTriangle className="w-6 h-6 text-yellow-500" />
+                <h3 className="text-lg font-semibold text-gray-900">경고</h3>
+              </div>
+              <p className="text-gray-700 mb-4">
+                기존 메인 조직이 겸직으로 변경됩니다.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMainOrgWarning(false)}
+                >
+                  취소
+                </Button>
+                <Button onClick={handleWarningConfirm}>
+                  확인
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
