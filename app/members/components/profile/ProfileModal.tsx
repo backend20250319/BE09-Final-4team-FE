@@ -29,7 +29,6 @@ import { MemberProfile, TeamInfo, WorkPolicy } from "./types"
 import OrganizationBlock from "./OrganizationBlock"
 import DetailBlock from "./DetailBlock"
 import PolicyBlock from "./PolicyBlock"
-import IntroBlock from "./IntroBlock"
 import EditModal from "../EditModal"
 
 interface Props {
@@ -55,9 +54,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [profileImage, setProfileImage] = useState<string>("")
-  const [selfIntroduction, setSelfIntroduction] = useState<string>("")
-  const [isEditingIntro, setIsEditingIntro] = useState(false)
-  const [editingIntroText, setEditingIntroText] = useState<string>("")
 
   const isOwnProfile = user?.email === employee?.email
   const canEdit = isOwnProfile
@@ -66,8 +62,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
   useEffect(() => {
     if (!employee) return
     setProfileImage(employee.profileImage || employee.avatarUrl || "")
-    setSelfIntroduction(employee.selfIntroduction || "")
-    setEditingIntroText(employee.selfIntroduction || "")
   }, [employee])
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +92,9 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
           
           const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8)
+          setProfileImage(croppedImageUrl)
           
+          // API 호출하여 프로필 이미지 업데이트
           try {
             const response = await fetch(`/api/members/${employee.id}`, {
               method: 'PATCH',
@@ -114,14 +110,15 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
               throw new Error('프로필 이미지 업데이트에 실패했습니다.')
             }
 
-            setProfileImage(croppedImageUrl)
             const updatedEmployee = { ...employee, profileImage: croppedImageUrl }
             onUpdate?.(updatedEmployee)
+            
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", {
                 detail: updatedEmployee,
               }) as Event
             )
+            
             toast.success("프로필 이미지가 성공적으로 업데이트되었습니다.")
           } catch (error) {
             console.error('프로필 이미지 업데이트 오류:', error)
@@ -135,57 +132,8 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
   }
 
   const handleWorkScheduleClick = () => {
-    onClose()
     router.push('/work')
   }
-
-  const handleIntroEdit = () => {
-    setIsEditingIntro(true)
-    setEditingIntroText(selfIntroduction)
-  }
-
-  const handleIntroSave = async () => {
-    if (!employee) return
-    
-    try {
-      const response = await fetch(`/api/members/${employee.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selfIntroduction: editingIntroText
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('자기소개 업데이트에 실패했습니다.')
-      }
-
-      const updatedEmployee = { ...employee, selfIntroduction: editingIntroText }
-      setSelfIntroduction(editingIntroText)
-      onUpdate?.(updatedEmployee)
-      
-      window.dispatchEvent(
-        new CustomEvent("employeeUpdated", {
-          detail: updatedEmployee,
-        }) as Event
-      )
-      
-      toast.success("자기소개가 성공적으로 업데이트되었습니다.")
-      setIsEditingIntro(false)
-    } catch (error) {
-      console.error('자기소개 업데이트 오류:', error)
-      toast.error("자기소개 업데이트에 실패했습니다.")
-    }
-  }
-
-  const handleIntroCancel = () => {
-    setIsEditingIntro(false)
-    setEditingIntroText(selfIntroduction)
-  }
-
-
 
   const teamsOptions: TeamInfo[] = (orgOptions || []).map((org) => ({
     teamId: org,
@@ -198,7 +146,6 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
     ...employee,
     profileImage,
     avatarUrl: profileImage,
-    selfIntroduction,
   }
 
   return (
@@ -222,15 +169,15 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
               <h2 className="text-2xl font-bold text-gray-900">프로필</h2>
               <p className="text-sm text-gray-500 mt-1">구성원 정보를 확인하고 편집할 수 있습니다.</p>
             </div>
-                         <div className="flex items-center gap-2">
-               {canEdit && (
-                 <Button
-                   onClick={() => setIsEditModalOpen(true)}
-                   className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-                 >
-                   편집하기
-                 </Button>
-               )}
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <Button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                >
+                  편집하기
+                </Button>
+              )}
               <button
                 type="button"
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
@@ -247,169 +194,127 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
         <div className="flex-1 overflow-hidden">
           <div className="px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-gray-800 text-sm md:text-base">
-                             {/* Left column */}
-               <div className="flex flex-col gap-4">
-                                   {/* Profile card */}
-                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <Avatar className="w-24 h-24">
-                          <AvatarImage src={currentUserData.avatarUrl || currentUserData.profileImage} alt={currentUserData.name} />
-                          <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
-                            <User className="w-12 h-12" />
-                          </AvatarFallback>
-                        </Avatar>
-                        {canEditProfileImage && (
-                          <div className="absolute -bottom-2 -right-2">
-                            <label htmlFor="profile-image-input" className="cursor-pointer">
-                              <div className="bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded-full shadow-lg transition-colors">
-                                <Edit3 className="w-4 h-4" />
-                              </div>
-                              <input
-                                id="profile-image-input"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="hidden"
-                              />
-                            </label>
+              {/* Left column */}
+              <div className="flex flex-col gap-4">
+                {/* Profile card */}
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar className="w-24 h-24">
+                        <AvatarImage src={currentUserData.avatarUrl || currentUserData.profileImage} alt={currentUserData.name} />
+                        <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
+                          <User className="w-12 h-12" />
+                        </AvatarFallback>
+                      </Avatar>
+                      {canEditProfileImage && (
+                        <div className="absolute -bottom-2 -right-2">
+                          <label htmlFor="profile-image-input" className="cursor-pointer">
+                            <div className="bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded-full shadow-lg transition-colors">
+                              <Edit3 className="w-4 h-4" />
+                            </div>
+                            <input
+                              id="profile-image-input"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-lg font-semibold mb-2">{currentUserData.name}</div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          <span className="break-all">{currentUserData.email}</span>
+                        </div>
+                        {currentUserData.phone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4" />
+                            <span>{currentUserData.phone}</span>
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="text-lg font-semibold mb-2">{currentUserData.name}</div>
-                        <div className="space-y-1 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4" />
-                            <span className="break-all">{currentUserData.email}</span>
-                          </div>
-                          {currentUserData.phone && (
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              <span>{currentUserData.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
                   </div>
-                                   <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
-                    <DetailBlock joinDate={employee.joinDate} address={employee.address} />
-                  </div>
-                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                     <div className="flex items-center justify-between mb-3">
-                       <div className="text-gray-700 font-semibold">자기소개</div>
-                       {canEdit && !isEditingIntro && (
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={handleIntroEdit}
-                           className="text-xs px-2 py-1 h-7"
-                         >
-                           수정
-                         </Button>
-                       )}
-                     </div>
-                     {isEditingIntro ? (
-                       <div className="space-y-3">
-                         <textarea
-                           value={editingIntroText}
-                           onChange={(e) => setEditingIntroText(e.target.value)}
-                           className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           rows={4}
-                           placeholder="자기소개를 입력하세요..."
-                         />
-                                                   <div className="flex gap-2 justify-center">
-                            <Button
-                              size="sm"
-                              onClick={handleIntroSave}
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              저장
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={handleIntroCancel}
-                            >
-                              취소
-                            </Button>
-                          </div>
-                       </div>
-                     ) : (
-                       <IntroBlock intro={selfIntroduction} />
-                     )}
-                   </div>
-               </div>
-
-               <div className="flex flex-col gap-4">
-                                   {/* Schedule */}
-                  <div 
-                    className="bg-white shadow p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={handleWorkScheduleClick}
-                  >
-                    <div className="text-gray-700 font-semibold mb-3">근무 일정</div>
-                    <div className="flex items-end justify-between gap-2 h-20">
-                      {(() => {
-                        const today = new Date()
-                        const currentDay = today.getDay()
-                        const sunday = new Date(today)
-                        sunday.setDate(today.getDate() - currentDay)
-                        const workHours = ["0h", "8h", "8h", "8h", "8h", "8h", "0h"]
-                        return [...Array(7)].map((_, i) => {
-                          const date = new Date(sunday)
-                          date.setDate(sunday.getDate() + i)
-                          const isToday = date.toDateString() === today.toDateString()
-                          const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                          const height = isWeekend ? "25%" : "100%"
-                          const dayIndex = date.getDay()
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center">
-                              <div className={`text-xs mb-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-600"}`}>{workHours[dayIndex]}</div>
-                              <div className={`w-full rounded-t-sm ${isToday ? "bg-blue-500" : isWeekend ? "bg-gray-300" : "bg-gray-500"}`} style={{ height }} />
-                              <div className={`text-xs mt-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{["일", "월", "화", "수", "목", "금", "토"][date.getDay()]}</div>
-                            </div>
-                          )
-                        })
-                      })()}
-                    </div>
-                  </div>
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-500 text-sm mb-1">남은 연차</div>
-                   <div className="text-2xl font-bold">{employee.remainingLeave || employee.remainingLeaveDays || 12}일</div>
-                 </div>
-                                   {/* This week hours */}
-                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                    <div className="text-gray-500 text-sm mb-1">이번 주 근무시간</div>
-                    <div className="text-2xl font-bold">{employee.weeklyWorkHours || employee.thisWeekHours || 42}h</div>
-                  </div>
-                 
-               </div>
-
-                                                           {/* Right column */}
-                <div className="flex flex-col gap-4">
-                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                     <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
-                     <OrganizationBlock 
-                       main={(() => {
-                         const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-                         const mainOrg = orgs[0]
-                         return mainOrg ? { teamId: mainOrg, name: mainOrg } : null
-                       })()}
-                       concurrent={(() => {
-                         const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-                         return orgs.slice(1).map(org => ({ teamId: org, name: org }))
-                       })()}
-                       user={employee} 
-                     />
-                   </div>
-
-                                     <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                     <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
-                     <PolicyBlock workPolicies={employee.workPolicies} availablePolicies={workPolicies} />
-                   </div>
                 </div>
+                
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
+                  <DetailBlock joinDate={employee.joinDate} address={employee.address} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Schedule */}
+                <div 
+                  className="bg-white shadow p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={handleWorkScheduleClick}
+                >
+                  <div className="text-gray-700 font-semibold mb-3">근무 일정</div>
+                  <div className="flex items-end justify-between gap-2 h-20">
+                    {(() => {
+                      const today = new Date()
+                      const currentDay = today.getDay()
+                      const sunday = new Date(today)
+                      sunday.setDate(today.getDate() - currentDay)
+                      const workHours = ["0h", "8h", "8h", "8h", "8h", "8h", "0h"]
+                      return [...Array(7)].map((_, i) => {
+                        const date = new Date(sunday)
+                        date.setDate(sunday.getDate() + i)
+                        const isToday = date.toDateString() === today.toDateString()
+                        const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                        const height = isWeekend ? "25%" : "100%"
+                        const dayIndex = date.getDay()
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center">
+                            <div className={`text-xs mb-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-600"}`}>{workHours[dayIndex]}</div>
+                            <div className={`w-full rounded-t-sm ${isToday ? "bg-blue-500" : isWeekend ? "bg-gray-300" : "bg-gray-500"}`} style={{ height }} />
+                            <div className={`text-xs mt-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{["일", "월", "화", "수", "목", "금", "토"][date.getDay()]}</div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+                
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-500 text-sm mb-1">남은 연차</div>
+                  <div className="text-2xl font-bold">{employee.remainingLeave || employee.remainingLeaveDays || 12}일</div>
+                </div>
+                
+                {/* This week hours */}
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-500 text-sm mb-1">이번 주 근무시간</div>
+                  <div className="text-2xl font-bold">{employee.weeklyWorkHours || employee.thisWeekHours || 42}h</div>
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="flex flex-col gap-4">
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
+                  <OrganizationBlock 
+                    main={(() => {
+                      const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
+                      const mainOrg = orgs[0]
+                      return mainOrg ? { teamId: mainOrg, name: mainOrg } : null
+                    })()}
+                    concurrent={(() => {
+                      const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
+                      return orgs.slice(1).map(org => ({ teamId: org, name: org }))
+                    })()}
+                    user={employee} 
+                  />
+                </div>
+
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
+                  <PolicyBlock workPolicies={employee.workPolicies} availablePolicies={workPolicies} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Search, Mail, Phone, Calendar, Building2 } from "lucide-react";
-import ProfileModal from './ProfileModal';
+import ProfileModal from "./ProfileModal";
+import { MemberProfile } from "./profile/types";
 
 interface Employee {
   id: string;
@@ -24,7 +25,7 @@ interface Employee {
   isAdmin: boolean;
   teams: string[];
   profileImage?: string;
-  selfIntroduction?: string;
+
   remainingLeave?: number;
   weeklyWorkHours?: number;
   weeklySchedule?: Array<{
@@ -45,54 +46,60 @@ interface MemberListProps {
 
 const getTeamColor = (team: string) => {
   const teamColors: Record<string, string> = {
-    '개발팀': '#10b981',
-    '기획팀': '#3b82f6',
-    '디자인팀': '#8b5cf6',
-    'QA팀': '#f59e0b',
-    '마케팅팀': '#ec4899',
-    '프론트엔드팀': '#3b82f6',
-    '백엔드팀': '#10b981',
-    '모바일팀': '#f59e0b',
-    'UI팀': '#8b5cf6',
-    'UX팀': '#ec4899',
-    '그래픽팀': '#ef4444',
-    '브랜드팀': '#06b6d4',
-    '콘텐츠팀': '#84cc16',
-    '홍보팀': '#f97316',
-    '경영팀': '#6366f1',
-    '인사팀': '#ec4899'
+    개발팀: "#10b981",
+    기획팀: "#3b82f6",
+    디자인팀: "#8b5cf6",
+    QA팀: "#f59e0b",
+    마케팅팀: "#ec4899",
+    프론트엔드팀: "#3b82f6",
+    백엔드팀: "#10b981",
+    모바일팀: "#f59e0b",
+    UI팀: "#8b5cf6",
+    UX팀: "#ec4899",
+    그래픽팀: "#ef4444",
+    브랜드팀: "#06b6d4",
+    콘텐츠팀: "#84cc16",
+    홍보팀: "#f97316",
+    경영팀: "#6366f1",
+    인사팀: "#ec4899",
   };
-  return teamColors[team] || '#6b7280';
+  return teamColors[team] || "#6b7280";
 };
 
 const getProfileImage = (name: string) => {
-      const hash = name.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
+  const hash = name.split("").reduce((a, b) => {
+    a = (a << 5) - a + b.charCodeAt(0);
     return a & a;
   }, 0);
-  
-      return `https://picsum.photos/96/96?random=${hash}`;
+
+  return `https://picsum.photos/96/96?random=${hash}`;
 };
 
-export default function MemberList({ 
-  employees, 
-  searchTerm, 
-  onSearchChange, 
-  selectedOrg, 
+export default function MemberList({
+  employees,
+  searchTerm,
+  onSearchChange,
+  selectedOrg,
   placeholder,
-  onEmployeeUpdate
+  onEmployeeUpdate,
 }: MemberListProps) {
   const [displayedCount, setDisplayedCount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoading && displayedCount < employees.length) {
+        if (
+          entries[0].isIntersecting &&
+          !isLoading &&
+          displayedCount < employees.length
+        ) {
           loadMore();
         }
       },
@@ -118,11 +125,11 @@ export default function MemberList({
 
   const loadMore = () => {
     if (isLoading || displayedCount >= employees.length) return;
-    
+
     setIsLoading(true);
-    
+
     setTimeout(() => {
-      setDisplayedCount(prev => Math.min(prev + 10, employees.length));
+      setDisplayedCount((prev) => Math.min(prev + 10, employees.length));
       setIsLoading(false);
     }, 300);
   };
@@ -137,25 +144,39 @@ export default function MemberList({
     setSelectedEmployee(null);
   };
 
-  const handleProfileUpdate = (updatedEmployee: Employee) => {
-    onEmployeeUpdate?.(updatedEmployee);
+  const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
+    // MemberProfile을 Employee로 변환하여 전달
+    const convertedEmployee: Employee = {
+      ...updatedEmployee,
+      teams: (
+        updatedEmployee.organizations || [updatedEmployee.organization]
+      ).filter(Boolean) as string[],
+      email: updatedEmployee.email || "",
+      name: updatedEmployee.name || "",
+      position: updatedEmployee.position || "",
+      role: updatedEmployee.role || "",
+      job: updatedEmployee.job || "",
+      joinDate: updatedEmployee.joinDate || "",
+      isAdmin: updatedEmployee.isAdmin || false,
+    };
+    onEmployeeUpdate?.(convertedEmployee);
   };
 
   const displayedEmployees = employees.slice(0, displayedCount);
 
   const EmployeeCard = ({ employee }: { employee: Employee }) => {
     const teams = employee.teams || [employee.organization].filter(Boolean);
-    
+
     const displayTeams = teams.slice(0, 3);
 
     console.log(`Employee ${employee.name}:`, {
       profileImage: employee.profileImage,
       hasProfileImage: !!employee.profileImage,
-      fallbackImage: getProfileImage(employee.name)
+      fallbackImage: getProfileImage(employee.name),
     });
 
     return (
-      <Card 
+      <Card
         className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
         onClick={() => handleEmployeeClick(employee)}
       >
@@ -163,11 +184,15 @@ export default function MemberList({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12 bg-transparent">
-                <AvatarImage 
+                <AvatarImage
                   src={employee.profileImage || getProfileImage(employee.name)}
                   className="bg-transparent"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}&background=ec4899&color=fff&size=96&font-size=0.4&length=1`;
+                    (
+                      e.target as HTMLImageElement
+                    ).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      employee.name
+                    )}&background=ec4899&color=fff&size=96&font-size=0.4&length=1`;
                   }}
                 />
                 <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">
@@ -176,18 +201,25 @@ export default function MemberList({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900 truncate">{employee.name}</h3>
+                  <h3 className="font-semibold text-gray-900 truncate">
+                    {employee.name}
+                  </h3>
                 </div>
-                <p className="text-sm text-gray-600 truncate">{employee.position}</p>
+                <p className="text-sm text-gray-600 truncate">
+                  {employee.position}
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-1">
               {displayTeams.map((team, index) => (
-                <Badge 
+                <Badge
                   key={index}
-                  variant="secondary" 
+                  variant="secondary"
                   className="text-xs"
-                  style={{ backgroundColor: getTeamColor(team), color: 'white' }}
+                  style={{
+                    backgroundColor: getTeamColor(team),
+                    color: "white",
+                  }}
                 >
                   {team}
                 </Badge>
@@ -209,7 +241,9 @@ export default function MemberList({
             )}
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-4 h-4" />
-              <span>입사일: {new Date(employee.joinDate).toLocaleDateString()}</span>
+              <span>
+                입사일: {new Date(employee.joinDate).toLocaleDateString()}
+              </span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Building2 className="w-4 h-4" />
@@ -234,11 +268,11 @@ export default function MemberList({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayedEmployees.map(employee => (
+        {displayedEmployees.map((employee) => (
           <EmployeeCard key={employee.id} employee={employee} />
         ))}
       </div>
-      
+
       {displayedCount < employees.length && (
         <div ref={loadingRef} className="flex justify-center py-4">
           {isLoading ? (
@@ -248,7 +282,8 @@ export default function MemberList({
             </div>
           ) : (
             <div className="text-center text-gray-500 text-sm">
-              스크롤하여 더 많은 직원 보기 ({employees.length - displayedCount}명 남음)
+              스크롤하여 더 많은 직원 보기 ({employees.length - displayedCount}
+              명 남음)
             </div>
           )}
         </div>
@@ -258,9 +293,7 @@ export default function MemberList({
         <div className="text-center py-8 text-gray-500">
           <p>검색 결과가 없습니다.</p>
           {(selectedOrg || searchTerm) && (
-            <p className="text-sm mt-2">
-              필터 조건을 변경해보세요.
-            </p>
+            <p className="text-sm mt-2">필터 조건을 변경해보세요.</p>
           )}
         </div>
       )}
@@ -273,4 +306,4 @@ export default function MemberList({
       />
     </div>
   );
-} 
+}

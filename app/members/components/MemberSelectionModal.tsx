@@ -209,13 +209,16 @@ export default function MemberSelectionModal({
   };
 
   const handleSave = () => {
-    const selectedMembersList: SelectedMember[] = Array.from(
-      selectedMemberAssignments.entries()
-    ).map(([memberId, assignmentType]) => {
-      const member = members.find((m) => m.id === memberId)!;
+    if (selectedMemberAssignments.size === 0) return;
+
+    // 선택된 모든 조직원들을 배열로 변환하여 전달
+    const selectedMembers = Array.from(selectedMemberAssignments.entries()).map(([id, assignmentType]) => {
+      const member = members.find((m) => m.id === id)!;
       return { member, assignmentType };
     });
-    onSelect(selectedMembersList);
+
+    onSelect(selectedMembers);
+    onClose();
   };
 
   useEffect(() => {

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Search, User, ArrowLeft, X, AlertTriangle } from "lucide-react";
+import { Search, User, ArrowLeft, X } from "lucide-react";
 
 interface Member {
   id: string;
@@ -62,10 +62,6 @@ export default function LeaderSelectionModal({
         : []
     )
   );
-
-  // 경고 모달 상태
-  const [showMainOrgWarning, setShowMainOrgWarning] = useState(false);
-  const [warningMembers, setWarningMembers] = useState<SelectedLeader[]>([]);
 
   useEffect(() => {
     const sampleMembers: Member[] = [
@@ -236,43 +232,11 @@ export default function LeaderSelectionModal({
     });
   };
 
-  // 저장 시 호출
+  // 저장 시 호출 - 경고 없이 바로 저장
   const handleSave = () => {
     if (selectedLeaderIds.size === 0) return;
 
-    // 메인 조직 변경 경고 체크 - 기존 메인 조직을 겸직으로 변경할 때만
-    const mainOrgChanges = Array.from(selectedLeaderIds)
-      .map((id) => {
-        const member = members.find((m) => m.id === id)!;
-        const assignmentType = selectedAssignmentTypes.get(id) || "main";
-        return { member, assignmentType };
-      })
-      .filter(
-        (item) =>
-          item.assignmentType === "concurrent" && item.member.currentMainOrg
-      );
-
-    if (mainOrgChanges.length > 0) {
-      setWarningMembers(mainOrgChanges);
-      setShowMainOrgWarning(true);
-      return;
-    }
-
     // 선택된 모든 조직장들을 배열로 변환하여 전달
-    const selectedLeaders = Array.from(selectedLeaderIds).map((id) => {
-      const member = members.find((m) => m.id === id)!;
-      const assignmentType = selectedAssignmentTypes.get(id) || "main";
-      return { member, assignmentType };
-    });
-
-    onSelect(selectedLeaders);
-    onClose();
-  };
-
-  // 경고 확인 후 저장 진행
-  const handleWarningConfirm = () => {
-    setShowMainOrgWarning(false);
-
     const selectedLeaders = Array.from(selectedLeaderIds).map((id) => {
       const member = members.find((m) => m.id === id)!;
       const assignmentType = selectedAssignmentTypes.get(id) || "main";
@@ -298,9 +262,6 @@ export default function LeaderSelectionModal({
       setSelectedLeaderIds(new Set());
       setSelectedAssignmentTypes(new Map());
     }
-    // 경고 상태 초기화
-    setShowMainOrgWarning(false);
-    setWarningMembers([]);
   }, [selectedLeader, isOpen]);
 
   const filteredMembers = members.filter((member) => {
@@ -396,7 +357,7 @@ export default function LeaderSelectionModal({
                     )}
                   </div>
 
-                  {/* 메인/겸직 선택 UI - 고정된 위치 */}
+                  {/* 메인/겸직 선택 UI - 먼저 배치 */}
                   <div className="w-32 flex-shrink-0">
                     {isSelected && (
                       <div
@@ -416,10 +377,10 @@ export default function LeaderSelectionModal({
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem
                               value="main"
-                              id={`member-main-${member.id}`}
+                              id={`leader-main-${member.id}`}
                             />
                             <Label
-                              htmlFor={`member-main-${member.id}`}
+                              htmlFor={`leader-main-${member.id}`}
                               className="text-sm font-medium"
                             >
                               메인
@@ -428,10 +389,10 @@ export default function LeaderSelectionModal({
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem
                               value="concurrent"
-                              id={`member-concurrent-${member.id}`}
+                              id={`leader-concurrent-${member.id}`}
                             />
                             <Label
-                              htmlFor={`member-concurrent-${member.id}`}
+                              htmlFor={`leader-concurrent-${member.id}`}
                               className="text-sm font-medium"
                             >
                               겸직
@@ -442,7 +403,7 @@ export default function LeaderSelectionModal({
                     )}
                   </div>
 
-                  {/* 연락처 정보 - 고정된 위치 */}
+                  {/* 연락처 정보 - 마지막에 배치 */}
                   <div className="w-48 text-right text-xs text-gray-500 flex-shrink-0">
                     <div>{member.email}</div>
                     <div>{member.phone}</div>
@@ -462,30 +423,6 @@ export default function LeaderSelectionModal({
             </Button>
           </div>
         </div>
-
-        {/* 메인 조직 변경 경고 모달 */}
-        {showMainOrgWarning && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <div className="flex items-center space-x-3 mb-4">
-                <AlertTriangle className="w-6 h-6 text-yellow-500" />
-                <h3 className="text-lg font-semibold text-gray-900">경고</h3>
-              </div>
-              <p className="text-gray-700 mb-4">
-                기존 메인 조직이 겸직으로 변경됩니다.
-              </p>
-              <div className="flex justify-end space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowMainOrgWarning(false)}
-                >
-                  취소
-                </Button>
-                <Button onClick={handleWarningConfirm}>확인</Button>
-              </div>
-            </div>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
