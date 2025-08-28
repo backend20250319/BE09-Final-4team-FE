@@ -1,112 +1,168 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import modalStyles from './members-modal.module.css'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { 
-  X,
-  Trash2,
-  ArrowLeft
-} from "lucide-react"
-import { toast } from 'sonner'
-import LeaderSelectionModal from './LeaderSelectionModal'
-import MemberSelectionModal from './MemberSelectionModal'
+import { useState, useEffect, useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import modalStyles from "./members-modal.module.css";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { X, Trash2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import LeaderSelectionModal from "./LeaderSelectionModal";
+import MemberSelectionModal from "./MemberSelectionModal";
 
 interface Member {
-  id: string
-  name: string
-  role: string
-  email: string
-  phone: string
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+  currentMainOrg?: string;
+  currentMainOrgName?: string;
+}
+
+interface SelectedMember {
+  member: Member;
+  assignmentType: "main" | "concurrent";
+}
+
+interface SelectedLeader {
+  member: Member;
+  assignmentType: "main" | "concurrent";
 }
 
 interface Organization {
-  id: string
-  name: string
-  parentId?: string
-  members: Member[]
-  leader?: Member
-  children?: Organization[]
+  id: string;
+  name: string;
+  parentId?: string;
+  members: SelectedMember[];
+  leader?: Member;
+  children?: Organization[];
 }
 
 interface AddOrganizationModalProps {
-  isOpen: boolean
-  onClose: () => void
-  organization?: Organization | null
-  onSave: (org: Organization) => void
-  onDelete?: (id: string) => void
-  organizations: Organization[]
+  isOpen: boolean;
+  onClose: () => void;
+  organization?: Organization | null;
+  onSave: (org: Organization) => void;
+  onDelete?: (id: string) => void;
+  organizations: Organization[];
 }
 
-export default function AddOrganizationModal({ 
-  isOpen, 
-  onClose, 
-  organization, 
+export default function AddOrganizationModal({
+  isOpen,
+  onClose,
+  organization,
   onSave,
   onDelete,
-  organizations
+  organizations,
 }: AddOrganizationModalProps) {
-  const [orgName, setOrgName] = useState('')
-  const [parentOrg, setParentOrg] = useState('')
-  const [selectedLeader, setSelectedLeader] = useState<Member | null>(null)
-  const [selectedMembers, setSelectedMembers] = useState<Member[]>([])
-  const [showLeaderModal, setShowLeaderModal] = useState(false)
-  const [showMemberModal, setShowMemberModal] = useState(false)
-  const [isDirty, setIsDirty] = useState(false)
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showDeleteWarn, setShowDeleteWarn] = useState(false)
-  const [deleteWarnMessage, setDeleteWarnMessage] = useState('')
+  const [orgName, setOrgName] = useState("");
+  const [parentOrg, setParentOrg] = useState("");
+  const [selectedLeader, setSelectedLeader] = useState<SelectedLeader | null>(
+    null
+  );
+  const [selectedMembers, setSelectedMembers] = useState<SelectedMember[]>([]);
+  const [showLeaderModal, setShowLeaderModal] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteWarn, setShowDeleteWarn] = useState(false);
+  const [deleteWarnMessage, setDeleteWarnMessage] = useState("");
 
-  const flattenOrgs = (orgs: Organization[], depth = 0): Array<{ id: string; name: string; depth: number }> => {
-    const list: Array<{ id: string; name: string; depth: number }> = []
-    orgs.forEach(o => {
-      list.push({ id: o.id, name: o.name, depth })
+  // 메인/겸직 변경 경고 메시지 상태
+  const [showMainOrgWarning, setShowMainOrgWarning] = useState(false);
+  const [mainOrgWarningMembers, setMainOrgWarningMembers] = useState<
+    SelectedMember[]
+  >([]);
+
+  const flattenOrgs = (
+    orgs: Organization[],
+    depth = 0
+  ): Array<{ id: string; name: string; depth: number }> => {
+    const list: Array<{ id: string; name: string; depth: number }> = [];
+    orgs.forEach((o) => {
+      list.push({ id: o.id, name: o.name, depth });
       if (o.children && o.children.length > 0) {
-        list.push(...flattenOrgs(o.children, depth + 1))
+        list.push(...flattenOrgs(o.children, depth + 1));
       }
-    })
-    return list
-  }
+    });
+    return list;
+  };
 
   const excludedIds = useMemo(() => {
-    const set = new Set<string>()
-    if (organization) set.add(organization.id)
-    return set
-  }, [organization])
+    const set = new Set<string>();
+    if (organization) set.add(organization.id);
+    return set;
+  }, [organization]);
 
   const parentOptions = useMemo(() => {
-    const flat = flattenOrgs(organizations)
-    return flat.filter(opt => !excludedIds.has(opt.id))
-  }, [organizations, excludedIds])
+    const flat = flattenOrgs(organizations);
+    return flat.filter((opt) => !excludedIds.has(opt.id));
+  }, [organizations, excludedIds]);
 
   useEffect(() => {
     if (isOpen) {
       if (organization) {
-        setOrgName(organization.name)
-        setParentOrg(organization.parentId || '')
-        setSelectedLeader(organization.leader || null)
-        setSelectedMembers(organization.members || [])
-        setIsDirty(false)
+        setOrgName(organization.name);
+        setParentOrg(organization.parentId || "");
+        // null 체크 추가
+        setSelectedLeader(
+          organization.leader
+            ? { member: organization.leader, assignmentType: "main" }
+            : null
+        );
+        setSelectedMembers(organization.members || []);
+        setIsDirty(false);
       } else {
-        setOrgName('')
-        setParentOrg('')
-        setSelectedLeader(null)
-        setSelectedMembers([])
-        setIsDirty(false)
+        setOrgName("");
+        setParentOrg("");
+        setSelectedLeader(null);
+        setSelectedMembers([]);
+        setIsDirty(false);
       }
     }
-  }, [isOpen, organization])
+  }, [isOpen, organization]);
+
+  // 메인 조직 변경 경고 체크
+  const checkMainOrgChanges = (members: SelectedMember[]) => {
+    const mainOrgChanges = members.filter(
+      (item) => item.assignmentType === "main" && item.member.currentMainOrg
+    );
+
+    if (mainOrgChanges.length > 0) {
+      setMainOrgWarningMembers(mainOrgChanges);
+      setShowMainOrgWarning(true);
+      return true;
+    }
+    return false;
+  };
 
   const handleSave = () => {
     if (!orgName.trim()) {
-      toast.error('조직 이름을 입력해주세요.')
-      return
+      toast.error("조직 이름을 입력해주세요.");
+      return;
+    }
+
+    // 메인 조직 변경 경고 체크
+    if (checkMainOrgChanges(selectedMembers)) {
+      return;
     }
 
     const newOrg: Organization = {
@@ -114,132 +170,159 @@ export default function AddOrganizationModal({
       name: orgName,
       parentId: parentOrg || undefined,
       members: selectedMembers,
-      leader: selectedLeader || undefined
-    }
+      // SelectedLeader에서 member만 추출
+      leader: selectedLeader?.member || undefined,
+    };
 
-    onSave(newOrg)
-    
-    resetForm()
-  }
+    onSave(newOrg);
+
+    resetForm();
+  };
 
   const handleDeleteClick = () => {
-    if (!organization) return
+    if (!organization) return;
     if (organization.members.length > 0) {
-      setDeleteWarnMessage('조직원을 모두 제거해야 삭제할 수 있습니다.')
-      setShowDeleteWarn(true)
-      return
+      setDeleteWarnMessage("조직원을 모두 제거해야 삭제할 수 있습니다.");
+      setShowDeleteWarn(true);
+      return;
     }
     if (organization.children && organization.children.length > 0) {
-      setDeleteWarnMessage('하위 조직을 모두 삭제한 후 삭제할 수 있습니다.')
-      setShowDeleteWarn(true)
-      return
+      setDeleteWarnMessage("하위 조직을 모두 삭제한 후 삭제할 수 있습니다.");
+      setShowDeleteWarn(true);
+      return;
     }
-    setShowDeleteConfirm(true)
-  }
+    setShowDeleteConfirm(true);
+  };
 
   const resetForm = () => {
-    setOrgName('')
-    setParentOrg('')
-    setSelectedLeader(null)
-    setSelectedMembers([])
-    setIsDirty(false)
-    setShowCloseConfirm(false)
-    setShowDeleteConfirm(false)
-    setShowDeleteWarn(false)
-    setDeleteWarnMessage('')
-  }
+    setOrgName("");
+    setParentOrg("");
+    setSelectedLeader(null);
+    setSelectedMembers([]);
+    setIsDirty(false);
+    setShowCloseConfirm(false);
+    setShowDeleteConfirm(false);
+    setShowDeleteWarn(false);
+    setDeleteWarnMessage("");
+    setShowMainOrgWarning(false);
+    setMainOrgWarningMembers([]);
+  };
 
   const handleClose = () => {
     if (isDirty) {
-      setShowCloseConfirm(true)
+      setShowCloseConfirm(true);
     } else {
-      resetForm()
-      onClose()
+      resetForm();
+      onClose();
     }
-  }
+  };
 
   const performDelete = () => {
-    if (!organization) return
-    toast.success('조직이 성공적으로 삭제되었습니다.')
-    setShowDeleteConfirm(false)
-    onDelete?.(organization.id)
-    resetForm()
-    onClose()
-  }
+    if (!organization) return;
+    toast.success("조직이 성공적으로 삭제되었습니다.");
+    setShowDeleteConfirm(false);
+    onDelete?.(organization.id);
+    resetForm();
+    onClose();
+  };
 
-  const handleLeaderSelect = (leader: Member) => {
-    setSelectedLeader(leader)
-    setShowLeaderModal(false)
-  }
+  const handleLeaderSelect = (leader: SelectedLeader) => {
+    setSelectedLeader(leader);
+    setShowLeaderModal(false);
+  };
 
-  const handleMemberSelect = (members: Member[]) => {
-    setSelectedMembers(members)
-    setShowMemberModal(false)
-  }
+  const handleMemberSelect = (members: SelectedMember[]) => {
+    setSelectedMembers(members);
+    setShowMemberModal(false);
+  };
 
   const removeLeader = () => {
-    setSelectedLeader(null)
-  }
+    setSelectedLeader(null);
+  };
 
   const removeMember = (memberId: string) => {
-    setSelectedMembers(prev => prev.filter(member => member.id !== memberId))
-  }
+    setSelectedMembers((prev) =>
+      prev.filter((item) => item.member.id !== memberId)
+    );
+  };
 
-  const canDelete = organization && organization.members.length === 0 && 
-    (!organization.children || organization.children.length === 0)
+  const canDelete =
+    organization &&
+    organization.members.length === 0 &&
+    (!organization.children || organization.children.length === 0);
 
-  const canSave = Boolean(orgName.trim()) && isDirty
+  const canSave = Boolean(orgName.trim()) && isDirty;
 
   useEffect(() => {
     const initial = organization
       ? {
           orgName: organization.name,
-          parent: organization.parentId || '',
+          parent: organization.parentId || "",
           leaderId: organization.leader?.id || null,
-          memberIds: (organization.members || []).map(m => m.id).join(',')
+          memberIds: (organization.members || [])
+            .map((m) => m.member.id)
+            .join(","),
         }
-      : { orgName: '', parent: '', leaderId: null, memberIds: '' }
+      : { orgName: "", parent: "", leaderId: null, memberIds: "" };
 
     const current = {
       orgName,
       parent: parentOrg,
-      leaderId: selectedLeader?.id || null,
-      memberIds: selectedMembers.map(m => m.id).join(',')
-    }
-    setIsDirty(JSON.stringify(initial) !== JSON.stringify(current))
-  }, [organization, orgName, parentOrg, selectedLeader, selectedMembers])
+      leaderId: selectedLeader?.member.id || null,
+      memberIds: selectedMembers.map((m) => m.member.id).join(","),
+    };
+    setIsDirty(JSON.stringify(initial) !== JSON.stringify(current));
+  }, [organization, orgName, parentOrg, selectedLeader, selectedMembers]);
 
   const handleDialogOpenChange = (open: boolean) => {
     if (!open) {
       if (isDirty) {
-        setShowCloseConfirm(true)
-        return
+        setShowCloseConfirm(true);
+        return;
       }
-      resetForm()
-      onClose()
-      return
+      resetForm();
+      onClose();
+      return;
     }
-  }
+  };
 
   const requestClose = () => {
     if (isDirty) {
-      setShowCloseConfirm(true)
+      setShowCloseConfirm(true);
     } else {
-      resetForm()
-      onClose()
+      resetForm();
+      onClose();
     }
-  }
+  };
 
   const confirmDiscardAndClose = () => {
-    setShowCloseConfirm(false)
-    resetForm()
-    onClose()
-  }
+    setShowCloseConfirm(false);
+    resetForm();
+    onClose();
+  };
+
+  // 메인 조직 변경 경고 확인 후 저장 진행
+  const confirmMainOrgChange = () => {
+    setShowMainOrgWarning(false);
+    const newOrg: Organization = {
+      id: organization?.id || Date.now().toString(),
+      name: orgName,
+      parentId: parentOrg || undefined,
+      members: selectedMembers,
+      // SelectedLeader에서 member만 추출
+      leader: selectedLeader?.member || undefined,
+    };
+    onSave(newOrg);
+    resetForm();
+  };
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent data-hide-default-close className={`max-w-2xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}>
+        <DialogContent
+          data-hide-default-close
+          className={`max-w-2xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}
+        >
           <DialogHeader>
             <div className="flex items-center justify-between">
               <button
@@ -251,7 +334,7 @@ export default function AddOrganizationModal({
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <DialogTitle className="text-2xl font-bold text-gray-900">
-                {organization ? '조직 수정' : '조직 추가'}
+                {organization ? "조직 수정" : "조직 추가"}
               </DialogTitle>
               <button
                 type="button"
@@ -277,15 +360,18 @@ export default function AddOrganizationModal({
 
             <div className="space-y-2">
               <Label htmlFor="parentOrg">상위 조직</Label>
-              <Select value={parentOrg || 'none'} onValueChange={(v) => setParentOrg(v === 'none' ? '' : v)}>
+              <Select
+                value={parentOrg || "none"}
+                onValueChange={(v) => setParentOrg(v === "none" ? "" : v)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="상위 조직 선택" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">없음</SelectItem>
-                  {parentOptions.map(opt => (
+                  {parentOptions.map((opt) => (
                     <SelectItem key={opt.id} value={opt.id}>
-                      {`${'\u00A0'.repeat(opt.depth * 2)}${opt.name}`}
+                      {`${"\u00A0".repeat(opt.depth * 2)}${opt.name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -299,22 +385,39 @@ export default function AddOrganizationModal({
                 onClick={() => setShowLeaderModal(true)}
                 className="w-full justify-start"
               >
-                {selectedLeader ? `${selectedLeader.name} ${selectedLeader.role}` : '조직장 선택'}
+                {selectedLeader
+                  ? `${selectedLeader.member.name} ${
+                      selectedLeader.member.role
+                    } (${
+                      selectedLeader.assignmentType === "main" ? "메인" : "겸직"
+                    })`
+                  : "조직장 선택"}
               </Button>
               {selectedLeader && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge
                     variant="secondary"
-                    className="bg-blue-100 text-blue-800 cursor-pointer hover:bg-red-100"
+                    className={`cursor-pointer hover:bg-red-100 ${
+                      selectedLeader.assignmentType === "main"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
                     onClick={removeLeader}
                   >
-                    {selectedLeader.name} {selectedLeader.role}
+                    {selectedLeader.member.name} {selectedLeader.member.role}
+                    <span className="ml-1 text-xs">
+                      (
+                      {selectedLeader.assignmentType === "main"
+                        ? "메인"
+                        : "겸직"}
+                      )
+                    </span>
                     <X
                       className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500"
                       aria-label="조직장 제거"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        removeLeader()
+                        e.stopPropagation();
+                        removeLeader();
                       }}
                     />
                   </Badge>
@@ -333,20 +436,27 @@ export default function AddOrganizationModal({
               </Button>
               {selectedMembers.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedMembers.map(member => (
+                  {selectedMembers.map((item) => (
                     <Badge
-                      key={member.id}
+                      key={item.member.id}
                       variant="secondary"
-                      className="bg-blue-100 text-blue-800 cursor-pointer hover:bg-red-100"
-                      onClick={() => removeMember(member.id)}
+                      className={`cursor-pointer hover:bg-red-100 ${
+                        item.assignmentType === "main"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                      onClick={() => removeMember(item.member.id)}
                     >
-                      {member.name} {member.role}
+                      {item.member.name} {item.member.role}
+                      <span className="ml-1 text-xs">
+                        ({item.assignmentType === "main" ? "메인" : "겸직"})
+                      </span>
                       <X
                         className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500"
-                        aria-label={`${member.name} 제거`}
+                        aria-label={`${item.member.name} 제거`}
                         onClick={(e) => {
-                          e.stopPropagation()
-                          removeMember(member.id)
+                          e.stopPropagation();
+                          removeMember(item.member.id);
                         }}
                       />
                     </Badge>
@@ -355,7 +465,7 @@ export default function AddOrganizationModal({
               )}
             </div>
 
-              <div className="flex justify-between pt-6">
+            <div className="flex justify-between pt-6">
               <div className="flex gap-2">
                 {organization && (
                   <Button variant="destructive" onClick={handleDeleteClick}>
@@ -364,7 +474,7 @@ export default function AddOrganizationModal({
                   </Button>
                 )}
               </div>
-              <Button 
+              <Button
                 onClick={handleSave}
                 disabled={!canSave}
                 className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
@@ -376,17 +486,71 @@ export default function AddOrganizationModal({
         </DialogContent>
       </Dialog>
 
+      {/* 메인 조직 변경 경고 모달 */}
+      <Dialog open={showMainOrgWarning} onOpenChange={setShowMainOrgWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-orange-500" />
+              메인 조직 변경 경고
+            </DialogTitle>
+            <DialogDescription>
+              다음 구성원의 기존 메인 조직이 겸직으로 변경됩니다:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mb-4">
+            {mainOrgWarningMembers.map((item) => (
+              <div
+                key={item.member.id}
+                className="p-2 bg-orange-50 rounded border border-orange-200"
+              >
+                <div className="font-medium">{item.member.name}</div>
+                <div className="text-sm text-orange-600">
+                  기존 메인: {item.member.currentMainOrgName}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowMainOrgWarning(false)}
+            >
+              취소
+            </Button>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={confirmMainOrgChange}
+            >
+              계속 진행
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">변경 사항이 저장되지 않았습니다</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              변경 사항이 저장되지 않았습니다
+            </DialogTitle>
             <DialogDescription>
               저장하지 않은 변경 사항이 있습니다. 닫으시겠습니까?
             </DialogDescription>
           </DialogHeader>
-            <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowCloseConfirm(false)}>취소</Button>
-            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={confirmDiscardAndClose}>변경사항 저장하지 않고 닫기</Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCloseConfirm(false)}
+            >
+              취소
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={confirmDiscardAndClose}
+            >
+              변경사항 저장하지 않고 닫기
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -394,13 +558,15 @@ export default function AddOrganizationModal({
       <Dialog open={showDeleteWarn} onOpenChange={setShowDeleteWarn}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">삭제할 수 없습니다</DialogTitle>
-            <DialogDescription>
-              {deleteWarnMessage}
-            </DialogDescription>
+            <DialogTitle className="text-lg font-semibold">
+              삭제할 수 없습니다
+            </DialogTitle>
+            <DialogDescription>{deleteWarnMessage}</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => setShowDeleteWarn(false)} >확인</Button>
+            <Button variant="outline" onClick={() => setShowDeleteWarn(false)}>
+              확인
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -408,14 +574,23 @@ export default function AddOrganizationModal({
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">조직 삭제</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              조직 삭제
+            </DialogTitle>
             <DialogDescription>
               정말로 이 조직을 삭제하시겠습니까?
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>취소</Button>
-            <Button variant="destructive" onClick={performDelete}>삭제</Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              취소
+            </Button>
+            <Button variant="destructive" onClick={performDelete}>
+              삭제
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -425,7 +600,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowLeaderModal(false)}
         onSelect={handleLeaderSelect}
         selectedLeader={selectedLeader}
-        excludeMemberIds={selectedMembers.map(member => member.id)}
+        excludeMemberIds={selectedMembers.map((item) => item.member.id)}
       />
 
       <MemberSelectionModal
@@ -433,8 +608,8 @@ export default function AddOrganizationModal({
         onClose={() => setShowMemberModal(false)}
         onSelect={handleMemberSelect}
         selectedMembers={selectedMembers}
-        excludeMemberIds={selectedLeader ? [selectedLeader.id] : []}
+        excludeMemberIds={selectedLeader ? [selectedLeader.member.id] : []}
       />
     </>
-  )
-} 
+  );
+}
