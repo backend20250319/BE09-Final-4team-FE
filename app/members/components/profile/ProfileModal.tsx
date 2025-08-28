@@ -1,8 +1,13 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState } from "react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import React, { useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   X,
@@ -15,138 +20,181 @@ import {
   Edit3,
   Shield,
   Users,
-} from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { toast } from "sonner"
-import { useAuth } from "@/hooks/useAuth"
-import { useOrganizationsList, useTitlesFromMembers } from "@/hooks/use-members-derived-data"
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  useOrganizationsList,
+  useTitlesFromMembers,
+} from "@/hooks/use-members-derived-data";
+import { useRouter } from "next/navigation";
 
-import modalStyles from "../members-modal.module.css"
+import modalStyles from "../members-modal.module.css";
 
-import { MemberProfile, TeamInfo, WorkPolicy } from "./types"
-import OrganizationBlock from "./OrganizationBlock"
-import DetailBlock from "./DetailBlock"
-import PolicyBlock from "./PolicyBlock"
-import EditModal from "../EditModal"
+import { MemberProfile, TeamInfo, WorkPolicy } from "./types";
+import OrganizationBlock from "./OrganizationBlock";
+import OrganizationDetailBlock from "./OrganizationDetailBlock";
+import DetailBlock from "./DetailBlock";
+import PolicyBlock from "./PolicyBlock";
+import EditModal from "../EditModal";
 
 interface Props {
-  isOpen: boolean
-  onClose: () => void
-  employee: MemberProfile | null
-  onUpdate?: (updatedEmployee: MemberProfile) => void
+  isOpen: boolean;
+  onClose: () => void;
+  employee: MemberProfile | null;
+  onUpdate?: (updatedEmployee: MemberProfile) => void;
 }
 
 const workPolicies: WorkPolicy[] = [
-  { id: "fixed-9to6", label: "9-6 고정근무", description: "오전 9시 ~ 오후 6시 고정 근무", color: "bg-blue-100 text-blue-800" },
-  { id: "flexible", label: "유연근무", description: "코어타임 내 자유로운 출퇴근", color: "bg-green-100 text-green-800" },
-  { id: "autonomous", label: "자율근무", description: "업무 성과 기반 자율 근무", color: "bg-purple-100 text-purple-800" },
-  { id: "remote", label: "재택근무", description: "원격 근무 가능", color: "bg-orange-100 text-orange-800" },
-  { id: "hybrid", label: "하이브리드", description: "사무실 + 재택 혼합 근무", color: "bg-indigo-100 text-indigo-800" },
-]
+  {
+    id: "fixed-9to6",
+    label: "9-6 고정근무",
+    description: "오전 9시 ~ 오후 6시 고정 근무",
+    color: "bg-blue-100 text-blue-800",
+  },
+  {
+    id: "flexible",
+    label: "유연근무",
+    description: "코어타임 내 자유로운 출퇴근",
+    color: "bg-green-100 text-green-800",
+  },
+  {
+    id: "autonomous",
+    label: "자율근무",
+    description: "업무 성과 기반 자율 근무",
+    color: "bg-purple-100 text-purple-800",
+  },
+  {
+    id: "remote",
+    label: "재택근무",
+    description: "원격 근무 가능",
+    color: "bg-orange-100 text-orange-800",
+  },
+  {
+    id: "hybrid",
+    label: "하이브리드",
+    description: "사무실 + 재택 혼합 근무",
+    color: "bg-indigo-100 text-indigo-800",
+  },
+];
 
-export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Props) {
-  const { user } = useAuth()
-  const { organizations: orgOptions } = useOrganizationsList()
-  const { ranks, positions, jobs, roles, loading: titleLoading } = useTitlesFromMembers()
-  const router = useRouter()
+export default function ProfileModal({
+  isOpen,
+  onClose,
+  employee,
+  onUpdate,
+}: Props) {
+  const { user } = useAuth();
+  const { organizations: orgOptions } = useOrganizationsList();
+  const {
+    ranks,
+    positions,
+    jobs,
+    roles,
+    loading: titleLoading,
+  } = useTitlesFromMembers();
+  const router = useRouter();
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [profileImage, setProfileImage] = useState<string>("")
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string>("");
 
-  const isOwnProfile = user?.email === employee?.email
-  const canEdit = isOwnProfile
-  const canEditProfileImage = isOwnProfile
+  const isOwnProfile = user?.email === employee?.email;
+  const canEdit = isOwnProfile;
+  const canEditProfileImage = isOwnProfile;
 
   useEffect(() => {
-    if (!employee) return
-    setProfileImage(employee.profileImage || employee.avatarUrl || "")
-  }, [employee])
+    if (!employee) return;
+    setProfileImage(employee.profileImage || employee.avatarUrl || "");
+  }, [employee]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !employee) return
-    
-    const reader = new FileReader()
+    const file = e.target.files?.[0];
+    if (!file || !employee) return;
+
+    const reader = new FileReader();
     reader.onload = async (ev) => {
-      const img = new Image()
+      const img = new Image();
       img.onload = async () => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const size = 512
-        
-        canvas.width = size
-        canvas.height = size
-        
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const size = 512;
+
+        canvas.width = size;
+        canvas.height = size;
+
         if (ctx) {
-          ctx.fillStyle = '#ffffff'
-          ctx.fillRect(0, 0, size, size)
-          
-          const scale = Math.max(size / img.width, size / img.height)
-          const scaledWidth = img.width * scale
-          const scaledHeight = img.height * scale
-          const x = (size - scaledWidth) / 2
-          const y = (size - scaledHeight) / 2
-          
-          ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
-          
-          const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8)
-          setProfileImage(croppedImageUrl)
-          
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, size, size);
+
+          const scale = Math.max(size / img.width, size / img.height);
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          const x = (size - scaledWidth) / 2;
+          const y = (size - scaledHeight) / 2;
+
+          ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+          const croppedImageUrl = canvas.toDataURL("image/jpeg", 0.8);
+          setProfileImage(croppedImageUrl);
+
           // API 호출하여 프로필 이미지 업데이트
           try {
             const response = await fetch(`/api/members/${employee.id}`, {
-              method: 'PATCH',
+              method: "PATCH",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                profileImage: croppedImageUrl
-              })
-            })
+                profileImage: croppedImageUrl,
+              }),
+            });
 
             if (!response.ok) {
-              throw new Error('프로필 이미지 업데이트에 실패했습니다.')
+              throw new Error("프로필 이미지 업데이트에 실패했습니다.");
             }
 
-            const updatedEmployee = { ...employee, profileImage: croppedImageUrl }
-            onUpdate?.(updatedEmployee)
-            
+            const updatedEmployee = {
+              ...employee,
+              profileImage: croppedImageUrl,
+            };
+            onUpdate?.(updatedEmployee);
+
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", {
                 detail: updatedEmployee,
               }) as Event
-            )
-            
-            toast.success("프로필 이미지가 성공적으로 업데이트되었습니다.")
+            );
+
+            toast.success("프로필 이미지가 성공적으로 업데이트되었습니다.");
           } catch (error) {
-            console.error('프로필 이미지 업데이트 오류:', error)
-            toast.error("프로필 이미지 업데이트에 실패했습니다.")
+            console.error("프로필 이미지 업데이트 오류:", error);
+            toast.error("프로필 이미지 업데이트에 실패했습니다.");
           }
         }
-      }
-      img.src = ev.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleWorkScheduleClick = () => {
-    router.push('/work')
-  }
+    router.push("/work");
+  };
 
   const teamsOptions: TeamInfo[] = (orgOptions || []).map((org) => ({
     teamId: org,
     name: org,
-  }))
+  }));
 
-  if (!employee) return null
+  if (!employee) return null;
 
   const currentUserData: MemberProfile = {
     ...employee,
     profileImage,
     avatarUrl: profileImage,
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -154,6 +202,8 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
         data-hide-default-close
         className={`max-w-6xl w-[96vw] max-h-screen bg-white text-gray-900 border border-gray-200 shadow-2xl ${modalStyles.membersModal} p-0 flex flex-col overflow-hidden`}
       >
+        <DialogTitle className="sr-only">프로필</DialogTitle>
+
         {/* Header */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between gap-3">
@@ -167,7 +217,9 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
             </button>
             <div className="flex-1 text-center">
               <h2 className="text-2xl font-bold text-gray-900">프로필</h2>
-              <p className="text-sm text-gray-500 mt-1">구성원 정보를 확인하고 편집할 수 있습니다.</p>
+              <p className="text-sm text-gray-500 mt-1">
+                구성원 정보를 확인하고 편집할 수 있습니다.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               {canEdit && (
@@ -201,14 +253,23 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Avatar className="w-24 h-24">
-                        <AvatarImage src={currentUserData.avatarUrl || currentUserData.profileImage} alt={currentUserData.name} />
+                        <AvatarImage
+                          src={
+                            currentUserData.avatarUrl ||
+                            currentUserData.profileImage
+                          }
+                          alt={currentUserData.name}
+                        />
                         <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
                           <User className="w-12 h-12" />
                         </AvatarFallback>
                       </Avatar>
                       {canEditProfileImage && (
                         <div className="absolute -bottom-2 -right-2">
-                          <label htmlFor="profile-image-input" className="cursor-pointer">
+                          <label
+                            htmlFor="profile-image-input"
+                            className="cursor-pointer"
+                          >
                             <div className="bg-blue-500 hover:bg-blue-600 text-white p-1.5 rounded-full shadow-lg transition-colors">
                               <Edit3 className="w-4 h-4" />
                             </div>
@@ -224,11 +285,15 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="text-lg font-semibold mb-2">{currentUserData.name}</div>
+                      <div className="text-lg font-semibold mb-2">
+                        {currentUserData.name}
+                      </div>
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <Mail className="w-4 h-4" />
-                          <span className="break-all">{currentUserData.email}</span>
+                          <span className="break-all">
+                            {currentUserData.email}
+                          </span>
                         </div>
                         {currentUserData.phone && (
                           <div className="flex items-center gap-2">
@@ -240,81 +305,173 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-700 font-semibold mb-3">상세 정보</div>
-                  <DetailBlock joinDate={employee.joinDate} address={employee.address} />
+                  <div className="text-gray-700 font-semibold mb-3">
+                    상세 정보
+                  </div>
+                  <DetailBlock
+                    joinDate={employee.joinDate}
+                    address={employee.address}
+                  />
                 </div>
               </div>
 
               <div className="flex flex-col gap-4">
                 {/* Schedule */}
-                <div 
+                <div
                   className="bg-white shadow p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={handleWorkScheduleClick}
                 >
-                  <div className="text-gray-700 font-semibold mb-3">근무 일정</div>
+                  <div className="text-gray-700 font-semibold mb-3">
+                    근무 일정
+                  </div>
                   <div className="flex items-end justify-between gap-2 h-20">
                     {(() => {
-                      const today = new Date()
-                      const currentDay = today.getDay()
-                      const sunday = new Date(today)
-                      sunday.setDate(today.getDate() - currentDay)
-                      const workHours = ["0h", "8h", "8h", "8h", "8h", "8h", "0h"]
+                      const today = new Date();
+                      const currentDay = today.getDay();
+                      const sunday = new Date(today);
+                      sunday.setDate(today.getDate() - currentDay);
+                      const workHours = [
+                        "0h",
+                        "8h",
+                        "8h",
+                        "8h",
+                        "8h",
+                        "8h",
+                        "0h",
+                      ];
                       return [...Array(7)].map((_, i) => {
-                        const date = new Date(sunday)
-                        date.setDate(sunday.getDate() + i)
-                        const isToday = date.toDateString() === today.toDateString()
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6
-                        const height = isWeekend ? "25%" : "100%"
-                        const dayIndex = date.getDay()
+                        const date = new Date(sunday);
+                        date.setDate(sunday.getDate() + i);
+                        const isToday =
+                          date.toDateString() === today.toDateString();
+                        const isWeekend =
+                          date.getDay() === 0 || date.getDay() === 6;
+                        const height = isWeekend ? "25%" : "100%";
+                        const dayIndex = date.getDay();
                         return (
-                          <div key={i} className="flex-1 flex flex-col items-center">
-                            <div className={`text-xs mb-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-600"}`}>{workHours[dayIndex]}</div>
-                            <div className={`w-full rounded-t-sm ${isToday ? "bg-blue-500" : isWeekend ? "bg-gray-300" : "bg-gray-500"}`} style={{ height }} />
-                            <div className={`text-xs mt-1 ${isToday ? "text-blue-600 font-bold" : "text-gray-500"}`}>{["일", "월", "화", "수", "목", "금", "토"][date.getDay()]}</div>
+                          <div
+                            key={i}
+                            className="flex-1 flex flex-col items-center"
+                          >
+                            <div
+                              className={`text-xs mb-1 ${
+                                isToday
+                                  ? "text-blue-600 font-bold"
+                                  : "text-gray-600"
+                              }`}
+                            >
+                              {workHours[dayIndex]}
+                            </div>
+                            <div
+                              className={`w-full rounded-t-sm ${
+                                isToday
+                                  ? "bg-blue-500"
+                                  : isWeekend
+                                  ? "bg-gray-300"
+                                  : "bg-gray-500"
+                              }`}
+                              style={{ height }}
+                            />
+                            <div
+                              className={`text-xs mt-1 ${
+                                isToday
+                                  ? "text-blue-600 font-bold"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {
+                                ["일", "월", "화", "수", "목", "금", "토"][
+                                  date.getDay()
+                                ]
+                              }
+                            </div>
                           </div>
-                        )
-                      })
+                        );
+                      });
                     })()}
                   </div>
                 </div>
-                
+
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-500 text-sm mb-1">남은 연차</div>
-                  <div className="text-2xl font-bold">{employee.remainingLeave || employee.remainingLeaveDays || 12}일</div>
+                  <div className="text-2xl font-bold">
+                    {employee.remainingLeave ||
+                      employee.remainingLeaveDays ||
+                      12}
+                    일
+                  </div>
                 </div>
-                
+
                 {/* This week hours */}
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-500 text-sm mb-1">이번 주 근무시간</div>
-                  <div className="text-2xl font-bold">{employee.weeklyWorkHours || employee.thisWeekHours || 42}h</div>
+                  <div className="text-gray-500 text-sm mb-1">
+                    이번 주 근무시간
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {employee.weeklyWorkHours || employee.thisWeekHours || 42}h
+                  </div>
                 </div>
               </div>
 
-              {/* Right column */}
-              <div className="flex flex-col gap-4">
-                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-700 font-semibold mb-3">조직 정보</div>
-                  <OrganizationBlock 
-                    main={(() => {
-                      const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-                      const mainOrg = orgs[0]
-                      return mainOrg ? { teamId: mainOrg, name: mainOrg } : null
-                    })()}
-                    concurrent={(() => {
-                      const orgs = employee.organizations ?? (employee.organization ? [employee.organization] : [])
-                      return orgs.slice(1).map(org => ({ teamId: org, name: org }))
-                    })()}
-                    user={employee} 
-                  />
-                </div>
+                             {/* Right column */}
+               <div className="flex flex-col gap-4">
+                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                   <div className="text-gray-700 font-semibold mb-3">
+                     조직 정보
+                   </div>
+                   <OrganizationBlock
+                     main={(() => {
+                       const orgs =
+                         employee.organizations ??
+                         (employee.organization ? [employee.organization] : []);
+                       const mainOrg = orgs[0];
+                       return mainOrg
+                         ? { teamId: mainOrg, name: mainOrg }
+                         : null;
+                     })()}
+                     concurrent={(() => {
+                       const orgs =
+                         employee.organizations ??
+                         (employee.organization ? [employee.organization] : []);
+                       return orgs
+                         .slice(1)
+                         .map((org) => ({ teamId: org, name: org }));
+                     })()}
+                     user={employee}
+                   />
+                 </div>
 
-                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-700 font-semibold mb-3">근무 정책</div>
-                  <PolicyBlock workPolicies={employee.workPolicies} availablePolicies={workPolicies} />
-                </div>
-              </div>
+                 {/* 새로운 조직 상세 정보 세션 */}
+                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                   <div className="text-gray-700 font-semibold mb-3">
+                     조직 상세 정보
+                   </div>
+                   <OrganizationDetailBlock 
+                     main={(() => {
+                       const orgs =
+                         employee.organizations ??
+                         (employee.organization ? [employee.organization] : []);
+                       const mainOrg = orgs[0];
+                       return mainOrg
+                         ? { teamId: mainOrg, name: mainOrg }
+                         : null;
+                     })()}
+                     user={employee} 
+                   />
+                 </div>
+
+                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                   <div className="text-gray-700 font-semibold mb-3">
+                     근무 정책
+                   </div>
+                   <PolicyBlock
+                     workPolicies={employee.workPolicies}
+                     availablePolicies={workPolicies}
+                   />
+                 </div>
+               </div>
             </div>
           </div>
         </div>
@@ -324,13 +481,13 @@ export default function ProfileModal({ isOpen, onClose, employee, onUpdate }: Pr
           onClose={() => setIsEditModalOpen(false)}
           employee={employee as any}
           onUpdate={(updated) => {
-            onUpdate?.(updated as any)
-            window.dispatchEvent(new CustomEvent('employeeUpdated', { detail: updated }) as Event)
+            onUpdate?.(updated as any);
+            window.dispatchEvent(
+              new CustomEvent("employeeUpdated", { detail: updated }) as Event
+            );
           }}
         />
       </DialogContent>
     </Dialog>
-  )
+  );
 }
-
-
