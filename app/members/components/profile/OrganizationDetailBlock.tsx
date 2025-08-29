@@ -41,9 +41,9 @@ export default function OrganizationDetailBlock({
   return (
     <div className="space-y-4">
       {main ? (
-        <div className="bg-white rounded-lg p-0 flex"> 
+        <div className="bg-white rounded-lg flex flex-col items-start">
           {metaItems.length > 0 && (
-            <div className="flex flex-wrap gap-2 justify-start">
+            <div className="flex flex-wrap gap-2 justify-start w-full">
               {metaItems.map((m) => {
                 const Icon = m.icon;
                 return (
@@ -52,8 +52,10 @@ export default function OrganizationDetailBlock({
                     variant="outline"
                     className="inline-flex items-center gap-1.5 bg-white border-gray-200 px-3 py-1 text-xs"
                   >
-                    <Icon className="w-3.5 h-3.5 text-gray-500" />
-                    <span className="text-gray-600">{m.label}</span>
+                    <Icon className="w-3.5 h-3.5 text-gray-500 flex-none" />
+                    <span className="text-gray-600 whitespace-nowrap">
+                      {m.label}
+                    </span>
                     <span className="font-medium text-gray-900">{m.value}</span>
                   </Badge>
                 );
