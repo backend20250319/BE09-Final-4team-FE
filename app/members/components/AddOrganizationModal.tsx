@@ -226,8 +226,8 @@ export default function AddOrganizationModal({
     onClose();
   };
 
-  const handleLeaderSelect = (leader: SelectedLeader) => {
-    setSelectedLeader(leader);
+  const handleLeaderSelect = (leaders: SelectedLeader[]) => {
+    setSelectedLeader(leaders.length > 0 ? leaders[0] : null);
     setShowLeaderModal(false);
   };
 
@@ -324,26 +324,18 @@ export default function AddOrganizationModal({
           className={`max-w-2xl max-h-[90vh] overflow-y-auto ${modalStyles.membersModal}`}
         >
           <DialogHeader>
-            <div className="flex items-center justify-between">
+            <div className="relative flex items-center justify-center w-full">
               <button
                 type="button"
-                className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+                className="absolute left-0 p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
                 onClick={requestClose}
                 aria-label="뒤로가기"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <DialogTitle className="text-2xl font-bold text-gray-900">
+              <DialogTitle className="text-2xl font-bold text-gray-900 text-center transform -translate-x-1">
                 {organization ? "조직 수정" : "조직 추가"}
               </DialogTitle>
-              <button
-                type="button"
-                className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
-                onClick={requestClose}
-                aria-label="닫기"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
           </DialogHeader>
 

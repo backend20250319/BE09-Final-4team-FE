@@ -212,10 +212,12 @@ export default function MemberSelectionModal({
     if (selectedMemberAssignments.size === 0) return;
 
     // 선택된 모든 조직원들을 배열로 변환하여 전달
-    const selectedMembers = Array.from(selectedMemberAssignments.entries()).map(([id, assignmentType]) => {
-      const member = members.find((m) => m.id === id)!;
-      return { member, assignmentType };
-    });
+    const selectedMembers = Array.from(selectedMemberAssignments.entries()).map(
+      ([id, assignmentType]) => {
+        const member = members.find((m) => m.id === id)!;
+        return { member, assignmentType };
+      }
+    );
 
     onSelect(selectedMembers);
     onClose();
@@ -253,26 +255,18 @@ export default function MemberSelectionModal({
         className={`max-w-2xl max-h-[80vh] overflow-y-auto ${modalStyles.membersModal}`}
       >
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="relative flex items-center justify-center">
             <button
               type="button"
-              className="p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
+              className="absolute left-0 p-2 -ml-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer z-10"
               onClick={onClose}
               aria-label="뒤로가기"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <DialogTitle className="text-2xl font-bold text-gray-900">
+            <DialogTitle className="text-center text-2xl font-bold text-gray-900 transform -translate-x-1">
               조직원 선택
             </DialogTitle>
-            <button
-              type="button"
-              className="p-2 -mr-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded cursor-pointer"
-              onClick={onClose}
-              aria-label="닫기"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </DialogHeader>
 

@@ -207,16 +207,11 @@ export default function ProfileModal({
         {/* Header */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
-              onClick={onClose}
-              aria-label="뒤로가기"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
+            
             <div className="flex-1 text-center">
-              <h2 className="text-2xl font-bold text-gray-900">프로필</h2>
+              <h2 className="text-2xl font-bold text-gray-900 transform -translate-x-[5px]">
+                프로필
+              </h2>
               <p className="text-sm text-gray-500 mt-1">
                 구성원 정보를 확인하고 편집할 수 있습니다.
               </p>
@@ -230,17 +225,17 @@ export default function ProfileModal({
                   편집하기
                 </Button>
               )}
-              <button
-                type="button"
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
-                onClick={onClose}
-                aria-label="닫기"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
           </div>
         </div>
+        <button
+          type="button"
+          className="absolute top-4 right-4 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Content without internal scroll: 1→2→3 columns responsive */}
         <div className="flex-1 overflow-hidden">
