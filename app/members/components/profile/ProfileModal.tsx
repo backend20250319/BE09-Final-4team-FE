@@ -308,7 +308,7 @@ export default function ProfileModal({
 
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-700 font-semibold mb-3">
-                    조직 상세 정보
+                    내 직무/직책 정보
                   </div>
                   <OrganizationDetailBlock
                     main={(() => {
