@@ -308,6 +308,24 @@ export default function ProfileModal({
 
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-700 font-semibold mb-3">
+                    조직 상세 정보
+                  </div>
+                  <OrganizationDetailBlock 
+                    main={(() => {
+                      const orgs =
+                        employee.organizations ??
+                        (employee.organization ? [employee.organization] : []);
+                      const mainOrg = orgs[0];
+                      return mainOrg
+                        ? { teamId: mainOrg, name: mainOrg }
+                        : null;
+                    })()}
+                    user={employee} 
+                  />
+                </div>
+
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">
                     상세 정보
                   </div>
                   <DetailBlock
@@ -444,24 +462,7 @@ export default function ProfileModal({
                  </div>
 
                  {/* 새로운 조직 상세 정보 세션 */}
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-700 font-semibold mb-3">
-                     조직 상세 정보
-                   </div>
-                   <OrganizationDetailBlock 
-                     main={(() => {
-                       const orgs =
-                         employee.organizations ??
-                         (employee.organization ? [employee.organization] : []);
-                       const mainOrg = orgs[0];
-                       return mainOrg
-                         ? { teamId: mainOrg, name: mainOrg }
-                         : null;
-                     })()}
-                     user={employee} 
-                   />
-                 </div>
-
+                 
                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                    <div className="text-gray-700 font-semibold mb-3">
                      근무 정책
