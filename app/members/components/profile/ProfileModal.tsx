@@ -310,7 +310,7 @@ export default function ProfileModal({
                   <div className="text-gray-700 font-semibold mb-3">
                     조직 상세 정보
                   </div>
-                  <OrganizationDetailBlock 
+                  <OrganizationDetailBlock
                     main={(() => {
                       const orgs =
                         employee.organizations ??
@@ -320,7 +320,7 @@ export default function ProfileModal({
                         ? { teamId: mainOrg, name: mainOrg }
                         : null;
                     })()}
-                    user={employee} 
+                    user={employee}
                   />
                 </div>
 
@@ -433,46 +433,46 @@ export default function ProfileModal({
                 </div>
               </div>
 
-                             {/* Right column */}
-               <div className="flex flex-col gap-4">
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-700 font-semibold mb-3">
-                     조직 정보
-                   </div>
-                   <OrganizationBlock
-                     main={(() => {
-                       const orgs =
-                         employee.organizations ??
-                         (employee.organization ? [employee.organization] : []);
-                       const mainOrg = orgs[0];
-                       return mainOrg
-                         ? { teamId: mainOrg, name: mainOrg }
-                         : null;
-                     })()}
-                     concurrent={(() => {
-                       const orgs =
-                         employee.organizations ??
-                         (employee.organization ? [employee.organization] : []);
-                       return orgs
-                         .slice(1)
-                         .map((org) => ({ teamId: org, name: org }));
-                     })()}
-                     user={employee}
-                   />
-                 </div>
+              {/* Right column */}
+              <div className="flex flex-col gap-4">
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">
+                    조직 정보
+                  </div>
+                  <OrganizationBlock
+                    main={(() => {
+                      const orgs =
+                        employee.organizations ??
+                        (employee.organization ? [employee.organization] : []);
+                      const mainOrg = orgs[0];
+                      return mainOrg
+                        ? { teamId: mainOrg, name: mainOrg }
+                        : null;
+                    })()}
+                    concurrent={(() => {
+                      const orgs =
+                        employee.organizations ??
+                        (employee.organization ? [employee.organization] : []);
+                      return orgs
+                        .slice(1)
+                        .map((org) => ({ teamId: org, name: org }));
+                    })()}
+                    user={employee}
+                  />
+                </div>
 
-                 {/* 새로운 조직 상세 정보 세션 */}
-                 
-                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                   <div className="text-gray-700 font-semibold mb-3">
-                     근무 정책
-                   </div>
-                   <PolicyBlock
-                     workPolicies={employee.workPolicies}
-                     availablePolicies={workPolicies}
-                   />
-                 </div>
-               </div>
+                {/* 새로운 조직 상세 정보 세션 */}
+
+                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                  <div className="text-gray-700 font-semibold mb-3">
+                    근무 정책
+                  </div>
+                  <PolicyBlock
+                    workPolicies={employee.workPolicies}
+                    availablePolicies={workPolicies}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
