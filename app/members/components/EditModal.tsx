@@ -49,7 +49,7 @@ interface Employee {
   isAdmin: boolean
   teams: string[]
   profileImage?: string
-  selfIntroduction?: string
+
   remainingLeave?: number
   weeklyWorkHours?: number
   weeklySchedule?: Array<{
