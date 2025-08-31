@@ -1,94 +1,90 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
-import { Sidebar } from "./sidebar";
-import { Header } from "./header";
-import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
-import ChatbotSticker from "@/app/aichat/components/ChatbotSticker.jsx";
-import Chatbot from "@/app/aichat/components/Chatbot.jsx";
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { Sidebar } from './sidebar';
+import { Header } from './header';
 
 interface MainLayoutProps {
-  children: ReactNode;
-  userName?: string;
-  showNotifications?: boolean;
-  showUserProfile?: boolean;
-  onMenuItemClick?: (index: number) => void;
+  children: React.ReactNode;
   requireAuth?: boolean;
   requireAdmin?: boolean;
 }
 
-export function MainLayout({
-  children,
-  userName,
-  showNotifications,
-  showUserProfile,
-  onMenuItemClick,
-  requireAuth = false,
-  requireAdmin = false,
-}: MainLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const {
     user,
-    isLoading,
-    requireAuth: authCheck,
-    requireAdmin: adminCheck,
+    loading: isLoading,
+    isLoggedIn,
   } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (requireAuth && !authCheck()) {
-        return;
-      }
-      if (requireAdmin && !adminCheck()) {
-        return;
-      }
+    console.log('🔍 MainLayout useEffect 실행:', {
+      pathname,
+      isLoading,
+      isLoggedIn,
+      requireAuth,
+      requireAdmin,
+      user,
+    });
+
+    if (isLoading) {
+      console.log('🚀 MainLayout: 인증 로딩 중, 대기...');
+      return;
     }
-  }, [isLoading, requireAuth, requireAdmin, authCheck, adminCheck]);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+    console.log('✅ MainLayout: 인증 로딩 완료. 상태 확인 시작. 현재 isLoggedIn:', isLoggedIn);
 
-  const toggleChat = () => {
-    setIsChatOpen(!isChatOpen);
-  };
+    if (pathname === '/login') {
+      if (isLoggedIn) {
+        console.log('➡️ MainLayout: 이미 로그인된 상태로 로그인 페이지 접근. 메인으로 리다이렉트.');
+        router.push('/');
+      } else {
+        console.log('➡️ MainLayout: 로그인 페이지, 로그인 필요.');
+      }
+      return;
+    }
+
+    if (requireAuth && !isLoggedIn) {
+      console.log('🚨 MainLayout: 인증 필요 페이지인데 로그인되지 않음. 로그인 페이지로 리다이렉트.');
+      router.push('/login');
+      return;
+    }
+
+    if (requireAdmin && (!isLoggedIn || !user?.isAdmin)) {
+      console.log(' MainLayout: 관리자 권한 필요 페이지인데 권한 없음. 메인 페이지로 리다이렉트.');
+      router.push('/');
+      return;
+    }
+
+    console.log('✨ MainLayout: 인증 통과. 페이지 렌더링 계속. 현재 경로:', pathname);
+
+  }, [isLoading, isLoggedIn, user, requireAuth, requireAdmin, router, pathname]);
 
   if (isLoading) {
+    console.log(' MainLayout: 로딩 중 텍스트 렌더링...');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div>Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Sidebar onMenuItemClick={onMenuItemClick} isOpen={sidebarOpen} />
-      <div
-        className={`transition-all duration-300 ${
-          sidebarOpen ? "ml-72" : "ml-0"
-        }`}
-      >
-        <Header
-          userName={userName}
-          showNotifications={showNotifications}
-          showUserProfile={showUserProfile}
-          onToggleSidebar={toggleSidebar}
-        />
-        <div className="p-8">{children}</div>
+    <>
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden ml-72">
+          <Header />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-
-      {/* AI 챗봇 스티커 - 항상 표시 */}
-      <ChatbotSticker isOpen={isChatOpen} onToggle={toggleChat} />
-
-      {/* AI 챗봇 창 - 열렸을 때만 표시 */}
-      {isChatOpen && <Chatbot onClose={() => setIsChatOpen(false)} />}
-    </div>
+    </>
   );
 }

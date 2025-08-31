@@ -79,7 +79,6 @@ export default function DashboardPage() {
     lastCheckInDate: null
   })
   
-  // 뉴스 관련 상태 추가
   const [newsData, setNewsData] = useState<NewsArticle[]>([])
   const [newsLoading, setNewsLoading] = useState(true)
 
@@ -140,27 +139,15 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // 뉴스 데이터 로드 useEffect 추가
   useEffect(() => {
     const loadNews = async () => {
       try {
-        setNewsLoading(true);
-        const news = await newsApi.getRecentNewsForDashboard();
-        setNewsData(news);
+
+        console.log('News API 임시 비활성화');
       } catch (error) {
-        console.error('Error loading news:', error);
-        // 에러 시 기본 뉴스 사용
-        setNewsData([
-          { id: 1, categoryId: 1, categoryName: '경제', press: '경제신문', title: '뉴스를 불러올 수 없습니다', content: '', reporter: '', date: '', link: '#', createdAt: '' },
-          { id: 2, categoryId: 2, categoryName: 'IT', press: 'IT뉴스', title: '잠시 후 다시 시도해주세요', content: '', reporter: '', date: '', link: '#', createdAt: '' },
-          { id: 3, categoryId: 3, categoryName: '사회', press: '법률신문', title: '서버 연결을 확인해주세요', content: '', reporter: '', date: '', link: '#', createdAt: '' }
-        ]);
-      } finally {
-        setNewsLoading(false);
+        console.error('Error fetching recent news:', error);
       }
     };
-
-    loadNews();
   }, []);
 
   const handleCheckIn = () => {
@@ -526,7 +513,7 @@ export default function DashboardPage() {
   const dayNumber = currentDate.getDate()
 
   return (
-    <MainLayout requireAuth={false}>
+    <MainLayout requireAuth={true}>
       {/* Header with date */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

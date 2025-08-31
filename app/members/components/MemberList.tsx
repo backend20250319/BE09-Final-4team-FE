@@ -145,7 +145,7 @@ export default function MemberList({
   };
 
   const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
-    // MemberProfile을 Employee로 변환하여 전달
+
     const convertedEmployee: Employee = {
       ...updatedEmployee,
       teams: (
@@ -168,12 +168,6 @@ export default function MemberList({
     const teams = employee.teams || [employee.organization].filter(Boolean);
 
     const displayTeams = teams.slice(0, 3);
-
-    console.log(`Employee ${employee.name}:`, {
-      profileImage: employee.profileImage,
-      hasProfileImage: !!employee.profileImage,
-      fallbackImage: getProfileImage(employee.name),
-    });
 
     return (
       <Card
