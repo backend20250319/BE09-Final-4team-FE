@@ -203,7 +203,7 @@ export default function ProfileModal({
         <DialogTitle className="sr-only">프로필</DialogTitle>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-14 py-4">
           <div className="flex items-center justify-between gap-3">
             
             <div className="flex-1 text-center">
