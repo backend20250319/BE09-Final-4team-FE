@@ -101,9 +101,8 @@ export default function ProfileModal({
   const [profileImage, setProfileImage] = useState<string>("");
 
   const isOwnProfile = user?.email === employee?.email;
-  const canEdit = isOwnProfile;
-  const canEditProfileImage = isOwnProfile;
-
+  const canEdit = isOwnProfile || user?.isAdmin; 
+  const canEditProfileImage = isOwnProfile; 
   useEffect(() => {
     if (!employee) return;
     setProfileImage(employee.profileImage || employee.avatarUrl || "");
@@ -139,7 +138,6 @@ export default function ProfileModal({
           const croppedImageUrl = canvas.toDataURL("image/jpeg", 0.8);
           setProfileImage(croppedImageUrl);
 
-          // API 호출하여 프로필 이미지 업데이트
           try {
             const response = await fetch(`/api/members/${employee.id}`, {
               method: "PATCH",
@@ -205,7 +203,7 @@ export default function ProfileModal({
         <DialogTitle className="sr-only">프로필</DialogTitle>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-14 py-4">
           <div className="flex items-center justify-between gap-3">
             
             <div className="flex-1 text-center">
@@ -237,13 +235,10 @@ export default function ProfileModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Content without internal scroll: 1→2→3 columns responsive */}
         <div className="flex-1 overflow-hidden">
           <div className="px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-gray-800 text-sm md:text-base">
-              {/* Left column */}
               <div className="flex flex-col gap-4">
-                {/* Profile card */}
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-4">
                     <div className="relative">
@@ -331,7 +326,6 @@ export default function ProfileModal({
               </div>
 
               <div className="flex flex-col gap-4">
-                {/* Schedule */}
                 <div
                   className="bg-white shadow p-4 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={handleWorkScheduleClick}
@@ -417,7 +411,6 @@ export default function ProfileModal({
                   </div>
                 </div>
 
-                {/* This week hours */}
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-500 text-sm mb-1">
                     이번 주 근무시간
@@ -428,7 +421,6 @@ export default function ProfileModal({
                 </div>
               </div>
 
-              {/* Right column */}
               <div className="flex flex-col gap-4">
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-700 font-semibold mb-3">
@@ -456,7 +448,6 @@ export default function ProfileModal({
                   />
                 </div>
 
-                {/* 새로운 조직 상세 정보 세션 */}
 
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-700 font-semibold mb-3">

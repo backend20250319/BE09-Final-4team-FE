@@ -262,7 +262,7 @@ export default function LeaderSelectionModal({
       setSelectedLeaderIds(new Set());
       setSelectedAssignmentTypes(new Map());
     }
-  }, [selectedLeader, isOpen]);
+  }, [selectedLeader]);
 
   const filteredMembers = members.filter((member) => {
     if (excludeMemberIds.includes(member.id)) return false;

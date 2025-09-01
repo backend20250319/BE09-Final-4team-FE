@@ -26,13 +26,7 @@ export function useAuth() {
         logout()
       }
     } else {
-      const defaultUser: User = {
-        email: 'demo@hermesai.com',
-        name: '데모 사용자',
-        isAdmin: false,
-        needsPasswordReset: false
-      }
-      setUser(defaultUser)
+      setUser(null)
     }
     
     setIsLoading(false)

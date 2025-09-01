@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/useAuth"
 import ProfileModal from '@/app/members/components/ProfileModal'
 import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
 
@@ -55,7 +55,13 @@ export function Header({
 
   useEffect(() => {
     if (user?.email) {
-      fetch('/api/members')
+      const token = localStorage.getItem('accessToken');
+      fetch('/api/members', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
         .then(response => response.json())
         .then(data => {
           if (data.success && data.members) {
@@ -100,12 +106,10 @@ export function Header({
   }
 
   const handleNotificationClick = (notification: any) => {
-    // 알림 클릭 시 처리 로직
     console.log('알림 클릭:', notification)
   }
 
   const handleViewAllNotifications = () => {
-    // 모든 알림 보기 처리 로직
     console.log('모든 알림 보기')
   }
 

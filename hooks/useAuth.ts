@@ -1,58 +1,100 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface User {
-  email: string
-  name: string
-  isAdmin: boolean
-  needsPasswordReset?: boolean
+  id: string;
+  email: string;
+  name: string;
+  isAdmin: boolean;
+}
+
+interface TokenData {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const initialized = useRef(false);
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('accessToken')
+    return token ? { 'Authorization': `Bearer ${token}` } : {}
+  }, []);
 
   useEffect(() => {
-    // localStorage에서 로그인 상태 확인
-    const currentUser = localStorage.getItem('currentUser')
-    const loginStatus = localStorage.getItem('isLoggedIn')
+    if (initialized.current) return;
+    initialized.current = true;
+
+    const accessToken = localStorage.getItem('accessToken');
+    const userData = localStorage.getItem('currentUser');
     
-    if (currentUser && loginStatus === 'true') {
+    if (accessToken && userData) {
       try {
-        const userData = JSON.parse(currentUser)
-        setUser(userData)
-        setIsLoggedIn(true)
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setIsLoggedIn(true);
       } catch (error) {
-        console.error('사용자 데이터 파싱 오류:', error)
-        // 잘못된 데이터면 로그아웃 처리
-        logout()
+        console.error('사용자 데이터 파싱 오류:', error);
       }
     }
     
-    setLoading(false)
-  }, [])
+    setLoading(false);
+  }, []);
 
-  const login = (userData: User) => {
-    setUser(userData)
-    setIsLoggedIn(true)
-    localStorage.setItem('currentUser', JSON.stringify(userData))
-    localStorage.setItem('isLoggedIn', 'true')
-  }
+  const login = (userData: User, tokenData: TokenData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+    
+    localStorage.setItem('accessToken', tokenData.accessToken);
+    localStorage.setItem('refreshToken', tokenData.refreshToken);
+    localStorage.setItem('currentUser', JSON.stringify(userData));
+    localStorage.setItem('tokenExpiry', String(Date.now() + tokenData.expiresIn * 1000));
+  };
 
   const logout = () => {
-    setUser(null)
-    setIsLoggedIn(false)
-    localStorage.removeItem('currentUser')
-    localStorage.removeItem('isLoggedIn')
-  }
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('tokenExpiry');
+    setUser(null);
+    setIsLoggedIn(false);
+    router.push('/login');
+  };
+
+  const requireAuth = (): boolean => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return false;
+    }
+    return true;
+  };
+
+  const requireAdmin = (): boolean => {
+    if (!requireAuth()) return false;
+    if (!user?.isAdmin) {
+      router.push('/');
+      return false;
+    }
+    return true;
+  };
 
   return {
     user,
     isLoggedIn,
     loading,
     login,
-    logout
-  }
+    logout,
+    requireAuth,
+    requireAdmin,
+    getAuthHeaders,
+    isAuthenticated: isLoggedIn,
+    isAdmin: user?.isAdmin || false
+  };
 } 
