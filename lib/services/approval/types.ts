@@ -1,0 +1,312 @@
+import { ApiResult, PageResult, Pageable } from '../common/types'
+
+// 승인 서비스 특화 열거형
+export enum DocumentStatus {
+  DRAFT = 'DRAFT',
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum TargetType {
+  USER = 'USER',
+  ORGANIZATION = 'ORGANIZATION',
+  N_LEVEL_MANAGER = 'N_LEVEL_MANAGER'
+}
+
+export enum FieldType {
+  TEXT = 'TEXT',
+  NUMBER = 'NUMBER',
+  MONEY = 'MONEY',
+  DATE = 'DATE',
+  SELECT = 'SELECT',
+  MULTISELECT = 'MULTISELECT'
+}
+
+export enum UserRole {
+  AUTHOR = 'AUTHOR',
+  APPROVER = 'APPROVER',
+  REFERENCE = 'REFERENCE',
+  VIEWER = 'VIEWER'
+}
+
+export enum ActivityType {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  SUBMIT = 'SUBMIT',
+  APPROVE = 'APPROVE',
+  REJECT = 'REJECT',
+  MODIFY_APPROVAL = 'MODIFY_APPROVAL',
+  COMMENT = 'COMMENT'
+}
+
+// 카테고리 관련 타입
+export interface CategoryResponse {
+  id: number
+  name: string
+  description?: string
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateCategoryRequest {
+  name: string
+  description?: string
+  sortOrder: number
+}
+
+export interface UpdateCategoryRequest {
+  name: string
+  description?: string
+  sortOrder: number
+}
+
+// 템플릿 관련 타입
+export interface TemplateFieldResponse {
+  id: number
+  name: string
+  fieldType: FieldType
+  required: boolean
+  fieldOrder: number
+  options?: string
+}
+
+export interface TemplateFieldRequest {
+  name: string
+  fieldType: FieldType
+  required: boolean
+  fieldOrder: number
+  options?: string
+}
+
+export interface ApprovalTargetResponse {
+  id: number
+  targetType: TargetType
+  userId?: number
+  organizationId?: number
+  managerLevel?: number
+  isReference: boolean
+  isApproved?: boolean
+  approvedBy?: number
+  approvedAt?: string
+}
+
+export interface ApprovalTargetRequest {
+  targetType: TargetType
+  userId?: number
+  organizationId?: number
+  managerLevel?: number
+  isReference: boolean
+}
+
+export interface ApprovalStageResponse {
+  id: number
+  stageOrder: number
+  stageName: string
+  isCompleted: boolean
+  completedAt?: string
+  approvalTargets: ApprovalTargetResponse[]
+}
+
+export interface ApprovalStageRequest {
+  stageOrder: number
+  stageName: string
+  approvalTargets: ApprovalTargetRequest[]
+}
+
+export interface AttachmentInfoResponse {
+  fileId: string
+  fileName: string
+  fileSize: number
+  contentType: string
+}
+
+export interface TemplateResponse {
+  id: number
+  title: string
+  icon?: string
+  description?: string
+  bodyTemplate?: string
+  useBody: boolean
+  useAttachment: boolean
+  allowTargetChange: boolean
+  isHidden: boolean
+  referenceFiles: AttachmentInfoResponse[]
+  category: CategoryResponse
+  fields: TemplateFieldResponse[]
+  approvalStages: ApprovalStageResponse[]
+  referenceTargets: ApprovalTargetResponse[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TemplateSummaryResponse {
+  id: number
+  title: string
+  icon?: string
+  description?: string
+  useBody: boolean
+  useAttachment: boolean
+  allowTargetChange: boolean
+  isHidden: boolean
+  category: CategoryResponse
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TemplatesByCategoryResponse {
+  categoryId: number
+  categoryName: string
+  templates: TemplateSummaryResponse[]
+}
+
+export interface CreateTemplateRequest {
+  title: string
+  icon?: string
+  description?: string
+  bodyTemplate?: string
+  useBody: boolean
+  useAttachment: boolean
+  allowTargetChange: boolean
+  referenceFiles?: string[]
+  categoryId: number
+  fields?: TemplateFieldRequest[]
+  approvalStages?: ApprovalStageRequest[]
+  referenceTargets?: ApprovalTargetRequest[]
+}
+
+export interface UpdateTemplateRequest {
+  title: string
+  icon?: string
+  description?: string
+  bodyTemplate?: string
+  useBody: boolean
+  useAttachment: boolean
+  allowTargetChange: boolean
+  referenceFiles?: string[]
+  categoryId: number
+  fields?: TemplateFieldRequest[]
+  approvalStages?: ApprovalStageRequest[]
+  referenceTargets?: ApprovalTargetRequest[]
+}
+
+// 문서 관련 타입
+export interface DocumentFieldValueResponse {
+  id: number
+  fieldName: string
+  fieldValue?: string
+  templateField: TemplateFieldResponse
+}
+
+export interface DocumentFieldValueRequest {
+  fieldName: string
+  fieldValue?: string
+  templateFieldId?: number
+}
+
+export interface DocumentActivityResponse {
+  id: number
+  activityType: ActivityType
+  userId: number
+  description?: string
+  reason?: string
+  createdAt: string
+}
+
+export interface DocumentCommentResponse {
+  id: number
+  content: string
+  authorId: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface DocumentResponse {
+  id: number
+  title: string
+  content?: string
+  status: DocumentStatus
+  authorId: number
+  currentStage?: number
+  template: TemplateResponse
+  fieldValues: DocumentFieldValueResponse[]
+  approvalStages: ApprovalStageResponse[]
+  referenceTargets: ApprovalTargetResponse[]
+  activities: DocumentActivityResponse[]
+  comments: DocumentCommentResponse[]
+  attachments: AttachmentInfoResponse[]
+  createdAt: string
+  updatedAt: string
+  submittedAt?: string
+  approvedAt?: string
+}
+
+export interface DocumentSummaryResponse {
+  id: number
+  title: string
+  content?: string
+  status: DocumentStatus
+  authorId: number
+  templateTitle: string
+  currentStage?: number
+  totalStages: number
+  userRole: UserRole
+  createdAt: string
+  submittedAt?: string
+  approvedAt?: string
+}
+
+export interface CreateDocumentRequest {
+  templateId: number
+  title: string
+  content?: string
+  fieldValues?: DocumentFieldValueRequest[]
+  approvalStages?: ApprovalStageRequest[]
+  referenceTargets?: ApprovalTargetRequest[]
+  attachments?: string[]
+}
+
+export interface UpdateDocumentRequest {
+  title: string
+  content?: string
+  fieldValues?: DocumentFieldValueRequest[]
+  approvalStages?: ApprovalStageRequest[]
+  referenceTargets?: ApprovalTargetRequest[]
+  attachments?: string[]
+}
+
+export interface ApprovalActionRequest {
+  reason?: string
+}
+
+// 댓글 관련 타입
+export interface CreateCommentRequest {
+  content: string
+}
+
+// API 요청 파라미터 타입들
+export interface GetDocumentsParams {
+  status?: DocumentStatus[]
+  search?: string
+  startDate?: string
+  endDate?: string
+  pageable: Pageable
+}
+
+export interface GetTemplatesParams {
+  categoryId?: number
+}
+
+// API 응답 타입들
+export type ApiResultCategoryResponse = ApiResult<CategoryResponse>
+export type ApiResultListCategoryResponse = ApiResult<CategoryResponse[]>
+export type ApiResultTemplateResponse = ApiResult<TemplateResponse>
+export type ApiResultListTemplateSummaryResponse = ApiResult<TemplateSummaryResponse[]>
+export type ApiResultListTemplatesByCategoryResponse = ApiResult<TemplatesByCategoryResponse[]>
+export type ApiResultDocumentResponse = ApiResult<DocumentResponse>
+export type ApiResultPageDocumentSummaryResponse = ApiResult<PageResult<DocumentSummaryResponse>>
+export type ApiResultDocumentCommentResponse = ApiResult<DocumentCommentResponse>
+export type ApiResultListDocumentCommentResponse = ApiResult<DocumentCommentResponse[]>
+export type ApiResultVoid = ApiResult<void>
