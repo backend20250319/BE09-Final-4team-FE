@@ -93,7 +93,6 @@ export default function ProfileModal({
     positions,
     jobs,
     roles,
-    loading: titleLoading,
   } = useTitlesFromMembers();
   const router = useRouter();
 
@@ -203,11 +202,12 @@ export default function ProfileModal({
         <DialogTitle className="sr-only">프로필</DialogTitle>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-14 py-4">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 pr-17">
+
           <div className="flex items-center justify-between gap-3">
             
-            <div className="flex-1 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 transform -translate-x-[5px]">
+            <div className="flex-1 text-left">
+              <h2 className="text-2xl font-bold text-gray-900 transform -translate-x-6px]">
                 프로필
               </h2>
               <p className="text-sm text-gray-500 mt-1">
