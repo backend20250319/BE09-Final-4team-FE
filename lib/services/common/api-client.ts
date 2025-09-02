@@ -1,11 +1,12 @@
 import axios from 'axios'
+import { ApiResult } from './types'
+import { LoginResponse } from '../user'
 
 // API 기본 설정
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:9000'
 
-// 메모리에 Access Token과 사용자 정보 저장
+// 메모리에 Access Token 저장
 let accessToken: string | null = null
-let userEmail: string | null = null
 let isRefreshing = false
 let failedQueue: Array<{ resolve: Function; reject: Function }> = []
 
@@ -18,17 +19,8 @@ export const getAccessToken = () => {
   return accessToken
 }
 
-export const setUserEmail = (email: string) => {
-  userEmail = email
-}
-
-export const getUserEmail = () => {
-  return userEmail
-}
-
 export const clearAccessToken = () => {
   accessToken = null
-  userEmail = null
 }
 
 // 대기 중인 요청들을 처리하는 함수
@@ -50,7 +42,7 @@ export const apiClient = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 })
 
 // 요청 인터셉터 - 인증 토큰 추가
@@ -104,16 +96,10 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        if (!userEmail) {
-          throw new Error('User email not found')
-        }
-
         // Refresh Token으로 새 Access Token 요청
-        const response = await refreshClient.post('/api/auth/refresh', {
-          email: userEmail
-        })
+        const response = await refreshClient.post<ApiResult<LoginResponse>>('/api/auth/refresh')
 
-        const { accessToken: newToken } = response.data
+        const { accessToken: newToken } = response.data.data
         setAccessToken(newToken)
         
         // 대기 중인 요청들 처리

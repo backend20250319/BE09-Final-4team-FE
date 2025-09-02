@@ -49,36 +49,37 @@ import { userApi } from '@/lib/services/user'
 1. `lib/services/` 하위에 서비스 이름으로 폴더 생성
 2. 해당 폴더에 `types.ts`, `api.ts`, `index.ts` 파일 생성
 
-### 예시: File Service 추가
+### 예시
 
 ```typescript
-// lib/services/file/types.ts
-export interface FileUploadResponse {
-  fileId: string
-  fileName: string
-  fileUrl: string
-  fileSize: number
+// lib/services/approval/types.ts
+export interface DocumentResponse {
+  id: number
+  title: string
+  content?: string
+  status: DocumentStatus
+  authorId: number
+  template: TemplateResponse
+  createdAt: string
+  updatedAt: string
 }
 
-// lib/services/file/api.ts
+// lib/services/approval/api.ts
 import apiClient from '../common/api-client'
-import { FileUploadResponse } from './types'
+import { CreateDocumentRequest, DocumentResponse } from './types'
+import { ApiResult, PageResult } from '../common/types'
 
-export const fileApi = {
-  uploadFile: async (file: File): Promise<FileUploadResponse> => {
-    const formData = new FormData()
-    formData.append('file', file)
-    const response = await apiClient.post('/api/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+export const documentApi = {
+  createDocument: async (request: CreateDocumentRequest): Promise<DocumentResponse> => {
+    const response = await apiClient.post<ApiResult<DocumentResponse>>('/api/approval/documents', request)
     return response.data.data
-  }
+  },
 }
 
-// lib/services/file/index.ts
+// lib/services/approval/index.ts
 export * from './types'
 export * from './api'
-export { fileApi as default } from './api'
+export { default as approvalApi } from './api'
 ```
 
 ## 가이드라인

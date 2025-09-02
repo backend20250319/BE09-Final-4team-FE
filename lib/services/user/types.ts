@@ -138,10 +138,6 @@ export interface LoginRequestDto {
   password: string;
 }
 
-export interface RefreshRequestDto {
-  email: string;
-}
-
 export interface LoginResponse {
   accessToken: string;
   expiresIn: number;
