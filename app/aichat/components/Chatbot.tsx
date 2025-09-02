@@ -7,20 +7,25 @@ import "./chatbot-styles.css";
 import { Button } from "@/components/ui/button";
 import { X, Send, Bot, User, Maximize2, Minimize2, Move } from "lucide-react";
 import { cn } from "@/lib/utils";
-import config from "./config.jsx";
-import MessageParser from "./MessageParser.jsx";
-import ActionProvider from "./ActionProvider.jsx";
+import config from "./config";
+import MessageParser from "./MessageParser";
+import ActionProvider from "./ActionProvider";
 
-export default function Chatbot({ onClose }) {
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+// Type definitions
+interface ChatbotProps {
+  onClose: () => void;
+}
 
-  const toggleMinimize = () => {
+export default function Chatbot({ onClose }: ChatbotProps): JSX.Element {
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  const toggleMinimize = (): void => {
     setIsMinimized(!isMinimized);
     if (isExpanded) setIsExpanded(false);
   };
 
-  const toggleExpand = () => {
+  const toggleExpand = (): void => {
     setIsExpanded(!isExpanded);
     if (isMinimized) setIsMinimized(false);
   };
@@ -32,7 +37,7 @@ export default function Chatbot({ onClose }) {
     );
     if (messageContainer) {
       // 초기 스크롤을 맨 아래로 (추가 여백 포함)
-      const scrollToBottom = () => {
+      const scrollToBottom = (): void => {
         messageContainer.scrollTop = messageContainer.scrollHeight + 50;
       };
 
@@ -53,7 +58,7 @@ export default function Chatbot({ onClose }) {
   }, []);
 
   // 채팅창 크기 설정
-  const getChatbotSize = () => {
+  const getChatbotSize = (): string => {
     if (isMinimized) return "w-80";
     if (isExpanded) return "w-96 h-[600px]";
     return "w-80 h-[500px]";

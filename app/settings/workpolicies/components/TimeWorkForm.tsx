@@ -13,45 +13,93 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Plus } from "lucide-react";
 import SelectTime from "@/components/clock/SelectTime";
 
-export function TimeWorkForm({ formData, setFormData }) {
-  const [showTimePicker, setShowTimePicker] = useState({
+// Type definitions
+interface FormData {
+  [key: string]: any;
+  workName?: string;
+  workingDays?: Record<string, boolean>;
+  weeklyHoliday?: Record<string, boolean>;
+  cycleStartDay?: string;
+  startTimeStart?: string;
+  startTimeEnd?: string;
+  workHours?: string;
+  workMinutes?: string;
+  breakTimes?: Array<{ start: string; end: string }>;
+}
+
+interface TimeWorkFormProps {
+  formData: FormData;
+  setFormData: (data: FormData | ((prev: FormData) => FormData)) => void;
+}
+
+interface TimePickerState {
+  startTimeStart: boolean;
+  startTimeEnd: boolean;
+  breakTimeStart: boolean;
+  breakTimeEnd: boolean;
+}
+
+interface TimePickerRefs {
+  startTimeStart: React.RefObject<HTMLDivElement>;
+  startTimeEnd: React.RefObject<HTMLDivElement>;
+  breakTimeStart: React.RefObject<HTMLDivElement>;
+  breakTimeEnd: React.RefObject<HTMLDivElement>;
+}
+
+interface WeekDay {
+  id: string;
+  name: string;
+  short: string;
+}
+
+interface CycleStartOption {
+  value: string;
+  label: string;
+}
+
+export function TimeWorkForm({
+  formData,
+  setFormData,
+}: TimeWorkFormProps): JSX.Element {
+  const [showTimePicker, setShowTimePicker] = useState<TimePickerState>({
     startTimeStart: false,
     startTimeEnd: false,
     breakTimeStart: false,
     breakTimeEnd: false,
   });
 
-  const timePickerRefs = {
-    startTimeStart: useRef(null),
-    startTimeEnd: useRef(null),
-    breakTimeStart: useRef(null),
-    breakTimeEnd: useRef(null),
+  const timePickerRefs: TimePickerRefs = {
+    startTimeStart: useRef<HTMLDivElement>(null),
+    startTimeEnd: useRef<HTMLDivElement>(null),
+    breakTimeStart: useRef<HTMLDivElement>(null),
+    breakTimeEnd: useRef<HTMLDivElement>(null),
   };
 
-  const updateFormData = (field, value) => {
+  const updateFormData = (field: string, value: any): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleTimeSelect = (field, time) => {
+  const handleTimeSelect = (field: string, time: string): void => {
     updateFormData(field, time);
     setShowTimePicker((prev) => ({ ...prev, [field]: false }));
   };
 
-  const openTimePicker = (field) => {
+  const openTimePicker = (field: keyof TimePickerState): void => {
     setShowTimePicker((prev) => ({ ...prev, [field]: true }));
   };
 
-  const closeTimePicker = (field) => {
+  const closeTimePicker = (field: keyof TimePickerState): void => {
     setShowTimePicker((prev) => ({ ...prev, [field]: false }));
   };
 
   // 바깥 클릭 감지
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: MouseEvent): void => {
       Object.keys(showTimePicker).forEach((field) => {
-        if (showTimePicker[field] && timePickerRefs[field].current) {
-          if (!timePickerRefs[field].current.contains(event.target)) {
-            closeTimePicker(field);
+        const key = field as keyof TimePickerState;
+        if (showTimePicker[key] && timePickerRefs[key].current) {
+          if (!timePickerRefs[key].current?.contains(event.target as Node)) {
+            closeTimePicker(key);
           }
         }
       });
@@ -63,7 +111,7 @@ export function TimeWorkForm({ formData, setFormData }) {
     };
   }, [showTimePicker]);
 
-  const weekDays = [
+  const weekDays: WeekDay[] = [
     { id: "monday", name: "월", short: "월" },
     { id: "tuesday", name: "화", short: "화" },
     { id: "wednesday", name: "수", short: "수" },
@@ -73,7 +121,7 @@ export function TimeWorkForm({ formData, setFormData }) {
     { id: "sunday", name: "일", short: "일" },
   ];
 
-  const cycleStartOptions = [
+  const cycleStartOptions: CycleStartOption[] = [
     { value: "monday", label: "월요일" },
     { value: "tuesday", label: "화요일" },
     { value: "wednesday", label: "수요일" },
@@ -83,7 +131,7 @@ export function TimeWorkForm({ formData, setFormData }) {
     { value: "sunday", label: "일요일" },
   ];
 
-  const handleDayToggle = (field, dayId) => {
+  const handleDayToggle = (field: string, dayId: string): void => {
     const currentDays = formData[field] || {
       monday: field === "workingDays" ? true : false,
       tuesday: field === "workingDays" ? true : false,
@@ -100,7 +148,7 @@ export function TimeWorkForm({ formData, setFormData }) {
     });
   };
 
-  const addBreakTime = () => {
+  const addBreakTime = (): void => {
     const currentBreaks = formData.breakTimes || [];
     updateFormData("breakTimes", [
       ...currentBreaks,
@@ -108,7 +156,7 @@ export function TimeWorkForm({ formData, setFormData }) {
     ]);
   };
 
-  const removeBreakTime = (index) => {
+  const removeBreakTime = (index: number): void => {
     const currentBreaks = formData.breakTimes || [];
     updateFormData(
       "breakTimes",
@@ -260,7 +308,7 @@ export function TimeWorkForm({ formData, setFormData }) {
                 {showTimePicker.startTimeStart && (
                   <div className="absolute top-full left-0 z-50 mt-1">
                     <SelectTime
-                      onTimeSelect={(time) =>
+                      onTimeSelect={(time: string) =>
                         handleTimeSelect("startTimeStart", time)
                       }
                       onClose={() => closeTimePicker("startTimeStart")}
@@ -283,7 +331,7 @@ export function TimeWorkForm({ formData, setFormData }) {
                 {showTimePicker.startTimeEnd && (
                   <div className="absolute top-full left-0 z-50 mt-1">
                     <SelectTime
-                      onTimeSelect={(time) =>
+                      onTimeSelect={(time: string) =>
                         handleTimeSelect("startTimeEnd", time)
                       }
                       onClose={() => closeTimePicker("startTimeEnd")}
@@ -346,7 +394,7 @@ export function TimeWorkForm({ formData, setFormData }) {
                   {showTimePicker.breakTimeStart && (
                     <div className="absolute top-full left-0 z-50 mt-1">
                       <SelectTime
-                        onTimeSelect={(time) =>
+                        onTimeSelect={(time: string) =>
                           handleTimeSelect("breakTimeStart", time)
                         }
                         onClose={() => closeTimePicker("breakTimeStart")}
@@ -369,7 +417,7 @@ export function TimeWorkForm({ formData, setFormData }) {
                   {showTimePicker.breakTimeEnd && (
                     <div className="absolute top-full left-0 z-50 mt-1">
                       <SelectTime
-                        onTimeSelect={(time) =>
+                        onTimeSelect={(time: string) =>
                           handleTimeSelect("breakTimeEnd", time)
                         }
                         onClose={() => closeTimePicker("breakTimeEnd")}

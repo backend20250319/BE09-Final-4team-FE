@@ -3,8 +3,24 @@
 import { colors } from "@/lib/design-tokens";
 import { Clock, RotateCcw, Calendar, Target } from "lucide-react";
 
-export function WorkTypeSelector({ selectedType, onTypeChange }) {
-  const workTypes = [
+// Type definitions
+interface WorkType {
+  id: string;
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}
+
+interface WorkTypeSelectorProps {
+  selectedType: string;
+  onTypeChange: (typeId: string) => void;
+}
+
+export function WorkTypeSelector({
+  selectedType,
+  onTypeChange,
+}: WorkTypeSelectorProps): JSX.Element {
+  const workTypes: WorkType[] = [
     { id: "fixed", name: "고정", icon: Clock, color: colors.primary.blue },
     {
       id: "shift",
