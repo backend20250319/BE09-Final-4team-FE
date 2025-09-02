@@ -7,10 +7,16 @@ import { TabGroup } from "@/components/ui/tab-group";
 import MyWorkComponent from "./components/MyWorkComponent";
 import CoworkerComponent from "./components/CoworkerComponent";
 
-export default function WorkPage() {
-  const [activeTab, setActiveTab] = useState("my");
+interface Tab {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+}
 
-  const tabs = [
+export default function WorkPage(): JSX.Element {
+  const [activeTab, setActiveTab] = useState<string>("my");
+
+  const tabs: Tab[] = [
     {
       id: "my",
       label: "내 근무표",

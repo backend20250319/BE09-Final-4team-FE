@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Chatbot from "../aichat/components/Chatbot.jsx";
-import ChatbotSticker from "../aichat/components/ChatbotSticker.jsx";
+import Chatbot from "../aichat/components/Chatbot";
+import ChatbotSticker from "../aichat/components/ChatbotSticker";
 
 export default function TestChatbotPage() {
   const [isChatOpen, setIsChatOpen] = useState(false);

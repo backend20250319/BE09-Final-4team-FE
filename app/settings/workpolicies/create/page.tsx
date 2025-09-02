@@ -13,12 +13,22 @@ import { typography } from "@/lib/design-tokens";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
-export default function CreateWorkPolicyPage() {
-  const [workType, setWorkType] = useState("fixed");
-  const [formData, setFormData] = useState({});
+// Type definitions
+interface FormData {
+  [key: string]: any;
+}
+
+interface PolicyData {
+  workType: string;
+  [key: string]: any;
+}
+
+export default function CreateWorkPolicyPage(): JSX.Element {
+  const [workType, setWorkType] = useState<string>("fixed");
+  const [formData, setFormData] = useState<FormData>({});
 
   // 근무 유형별 폼 컴포넌트 렌더링
-  const renderWorkForm = () => {
+  const renderWorkForm = (): JSX.Element => {
     const commonProps = {
       formData,
       setFormData,
@@ -38,8 +48,8 @@ export default function CreateWorkPolicyPage() {
     }
   };
 
-  const handleSave = () => {
-    const policyData = {
+  const handleSave = (): void => {
+    const policyData: PolicyData = {
       workType,
       ...formData,
     };

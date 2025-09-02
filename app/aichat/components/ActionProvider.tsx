@@ -1,13 +1,49 @@
 import React from "react";
 import { createChatBotMessage, createClientMessage } from "react-chatbot-kit";
 
+// Type definitions
+interface ChatBotMessage {
+  id: number;
+  message: string;
+  type: "bot" | "user";
+  [key: string]: any;
+}
+
+interface State {
+  messages: ChatBotMessage[];
+  [key: string]: any;
+}
+
+interface ActionProviderConstructor {
+  createChatBotMessage: (message: string, options?: any) => ChatBotMessage;
+  setState: (updater: (prevState: State) => State) => void;
+  createClientMessage: (message: string, options?: any) => ChatBotMessage;
+  stateRef: React.MutableRefObject<State>;
+  createCustomMessage: (message: string, options?: any) => ChatBotMessage;
+}
+
 class ActionProvider {
+  private createChatBotMessage: (
+    message: string,
+    options?: any
+  ) => ChatBotMessage;
+  private setState: (updater: (prevState: State) => State) => void;
+  private createClientMessage: (
+    message: string,
+    options?: any
+  ) => ChatBotMessage;
+  private stateRef: React.MutableRefObject<State>;
+  private createCustomMessage: (
+    message: string,
+    options?: any
+  ) => ChatBotMessage;
+
   constructor(
-    createChatBotMessage,
-    setState,
-    createClientMessage,
-    stateRef,
-    createCustomMessage
+    createChatBotMessage: (message: string, options?: any) => ChatBotMessage,
+    setState: (updater: (prevState: State) => State) => void,
+    createClientMessage: (message: string, options?: any) => ChatBotMessage,
+    stateRef: React.MutableRefObject<State>,
+    createCustomMessage: (message: string, options?: any) => ChatBotMessage
   ) {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setState;
@@ -16,14 +52,14 @@ class ActionProvider {
     this.createCustomMessage = createCustomMessage;
   }
 
-  greet = () => {
+  greet = (): void => {
     const message = this.createChatBotMessage(
       "안녕하세요! 저는 업무를 도와드리는 AI 어시스턴트입니다. 무엇을 도와드릴까요?"
     );
     this.addMessageToState(message);
   };
 
-  handleHelp = () => {
+  handleHelp = (): void => {
     const message = this.createChatBotMessage(
       "다음과 같은 기능들을 도와드릴 수 있습니다:\n\n" +
         "• 📅 일정 관리 및 캘린더 확인\n" +
@@ -39,7 +75,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleWeather = () => {
+  handleWeather = (): void => {
     const message = this.createChatBotMessage(
       "오늘 서울의 날씨는 맑고 기온은 22°C입니다. 🌤️\n\n" +
         "외출하실 때는 가벼운 겉옷을 챙기시는 것을 추천드려요!"
@@ -47,7 +83,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleTime = () => {
+  handleTime = (): void => {
     const now = new Date();
     const timeString = now.toLocaleTimeString("ko-KR", {
       hour: "2-digit",
@@ -67,14 +103,14 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleThanks = () => {
+  handleThanks = (): void => {
     const message = this.createChatBotMessage(
       "천만에요! 언제든지 도움이 필요하시면 말씀해 주세요. 😊"
     );
     this.addMessageToState(message);
   };
 
-  handleTask = () => {
+  handleTask = (): void => {
     const message = this.createChatBotMessage(
       "업무 관리에 대해 도와드릴게요! 📋\n\n" +
         "• 새로운 작업 등록\n" +
@@ -86,7 +122,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleSchedule = () => {
+  handleSchedule = (): void => {
     const message = this.createChatBotMessage(
       "일정 관리 기능입니다! 📅\n\n" +
         "• 오늘의 일정 확인\n" +
@@ -99,7 +135,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleMembers = () => {
+  handleMembers = (): void => {
     const message = this.createChatBotMessage(
       "직원 관리 기능입니다! 👥\n\n" +
         "• 전체 직원 목록 확인\n" +
@@ -112,7 +148,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleDocuments = () => {
+  handleDocuments = (): void => {
     const message = this.createChatBotMessage(
       "문서 관리 기능입니다! 📄\n\n" +
         "• 문서 업로드\n" +
@@ -125,7 +161,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleVacation = () => {
+  handleVacation = (): void => {
     const message = this.createChatBotMessage(
       "휴가 관리 기능입니다! 🏖️\n\n" +
         "• 휴가 신청\n" +
@@ -138,7 +174,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleApproval = () => {
+  handleApproval = (): void => {
     const message = this.createChatBotMessage(
       "승인 프로세스 기능입니다! ✅\n\n" +
         "• 승인 대기 문서 확인\n" +
@@ -151,7 +187,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleSettings = () => {
+  handleSettings = (): void => {
     const message = this.createChatBotMessage(
       "시스템 설정 기능입니다! ⚙️\n\n" +
         "• 회사 정보 설정\n" +
@@ -164,7 +200,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  handleUnknown = () => {
+  handleUnknown = (): void => {
     const message = this.createChatBotMessage(
       "죄송합니다. 이해하지 못했어요. 😅\n\n" +
         "다음과 같은 키워드로 질문해 주세요:\n" +
@@ -175,7 +211,7 @@ class ActionProvider {
     this.addMessageToState(message);
   };
 
-  addMessageToState = (message) => {
+  addMessageToState = (message: ChatBotMessage): void => {
     this.setState((prevState) => ({
       ...prevState,
       messages: [...prevState.messages, message],

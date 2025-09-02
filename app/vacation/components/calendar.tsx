@@ -14,6 +14,26 @@ import { ko } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// Type definitions
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+}
+
+interface DateRange {
+  from: Date | null;
+  to: Date | null;
+}
+
+interface CalendarProps {
+  startDate?: Date | null;
+  endDate?: Date | null;
+  onStartDateChange: (date: Date) => void;
+  onEndDateChange: (date: Date | null) => void;
+  selectedDates: Date[];
+  isFilterMode?: boolean;
+}
+
 export default function Calendar({
   startDate,
   endDate,
@@ -21,9 +41,9 @@ export default function Calendar({
   onEndDateChange,
   selectedDates,
   isFilterMode = false,
-}) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [range, setRange] = useState({
+}: CalendarProps): JSX.Element {
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [range, setRange] = useState<DateRange>({
     from: startDate ? new Date(startDate) : null,
     to: endDate ? new Date(endDate) : null,
   });
@@ -36,7 +56,7 @@ export default function Calendar({
     });
   }, [startDate, endDate]);
 
-  const handleDateClick = (date) => {
+  const handleDateClick = (date: Date): void => {
     if (!range.from || (range.from && range.to)) {
       // 새로운 범위 시작
       setRange({ from: date, to: null });
@@ -47,11 +67,11 @@ export default function Calendar({
       const from = range.from;
       const to = date;
 
-      if (from > to) {
+      if (from && from > to) {
         setRange({ from: to, to: from });
         onStartDateChange(to);
         onEndDateChange(from);
-      } else {
+      } else if (from) {
         setRange({ from, to });
         onStartDateChange(from);
         onEndDateChange(to);
@@ -59,7 +79,7 @@ export default function Calendar({
     }
   };
 
-  const handleMonthChange = (direction) => {
+  const handleMonthChange = (direction: "prev" | "next"): void => {
     setCurrentMonth((prev) => {
       const newMonth = new Date(prev);
       if (direction === "next") {
@@ -71,12 +91,12 @@ export default function Calendar({
     });
   };
 
-  const getCalendarDays = () => {
+  const getCalendarDays = (): CalendarDay[] => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
     const startDay = getDay(start);
 
-    const days = [];
+    const days: CalendarDay[] = [];
 
     // 이전 달의 마지막 날들
     const prevMonth = new Date(currentMonth);
@@ -114,21 +134,21 @@ export default function Calendar({
     return days;
   };
 
-  const isInRange = (date) => {
+  const isInRange = (date: Date): boolean => {
     if (!range.from) return false;
     if (!range.to) return isSameDay(date, range.from);
     return date >= range.from && date <= range.to;
   };
 
-  const isRangeStart = (date) => {
-    return range.from && isSameDay(date, range.from);
+  const isRangeStart = (date: Date): boolean => {
+    return range.from ? isSameDay(date, range.from) : false;
   };
 
-  const isRangeEnd = (date) => {
-    return range.to && isSameDay(date, range.to);
+  const isRangeEnd = (date: Date): boolean => {
+    return range.to ? isSameDay(date, range.to) : false;
   };
 
-  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  const weekdays: string[] = ["일", "월", "화", "수", "목", "금", "토"];
 
   return (
     <div className={isFilterMode ? "mb-0" : "mb-4"}>
@@ -200,56 +220,27 @@ export default function Calendar({
                   h-8 w-8 text-xs font-medium rounded-md transition-all duration-200 flex items-center justify-center
                   ${
                     !day.isCurrentMonth
-                      ? "text-muted-foreground/50"
-                      : "text-foreground"
-                  }
-                  ${isTodayDate ? "ring-2 ring-green-500 ring-offset-1" : ""}
-                  ${inRange ? "bg-primary text-primary-foreground" : ""}
-                  ${
-                    isStart
+                      ? "text-muted-foreground/30"
+                      : isTodayDate
                       ? "bg-primary text-primary-foreground font-bold"
-                      : ""
+                      : inRange
+                      ? isStart || isEnd
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/20 text-primary-foreground"
+                      : dayOfWeek === 0
+                      ? "text-red-500 hover:bg-red-50"
+                      : dayOfWeek === 6
+                      ? "text-blue-500 hover:bg-blue-50"
+                      : "text-foreground hover:bg-accent"
                   }
-                  ${isEnd ? "bg-primary text-primary-foreground font-bold" : ""}
-                  ${
-                    !day.isCurrentMonth
-                      ? "hover:bg-accent/50"
-                      : "hover:bg-accent"
-                  }
-                  ${inRange && !isStart && !isEnd ? "bg-primary/20" : ""}
-                  ${dayOfWeek === 0 ? "text-red-500" : ""}
-                  ${dayOfWeek === 6 ? "text-blue-500" : ""}
+                  ${!day.isCurrentMonth ? "cursor-default" : "cursor-pointer"}
                 `}
+                disabled={!day.isCurrentMonth}
               >
                 {format(day.date, "d")}
               </button>
             );
           })}
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-between items-center pt-3 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setRange({ from: null, to: null });
-              onStartDateChange(null);
-              onEndDateChange(null);
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            초기화
-          </Button>
-
-          <div className="text-xs text-muted-foreground">
-            {range.from && range.to && (
-              <span>
-                {format(range.from, "MMM dd", { locale: ko })} -{" "}
-                {format(range.to, "MMM dd", { locale: ko })}
-              </span>
-            )}
-          </div>
         </div>
       </div>
     </div>

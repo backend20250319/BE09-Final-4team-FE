@@ -1,0 +1,185 @@
+"use client";
+
+import React, { useState } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
+
+// Type definitions
+interface FormData {
+  [key: string]: any;
+}
+
+interface SelectWorkFormProps {
+  formData: FormData;
+  setFormData: (data: FormData | ((prev: FormData) => FormData)) => void;
+}
+
+export function SelectWorkForm({
+  formData,
+  setFormData,
+}: SelectWorkFormProps): React.ReactElement {
+  const updateFormData = (field: string, value: any): void => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 근무유형 이름 */}
+      <div>
+        <p className="text-sm text-gray-500 mb-2">근무 유형 이름</p>
+        <Input
+          value={formData.workName || ""}
+          onChange={(e) => updateFormData("workName", e.target.value)}
+          className="bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
+          placeholder="선택 근무"
+        />
+      </div>
+
+      {/* 선택 근무 설정 */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-800">선택 근무 설정</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              선택 유형
+            </label>
+            <Select
+              value={formData.selectType || "1week"}
+              onValueChange={(value) => updateFormData("selectType", value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1week">1주</SelectItem>
+                <SelectItem value="2weeks">2주</SelectItem>
+                <SelectItem value="3weeks">3주</SelectItem>
+                <SelectItem value="4weeks">4주</SelectItem>
+                <SelectItem value="1month">1개월</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              최소 근무 시간
+            </label>
+            <Input
+              type="number"
+              placeholder="8"
+              value={formData.minWorkHours || ""}
+              onChange={(e) =>
+                updateFormData("minWorkHours", parseInt(e.target.value) || 0)
+              }
+              className="w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 코어 타임 설정 */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-800">코어 타임 설정</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              시작 시간
+            </label>
+            <Select
+              value={formData.startTime || "09:00"}
+              onValueChange={(value) => updateFormData("startTime", value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="06:00">06:00</SelectItem>
+                <SelectItem value="07:00">07:00</SelectItem>
+                <SelectItem value="08:00">08:00</SelectItem>
+                <SelectItem value="09:00">09:00</SelectItem>
+                <SelectItem value="10:00">10:00</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              종료 시간
+            </label>
+            <Select
+              value={formData.endTime || "18:00"}
+              onValueChange={(value) => updateFormData("endTime", value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="17:00">17:00</SelectItem>
+                <SelectItem value="18:00">18:00</SelectItem>
+                <SelectItem value="19:00">19:00</SelectItem>
+                <SelectItem value="20:00">20:00</SelectItem>
+                <SelectItem value="21:00">21:00</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* 추가 설정 */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-800">추가 설정</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              사전 신고
+            </label>
+            <Select
+              value={formData.advanceNotice ? "yes" : "no"}
+              onValueChange={(value) =>
+                updateFormData("advanceNotice", value === "yes")
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="yes">필요</SelectItem>
+                <SelectItem value="no">불필요</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              신고 기간
+            </label>
+            <Select
+              value={formData.noticePeriod || "1day"}
+              onValueChange={(value) => updateFormData("noticePeriod", value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1day">1일 전</SelectItem>
+                <SelectItem value="3days">3일 전</SelectItem>
+                <SelectItem value="1week">1주 전</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

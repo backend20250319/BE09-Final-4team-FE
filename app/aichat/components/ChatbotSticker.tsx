@@ -4,8 +4,17 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export default function ChatbotSticker({ isOpen, onToggle }) {
-  const [isHovered, setIsHovered] = useState(false);
+// Type definitions
+interface ChatbotStickerProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export default function ChatbotSticker({
+  isOpen,
+  onToggle,
+}: ChatbotStickerProps): JSX.Element {
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   return (
     <div className="fixed bottom-4 right-4 z-40">
