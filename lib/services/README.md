@@ -84,10 +84,16 @@ export { fileApi as default } from './api'
 export * from './file'
 ```
 
-## 장점
+## 타입 정의 가이드라인
 
-1. **서비스별 관심사 분리**: 각 MSA 서비스의 타입과 API가 독립적으로 관리됨
-2. **확장성**: 새로운 서비스 추가가 용이함
-3. **타입 안전성**: 서비스별 타입 정의로 컴파일 타임 에러 방지
-4. **트리 쉐이킹**: 필요한 서비스만 번들에 포함됨
-5. **유지보수성**: 서비스별로 독립적인 수정 가능
+### API 응답 타입
+- **직접 제네릭 타입 사용**: `ApiResult<T>` 타입 별칭을 만들지 말고 직접 `ApiResult<UserResponse>` 형태로 사용
+- **명시적 타입 정의**: 타입 별칭보다는 명확한 제네릭 타입을 선호
+
+```typescript
+// ❌ 지양: 타입 별칭 사용
+export type ApiResultUserResponse = ApiResult<UserResponse>
+
+// ✅ 권장: 직접 제네릭 타입 사용
+const response = await apiClient.get<ApiResult<UserResponse>>('/api/users')
+```

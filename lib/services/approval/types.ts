@@ -299,14 +299,3 @@ export interface GetTemplatesParams {
   categoryId?: number
 }
 
-// API 응답 타입들
-export type ApiResultCategoryResponse = ApiResult<CategoryResponse>
-export type ApiResultListCategoryResponse = ApiResult<CategoryResponse[]>
-export type ApiResultTemplateResponse = ApiResult<TemplateResponse>
-export type ApiResultListTemplateSummaryResponse = ApiResult<TemplateSummaryResponse[]>
-export type ApiResultListTemplatesByCategoryResponse = ApiResult<TemplatesByCategoryResponse[]>
-export type ApiResultDocumentResponse = ApiResult<DocumentResponse>
-export type ApiResultPageDocumentSummaryResponse = ApiResult<PageResult<DocumentSummaryResponse>>
-export type ApiResultDocumentCommentResponse = ApiResult<DocumentCommentResponse>
-export type ApiResultListDocumentCommentResponse = ApiResult<DocumentCommentResponse[]>
-export type ApiResultVoid = ApiResult<void>
