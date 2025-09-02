@@ -10,15 +10,8 @@ import {
   DetailProfileResponseDto,
   ColleagueSearchRequestDto,
   ColleagueResponseDto,
-  ApiResultUserResponseDto,
-  ApiResultListUserResponseDto,
-  ApiResultTokenResponseDto,
-  ApiResultMainProfileResponseDto,
-  ApiResultDetailProfileResponseDto,
-  ApiResultListColleagueResponseDto,
-  ApiResultMapStringObject,
-  ApiResultVoid,
 } from './types';
+import { ApiResult } from '../common/types';
 
 export const userApi = {
   login: async (data: LoginRequestDto): Promise<TokenResponseDto> => {
@@ -26,7 +19,7 @@ export const userApi = {
     return response.data;
   },
 
-  logout: async (): Promise<ApiResultVoid> => {
+  logout: async (): Promise<ApiResult<void>> => {
     const response = await apiClient.post('/api/auth/logout');
     return response.data;
   },
@@ -56,7 +49,7 @@ export const userApi = {
     return response.data;
   },
 
-  deleteUser: async (userId: number): Promise<ApiResultVoid> => {
+  deleteUser: async (userId: number): Promise<ApiResult<void>> => {
     const response = await apiClient.delete(`/api/users/${userId}`);
     return response.data;
   },
@@ -88,12 +81,12 @@ export const userApi = {
     return response.data.data;
   },
 
-  syncUserOrganization: async (userId: number): Promise<ApiResultVoid> => {
+  syncUserOrganization: async (userId: number): Promise<ApiResult<void>> => {
     const response = await apiClient.post(`/api/users/${userId}/sync-organization`);
     return response.data;
   },
 
-  syncAllUsersOrganizations: async (): Promise<ApiResultVoid> => {
+  syncAllUsersOrganizations: async (): Promise<ApiResult<void>> => {
     const response = await apiClient.post('/api/users/sync-organizations');
     return response.data;
   },

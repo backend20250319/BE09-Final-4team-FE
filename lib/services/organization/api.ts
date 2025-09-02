@@ -6,13 +6,8 @@ import {
   OrganizationHierarchyDto,
   CreateAssignmentRequest,
   EmployeeAssignmentDto,
-  ApiResultOrganizationDto,
-  ApiResultListOrganizationDto,
-  ApiResultListOrganizationHierarchyDto,
-  ApiResultEmployeeAssignmentDto,
-  ApiResultListEmployeeAssignmentDto,
-  ApiResultVoid,
 } from './types';
+import { ApiResult } from '../common/types';
 
 export const organizationApi = {
   getAllOrganizations: async (): Promise<OrganizationDto[]> => {
@@ -35,7 +30,7 @@ export const organizationApi = {
     return response.data;
   },
 
-  deleteOrganization: async (organizationId: number): Promise<ApiResultVoid> => {
+  deleteOrganization: async (organizationId: number): Promise<ApiResult<void>> => {
     const response = await apiClient.delete(`/api/organizations/${organizationId}`);
     return response.data;
   },
@@ -77,7 +72,7 @@ export const organizationApi = {
     return response.data.data;
   },
 
-  deleteAssignment: async (assignmentId: number): Promise<ApiResultVoid> => {
+  deleteAssignment: async (assignmentId: number): Promise<ApiResult<void>> => {
     const response = await apiClient.delete(`/api/assignments/${assignmentId}`);
     return response.data;
   },

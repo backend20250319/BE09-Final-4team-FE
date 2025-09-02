@@ -47,38 +47,4 @@ export interface EmployeeAssignmentDto {
   assignedAt: string;
 }
 
-export interface ApiResultOrganizationDto {
-  status: string;
-  message: string;
-  data: OrganizationDto;
-}
 
-export interface ApiResultListOrganizationDto {
-  status: string;
-  message: string;
-  data: OrganizationDto[];
-}
-
-export interface ApiResultListOrganizationHierarchyDto {
-  status: string;
-  message: string;
-  data: OrganizationHierarchyDto[];
-}
-
-export interface ApiResultEmployeeAssignmentDto {
-  status: string;
-  message: string;
-  data: EmployeeAssignmentDto;
-}
-
-export interface ApiResultListEmployeeAssignmentDto {
-  status: string;
-  message: string;
-  data: EmployeeAssignmentDto[];
-}
-
-export interface ApiResultVoid {
-  status: string;
-  message: string;
-  data: any;
-}
