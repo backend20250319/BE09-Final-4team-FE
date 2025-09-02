@@ -1,13 +1,3 @@
-body {
-  margin: 0;
-  background: #eee;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular",
-    sans-serif;
-  font-weight: 500;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 .actions {
   position: absolute;
   text-align: right;
@@ -91,10 +81,14 @@ h1 {
   color: #000;
   position: relative;
   line-height: 20px;
-  font-weight: 400;
+  font-weight: 500;
   text-align: left;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, ".SFNSText-Regular",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .editor-inner {
