@@ -12,12 +12,43 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 
-export function ShiftWorkForm({ formData, setFormData }) {
-  const updateFormData = (field, value) => {
+// Type definitions
+interface FormData {
+  [key: string]: any;
+  workName?: string;
+  workingDaysPerWeek?: string;
+  weeklyHoliday?: Record<string, boolean>;
+  workHours?: string;
+  workMinutes?: string;
+  breakHours?: string;
+  breakMinutes?: string;
+}
+
+interface ShiftWorkFormProps {
+  formData: FormData;
+  setFormData: (data: FormData | ((prev: FormData) => FormData)) => void;
+}
+
+interface WeekDay {
+  id: string;
+  name: string;
+  short: string;
+}
+
+interface WorkingDaysOption {
+  value: string;
+  label: string;
+}
+
+export function ShiftWorkForm({
+  formData,
+  setFormData,
+}: ShiftWorkFormProps): JSX.Element {
+  const updateFormData = (field: string, value: any): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const weekDays = [
+  const weekDays: WeekDay[] = [
     { id: "monday", name: "월", short: "월" },
     { id: "tuesday", name: "화", short: "화" },
     { id: "wednesday", name: "수", short: "수" },
@@ -27,7 +58,7 @@ export function ShiftWorkForm({ formData, setFormData }) {
     { id: "sunday", name: "일", short: "일" },
   ];
 
-  const workingDaysOptions = [
+  const workingDaysOptions: WorkingDaysOption[] = [
     { value: "1", label: "1일" },
     { value: "2", label: "2일" },
     { value: "3", label: "3일" },
@@ -37,7 +68,7 @@ export function ShiftWorkForm({ formData, setFormData }) {
     { value: "7", label: "7일" },
   ];
 
-  const handleDayToggle = (field, dayId) => {
+  const handleDayToggle = (field: string, dayId: string): void => {
     const currentDays = formData[field] || {
       monday: field === "workingDays" ? true : false,
       tuesday: field === "workingDays" ? true : false,

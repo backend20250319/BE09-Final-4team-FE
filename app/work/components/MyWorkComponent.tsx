@@ -9,6 +9,71 @@ import { colors } from "@/lib/design-tokens";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
+// Type definitions
+interface WorkEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+  allDay: boolean;
+  status?: string;
+  isNewEvent?: boolean;
+  extendedProps: {
+    originalTime?: string;
+    originalStartTime?: string;
+    originalEndTime?: string;
+    originalTitle?: string;
+    originalColor?: string;
+    isAllDayRest?: boolean;
+    type?: string;
+    isNewEvent?: boolean;
+  };
+}
+
+interface WorkTimeSummary {
+  totalHours: number;
+  averageHours: number;
+  percentage: number;
+}
+
+interface WeekDates {
+  [key: number]: string;
+}
+
+interface DropdownPosition {
+  x: number;
+  y: number;
+}
+
+interface ScheduleEvent {
+  startTime?: string;
+  endTime?: string;
+  title: string;
+  color: string;
+  type: string;
+  time?: string;
+  isAllDayRest?: boolean;
+}
+
+interface ScheduleData {
+  [key: number]: ScheduleEvent[];
+}
+
+interface TimeRange {
+  start: string;
+  end: string;
+}
+
+interface TimePattern {
+  start: string;
+  end: string;
+  title: string;
+  type: string;
+}
+
 // ScheduleCalendar를 클라이언트에서만 로드
 const ScheduleCalendar = dynamic(
   () => import("@/components/calendar/schedule-calendar"),
@@ -26,7 +91,7 @@ const ScheduleCalendar = dynamic(
 );
 
 // 유형 ↔ 색상 매핑 (요청 팔레트)
-const TYPE_COLORS = {
+const TYPE_COLORS: { [key: string]: string } = {
   근무: "#4FC3F7",
   재택: "#B39DDB",
   외근: "#AED581",
@@ -35,29 +100,32 @@ const TYPE_COLORS = {
   휴게: "#B2DFDB",
 };
 
-export default function MyWorkComponent() {
-  const [currentWeek, setCurrentWeek] = useState("");
-  const [events, setEvents] = useState([]);
-  const [originalEvents, setOriginalEvents] = useState([]);
-  const [weekDates, setWeekDates] = useState({});
-  const [isClient, setIsClient] = useState(false);
-  const [baseDate, setBaseDate] = useState(new Date());
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
-  const [workTimeSummary, setWorkTimeSummary] = useState({
+export default function MyWorkComponent(): JSX.Element {
+  const [currentWeek, setCurrentWeek] = useState<string>("");
+  const [events, setEvents] = useState<WorkEvent[]>([]);
+  const [originalEvents, setOriginalEvents] = useState<WorkEvent[]>([]);
+  const [weekDates, setWeekDates] = useState<WeekDates>({});
+  const [isClient, setIsClient] = useState<boolean>(false);
+  const [baseDate, setBaseDate] = useState<Date>(new Date());
+  const [hasPendingChanges, setHasPendingChanges] = useState<boolean>(false);
+  const [workTimeSummary, setWorkTimeSummary] = useState<WorkTimeSummary>({
     totalHours: 0,
     averageHours: 40,
     percentage: 0,
   });
 
   // 드롭다운 상태
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [dropdownEventId, setDropdownEventId] = useState(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ x: 0, y: 0 });
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [dropdownEventId, setDropdownEventId] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({
+    x: 0,
+    y: 0,
+  });
 
   const router = useRouter();
 
   // 정해진 시간 범위에서 시간 생성 (예시)
-  const timeRanges = [
+  const timeRanges: TimeRange[] = [
     { start: "09:00", end: "11:00" },
     { start: "13:00", end: "15:00" },
     { start: "15:30", end: "17:00" },
@@ -67,7 +135,7 @@ export default function MyWorkComponent() {
   ];
 
   // 요일별 시간 패턴 설정
-  const getTimePatternForDay = (dayOfWeek) => {
+  const getTimePatternForDay = (dayOfWeek: number): TimePattern[] => {
     switch (dayOfWeek) {
       case 1:
       case 2:
@@ -100,7 +168,7 @@ export default function MyWorkComponent() {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
 
-    const formatDate = (date) => {
+    const formatDate = (date: Date): string => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const day = String(date.getDate()).padStart(2, "0");
@@ -111,7 +179,7 @@ export default function MyWorkComponent() {
     const sundayStr = formatDate(sunday);
     setCurrentWeek(`${mondayStr} ~ ${sundayStr}`);
 
-    const weekMapping = {};
+    const weekMapping: WeekDates = {};
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(monday);
       currentDate.setDate(monday.getDate() + i);
@@ -122,14 +190,14 @@ export default function MyWorkComponent() {
   }, [isClient, baseDate]);
 
   // 현재 주 기준으로 scheduleData 생성
-  const generateScheduleData = () => {
+  const generateScheduleData = (): ScheduleData => {
     const today = new Date();
     const currentDay = today.getDay();
     const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
     const monday = new Date(today);
     monday.setDate(today.getDate() + mondayOffset);
 
-    const scheduleData = {};
+    const scheduleData: ScheduleData = {};
 
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(monday);
@@ -195,13 +263,13 @@ export default function MyWorkComponent() {
       return;
 
     const scheduleData = generateScheduleData();
-    const convertedEvents = [];
+    const convertedEvents: WorkEvent[] = [];
 
     Object.entries(scheduleData).forEach(([day, events]) => {
       const dateString = weekDates[parseInt(day)];
 
       events.forEach((event, index) => {
-        let startTime, endTime, allDay;
+        let startTime: string, endTime: string, allDay: boolean;
 
         if (event.startTime && event.endTime) {
           startTime = `${dateString}T${event.startTime}:00`;
@@ -219,7 +287,7 @@ export default function MyWorkComponent() {
           allDay = true;
         }
 
-        const eventObj = {
+        const eventObj: WorkEvent = {
           id: `${day}-${index}`,
           title: event.title,
           start: startTime,
@@ -247,7 +315,7 @@ export default function MyWorkComponent() {
   }, [isClient, currentWeek, weekDates]);
 
   // 근무 시간 계산 (근무, 외근, 출장, 재택 모두 포함, 휴가 제외)
-  const calculateWorkTime = (events) => {
+  const calculateWorkTime = (events: WorkEvent[]): WorkTimeSummary => {
     let totalMinutes = 0;
     const workTypes = ["근무", "외근", "출장", "재택"];
 
@@ -255,7 +323,7 @@ export default function MyWorkComponent() {
       if (workTypes.includes(event.title) && event.start && event.end) {
         const start = new Date(event.start);
         const end = new Date(event.end);
-        const diffMinutes = (end - start) / (1000 * 60);
+        const diffMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
         totalMinutes += diffMinutes;
       }
     });
@@ -273,18 +341,19 @@ export default function MyWorkComponent() {
     }
   }, [events]);
 
-  const handlePreviousWeek = () => {
+  const handlePreviousWeek = (): void => {
     const newBaseDate = new Date(baseDate);
     newBaseDate.setDate(baseDate.getDate() - 7);
     setBaseDate(newBaseDate);
   };
-  const handleNextWeek = () => {
+
+  const handleNextWeek = (): void => {
     const newBaseDate = new Date(baseDate);
     newBaseDate.setDate(baseDate.getDate() + 7);
     setBaseDate(newBaseDate);
   };
 
-  const handleEventDrop = (info) => {
+  const handleEventDrop = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 이동할 수 없습니다.");
       return;
@@ -303,7 +372,7 @@ export default function MyWorkComponent() {
     setHasPendingChanges(true);
   };
 
-  const handleEventResize = (info) => {
+  const handleEventResize = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 수정할 수 없습니다.");
       return;
@@ -322,14 +391,14 @@ export default function MyWorkComponent() {
     setHasPendingChanges(true);
   };
 
-  const handleSelect = (selectInfo) => {
+  const handleSelect = (selectInfo: any): void => {
     if (selectInfo.start.getDay() === 0) {
       alert("일요일에는 일정을 추가할 수 없습니다.");
       return;
     }
 
     const calendarApi = selectInfo.view.calendar;
-    const newEvent = {
+    const newEvent: WorkEvent = {
       id: new Date().getTime().toString(),
       title: "근무",
       start: selectInfo.startStr,
@@ -340,6 +409,9 @@ export default function MyWorkComponent() {
       textColor: "#ffffff",
       status: "pending",
       isNewEvent: true, // 새 이벤트 식별자 (extendedProps로 들어감)
+      extendedProps: {
+        isNewEvent: true,
+      },
     };
 
     calendarApi.addEvent(newEvent);
@@ -348,7 +420,7 @@ export default function MyWorkComponent() {
     calendarApi.unselect();
   };
 
-  const handleEventClick = (clickInfo) => {
+  const handleEventClick = (clickInfo: any): void => {
     if (clickInfo.event.start.getDay() === 0) {
       alert("일요일에는 일정을 삭제할 수 없습니다.");
       return;
@@ -360,24 +432,24 @@ export default function MyWorkComponent() {
     }
   };
 
-  const dayCellDidMountHandler = (arg) => {
+  const dayCellDidMountHandler = (arg: any): void => {
     if (arg.date.getDay() === 0) {
       arg.el.style.backgroundColor = "#ffe5e5";
     }
   };
 
-  const handleCancelChanges = () => {
+  const handleCancelChanges = (): void => {
     setEvents(originalEvents);
     setHasPendingChanges(false);
   };
 
-  const handleSubmitChanges = () => {
+  const handleSubmitChanges = (): void => {
     const pendingEvents = events.filter((e) => e.status === "pending");
     console.log("변경 신청된 일정들:", pendingEvents);
     setHasPendingChanges(false);
   };
 
-  const handleEventTitleEdit = (eventId, newTitle) => {
+  const handleEventTitleEdit = (eventId: string, newTitle: string): void => {
     const updated = events.map((event) =>
       event.id === eventId
         ? { ...event, title: newTitle, status: "pending" }
@@ -388,7 +460,7 @@ export default function MyWorkComponent() {
   };
 
   // 드롭다운에서 유형 선택 시 호출: 색상은 매핑에서 조회
-  const handleTitleSelect = (eventId, selectedType) => {
+  const handleTitleSelect = (eventId: string, selectedType: string): void => {
     const selectedColor = TYPE_COLORS[selectedType];
     const updated = events.map((event) => {
       if (event.id === eventId) {
@@ -410,13 +482,23 @@ export default function MyWorkComponent() {
   };
 
   // 드롭다운 메뉴 컴포넌트 (텍스트만, fixed 포지셔닝, 내부 클릭 보호)
-  const TitleDropdown = ({ eventId, position, onSelect, onClose }) => {
+  const TitleDropdown = ({
+    eventId,
+    position,
+    onSelect,
+    onClose,
+  }: {
+    eventId: string;
+    position: DropdownPosition;
+    onSelect: (eventId: string, selectedType: string) => void;
+    onClose: () => void;
+  }): JSX.Element => {
     const options = ["근무", "재택", "외근", "출장", "휴가", "휴게"];
-    const ref = useRef(null);
+    const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-      const handleDocMouseDown = (e) => {
-        if (ref.current && !ref.current.contains(e.target)) {
+      const handleDocMouseDown = (e: MouseEvent) => {
+        if (ref.current && !ref.current.contains(e.target as Node)) {
           onClose();
         }
       };
@@ -476,8 +558,8 @@ export default function MyWorkComponent() {
   };
 
   // SimpleEvent: 제목 클릭 → 드롭다운을 제목 바로 아래에 표시
-  const SimpleEvent = ({ event }) => {
-    const handleTitleClick = (e) => {
+  const SimpleEvent = ({ event }: { event: WorkEvent }): JSX.Element => {
+    const handleTitleClick = (e: React.MouseEvent): void => {
       if (event.extendedProps?.isNewEvent) {
         e.stopPropagation();
         const rect = e.currentTarget.getBoundingClientRect();
@@ -543,16 +625,26 @@ export default function MyWorkComponent() {
     );
   };
 
-  const eventContent = (arg) => <SimpleEvent event={arg.event} />;
+  const eventContent = (arg: any): JSX.Element => (
+    <SimpleEvent event={arg.event} />
+  );
 
   // 게이지 컴포넌트
-  const WorkTimeGauge = ({ percentage, totalHours, averageHours }) => {
+  const WorkTimeGauge = ({
+    percentage,
+    totalHours,
+    averageHours,
+  }: {
+    percentage: number;
+    totalHours: number;
+    averageHours: number;
+  }): JSX.Element => {
     const radius = 30;
     const circumference = 2 * Math.PI * radius;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-    const getGaugeColor = (p) => {
+    const getGaugeColor = (p: number): string => {
       if (p >= 80) return "#10b981";
       if (p >= 60) return "#f59e0b";
       return "#ef4444";
@@ -659,9 +751,9 @@ export default function MyWorkComponent() {
       {/* 드롭다운 메뉴 */}
       {showDropdown && (
         <TitleDropdown
-          eventId={dropdownEventId}
+          eventId={dropdownEventId!}
           position={dropdownPosition}
-          onSelect={handleTitleSelect} // (eventId, selectedType)
+          onSelect={handleTitleSelect}
           onClose={() => setShowDropdown(false)}
         />
       )}

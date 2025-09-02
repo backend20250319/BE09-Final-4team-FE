@@ -24,34 +24,72 @@ import {
 import SelectTime from "@/components/clock/SelectTime";
 import Calendar from "./components/calendar";
 
+// Type definitions
+interface VacationType {
+  value: string;
+  label: string;
+}
+
+interface VacationData {
+  type: string;
+  dates: string[];
+  startTime: string;
+  endTime: string;
+  reason: string;
+  days: number;
+}
+
+interface VacationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit?: (data: VacationData) => void;
+  defaultVacationType?: string;
+  vacationTypes?: VacationType[];
+  onCalendarToggle?: () => void;
+  isCalendarOpen?: boolean;
+  startDate?: string;
+  endDate?: string;
+  onDateSelect?: (date: Date) => void;
+}
+
 export default function VacationModal({
   isOpen,
   onClose,
   onSubmit,
   defaultVacationType = "기본 연차",
-}) {
-  const [vacationType, setVacationType] = useState(defaultVacationType);
-  const [selectedDates, setSelectedDates] = useState([]);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("18:00");
-  const [reason, setReason] = useState("");
-  const [showStartTimeDropdown, setShowStartTimeDropdown] = useState(false);
-  const [showEndTimeDropdown, setShowEndTimeDropdown] = useState(false);
+  vacationTypes: propVacationTypes,
+  onCalendarToggle,
+  isCalendarOpen,
+  startDate: propStartDate,
+  endDate: propEndDate,
+  onDateSelect,
+}: VacationModalProps): JSX.Element {
+  const [vacationType, setVacationType] = useState<string>(defaultVacationType);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState<string>("09:00");
+  const [endTime, setEndTime] = useState<string>("18:00");
+  const [reason, setReason] = useState<string>("");
+  const [showStartTimeDropdown, setShowStartTimeDropdown] =
+    useState<boolean>(false);
+  const [showEndTimeDropdown, setShowEndTimeDropdown] =
+    useState<boolean>(false);
 
   // defaultVacationType이 변경될 때 vacationType 상태 업데이트
   useEffect(() => {
     setVacationType(defaultVacationType);
   }, [defaultVacationType]);
 
-  const vacationTypes = [
+  const defaultVacationTypes: VacationType[] = [
     { value: "기본 연차", label: "기본 연차" },
     { value: "보상 연차", label: "보상 연차" },
     { value: "특별 연차", label: "특별 연차" },
   ];
 
-  const handleStartDateChange = (newStartDate) => {
+  const vacationTypes = propVacationTypes || defaultVacationTypes;
+
+  const handleStartDateChange = (newStartDate: Date): void => {
     setStartDate(newStartDate);
 
     // 시작일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
@@ -64,7 +102,7 @@ export default function VacationModal({
     }
   };
 
-  const handleEndDateChange = (newEndDate) => {
+  const handleEndDateChange = (newEndDate: Date): void => {
     setEndDate(newEndDate);
 
     // 종료일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
@@ -77,11 +115,11 @@ export default function VacationModal({
     }
   };
 
-  const updateSelectedDates = (start, end) => {
+  const updateSelectedDates = (start: Date, end: Date): void => {
     if (start && end) {
       const startDate = start instanceof Date ? start : new Date(start);
       const endDate = end instanceof Date ? end : new Date(end);
-      const dates = [];
+      const dates: Date[] = [];
       const current = new Date(startDate);
 
       // 시작일과 종료일이 같은 경우
@@ -106,7 +144,7 @@ export default function VacationModal({
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
     if (selectedDates.length === 0) {
       alert("날짜를 선택해주세요.");
       return;
@@ -116,7 +154,7 @@ export default function VacationModal({
       return;
     }
 
-    const vacationData = {
+    const vacationData: VacationData = {
       type: vacationType,
       dates: selectedDates.map((date) => format(date, "yyyy-MM-dd")),
       startTime,
@@ -125,11 +163,13 @@ export default function VacationModal({
       days: selectedDates.length,
     };
 
-    onSubmit(vacationData);
+    if (onSubmit) {
+      onSubmit(vacationData);
+    }
     handleClose();
   };
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setVacationType(defaultVacationType);
     setSelectedDates([]);
     setStartDate(null);
@@ -142,12 +182,12 @@ export default function VacationModal({
     onClose();
   };
 
-  const handleStartTimeSelect = (time) => {
+  const handleStartTimeSelect = (time: string): void => {
     setStartTime(time);
     setShowStartTimeDropdown(false);
   };
 
-  const handleEndTimeSelect = (time) => {
+  const handleEndTimeSelect = (time: string): void => {
     setEndTime(time);
     setShowEndTimeDropdown(false);
   };
@@ -198,13 +238,8 @@ export default function VacationModal({
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-blue-700">
                     <span className="font-medium">선택된 기간:</span>{" "}
-                    {format(new Date(startDate), "yyyy년 M월 d일", {
-                      locale: ko,
-                    })}{" "}
-                    ~{" "}
-                    {format(new Date(endDate), "yyyy년 M월 d일", {
-                      locale: ko,
-                    })}
+                    {format(startDate, "yyyy.MM.dd")} ~{" "}
+                    {format(endDate, "yyyy.MM.dd")}
                   </div>
                   <div className="text-sm font-medium text-blue-700">
                     {selectedDates.length}일
@@ -213,93 +248,97 @@ export default function VacationModal({
               </div>
             )}
 
-          {/* Time Inputs - 단일 날짜 선택 시에만 표시 */}
-          {((startDate && !endDate) ||
-            (startDate &&
-              endDate &&
-              startDate.getTime() === endDate.getTime())) && (
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  휴가 시작 시간
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    value={startTime}
-                    readOnly
-                    onClick={() => {
-                      setShowStartTimeDropdown(!showStartTimeDropdown);
-                      setShowEndTimeDropdown(false);
-                    }}
-                    className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
-                  />
-                  {showStartTimeDropdown && (
-                    <SelectTime
-                      onTimeSelect={handleStartTimeSelect}
-                      onClose={() => setShowStartTimeDropdown(false)}
-                      isDropdown={true}
-                    />
-                  )}
+          {/* Single Date Info - 단일 날짜 선택 시에만 표시 */}
+          {startDate &&
+            (!endDate || startDate.getTime() === endDate.getTime()) && (
+              <div className="mb-4 p-3 bg-green-50/50 border border-green-200/50 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-green-700">
+                    <span className="font-medium">선택된 날짜:</span>{" "}
+                    {format(startDate, "yyyy.MM.dd")}
+                  </div>
+                  <div className="text-sm font-medium text-green-700">1일</div>
                 </div>
               </div>
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  휴가 종료 시간
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    value={endTime}
-                    readOnly
-                    onClick={() => {
-                      setShowEndTimeDropdown(!showEndTimeDropdown);
-                      setShowStartTimeDropdown(false);
-                    }}
-                    className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
-                  />
-                  {showEndTimeDropdown && (
-                    <SelectTime
-                      onTimeSelect={handleEndTimeSelect}
-                      onClose={() => setShowEndTimeDropdown(false)}
-                      isDropdown={true}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Reason Textarea */}
+          {/* Time Selection */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              연차 사유
+              시간 선택
             </label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-              <Textarea
-                placeholder="연차 사유를 입력해주세요..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl min-h-[80px] resize-none"
-              />
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
+                  onClick={() =>
+                    setShowStartTimeDropdown(!showStartTimeDropdown)
+                  }
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {startTime}
+                  </span>
+                </Button>
+                {showStartTimeDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <SelectTime
+                      selectedTime={startTime}
+                      onTimeSelect={handleStartTimeSelect}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 relative">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
+                  onClick={() => setShowEndTimeDropdown(!showEndTimeDropdown)}
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {endTime}
+                  </span>
+                </Button>
+                {showEndTimeDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                    <SelectTime
+                      selectedTime={endTime}
+                      onTimeSelect={handleEndTimeSelect}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <DialogFooter className="flex gap-3">
+          {/* Reason Input */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              휴가 사유
+            </label>
+            <Textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="휴가 사유를 입력해주세요..."
+              className="w-full bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl resize-none"
+              rows={3}
+            />
+          </div>
+
+          {/* Footer */}
+          <DialogFooter className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl cursor-pointer"
+              className="flex-1 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
             >
               취소
             </Button>
             <Button
-              variant="primary"
               onClick={handleSubmit}
-              className="flex-1 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors cursor-pointer"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
             >
               신청하기
             </Button>

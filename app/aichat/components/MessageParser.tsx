@@ -1,13 +1,37 @@
 import React from "react";
 import { createChatBotMessage } from "react-chatbot-kit";
 
+// Type definitions
+interface ActionProvider {
+  greet: () => void;
+  handleHelp: () => void;
+  handleWeather: () => void;
+  handleTime: () => void;
+  handleThanks: () => void;
+  handleTask: () => void;
+  handleSchedule: () => void;
+  handleMembers: () => void;
+  handleDocuments: () => void;
+  handleVacation: () => void;
+  handleApproval: () => void;
+  handleSettings: () => void;
+  handleUnknown: () => void;
+}
+
+interface State {
+  [key: string]: any;
+}
+
 class MessageParser {
-  constructor(actionProvider, state) {
+  private actionProvider: ActionProvider;
+  private state: State;
+
+  constructor(actionProvider: ActionProvider, state: State) {
     this.actionProvider = actionProvider;
     this.state = state;
   }
 
-  parse(message) {
+  parse(message: string): void {
     const lowerCase = message.toLowerCase();
 
     if (lowerCase.includes("안녕") || lowerCase.includes("hello")) {
