@@ -93,7 +93,6 @@ export default function ProfileModal({
     positions,
     jobs,
     roles,
-    loading: titleLoading,
   } = useTitlesFromMembers();
   const router = useRouter();
 
@@ -204,6 +203,7 @@ export default function ProfileModal({
 
         {/* Header */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 pr-17">
+
           <div className="flex items-center justify-between gap-3">
             
             <div className="flex-1 text-left">
