@@ -20,33 +20,17 @@ import {
   UserWorkPolicyDto,
   ColleagueScheduleResponseDto,
   WeeklyWorkDetail,
+  ApiResult,
   // Enums
   AttendanceStatus,
   WorkStatus,
-  // API Result Types
-  ApiResultAttendanceResponse,
-  ApiResultScheduleResponseDto,
-  ApiResultListScheduleResponseDto,
-  ApiResultWorkPolicyResponseDto,
-  ApiResultListWorkPolicyResponseDto,
-  ApiResultAnnualLeaveResponseDto,
-  ApiResultListAnnualLeaveResponseDto,
-  ApiResultLeaveRequestResponseDto,
-  ApiResultWorkTimeAdjustment,
-  ApiResultUserWorkPolicyDto,
-  ApiResultColleagueScheduleResponseDto,
-  ApiResultWeeklyWorkDetail,
-  ApiResultWorkMonitorDto,
-  ApiResultInteger,
-  ApiResultVoid,
-  ApiResultMapStringObject,
 } from "./types";
 
 // Attendance API
 export const attendanceApi = {
   // 출근 체크인
   checkIn: async (request: CheckInRequest): Promise<AttendanceResponse> => {
-    const response = await apiClient.post<ApiResultAttendanceResponse>(
+    const response = await apiClient.post<ApiResult<AttendanceResponse>>(
       "/api/attendance/check-in",
       request
     );
@@ -55,7 +39,7 @@ export const attendanceApi = {
 
   // 퇴근 체크아웃
   checkOut: async (request: CheckOutRequest): Promise<AttendanceResponse> => {
-    const response = await apiClient.post<ApiResultAttendanceResponse>(
+    const response = await apiClient.post<ApiResult<AttendanceResponse>>(
       "/api/attendance/check-out",
       request
     );
@@ -81,7 +65,7 @@ export const attendanceApi = {
     if (checkInTime) params.append("checkInTime", checkInTime);
     if (checkOutTime) params.append("checkOutTime", checkOutTime);
 
-    const response = await apiClient.post<ApiResultAttendanceResponse>(
+    const response = await apiClient.post<ApiResult<AttendanceResponse>>(
       `/api/attendance/attendance-status?${params}`
     );
     return response.data.data;
@@ -106,7 +90,7 @@ export const attendanceApi = {
     if (checkInTime) params.append("checkInTime", checkInTime);
     if (checkOutTime) params.append("checkOutTime", checkOutTime);
 
-    const response = await apiClient.post<ApiResultAttendanceResponse>(
+    const response = await apiClient.post<ApiResult<AttendanceResponse>>(
       `/api/attendance/work-status?${params}`
     );
     return response.data.data;
@@ -121,7 +105,7 @@ export const attendanceApi = {
       userId: userId.toString(),
       weekStart,
     });
-    const response = await apiClient.get<ApiResultWeeklyWorkDetail>(
+    const response = await apiClient.get<ApiResult<WeeklyWorkDetail>>(
       `/api/attendance/weekly?${params}`
     );
     return response.data.data;
@@ -132,7 +116,7 @@ export const attendanceApi = {
     const params = new URLSearchParams({
       userId: userId.toString(),
     });
-    const response = await apiClient.get<ApiResultWeeklyWorkDetail>(
+    const response = await apiClient.get<ApiResult<WeeklyWorkDetail>>(
       `/api/attendance/weekly/this?${params}`
     );
     return response.data.data;
@@ -145,7 +129,7 @@ export const attendanceApi = {
     const params = new URLSearchParams({
       userId: userId.toString(),
     });
-    const response = await apiClient.get<ApiResultMapStringObject>(
+    const response = await apiClient.get<ApiResult<Record<string, any>>>(
       `/api/attendance/check-in-available-time?${params}`
     );
     return response.data.data;
@@ -158,7 +142,7 @@ export const workScheduleApi = {
   createSchedule: async (
     request: CreateScheduleRequestDto
   ): Promise<ScheduleResponseDto> => {
-    const response = await apiClient.post<ApiResultScheduleResponseDto>(
+    const response = await apiClient.post<ApiResult<ScheduleResponseDto>>(
       "/api/work-schedule/schedules",
       request
     );
@@ -167,7 +151,7 @@ export const workScheduleApi = {
 
   // 스케줄 조회 (사용자별)
   getUserSchedules: async (userId: number): Promise<ScheduleResponseDto[]> => {
-    const response = await apiClient.get<ApiResultListScheduleResponseDto>(
+    const response = await apiClient.get<ApiResult<ScheduleResponseDto[]>>(
       `/api/work-schedule/users/${userId}/schedules`
     );
     return response.data.data;
@@ -180,7 +164,7 @@ export const workScheduleApi = {
     endDate: string
   ): Promise<ScheduleResponseDto[]> => {
     const params = new URLSearchParams({ startDate, endDate });
-    const response = await apiClient.get<ApiResultListScheduleResponseDto>(
+    const response = await apiClient.get<ApiResult<ScheduleResponseDto[]>>(
       `/api/work-schedule/users/${userId}/schedules/range?${params}`
     );
     return response.data.data;
@@ -191,7 +175,7 @@ export const workScheduleApi = {
     userId: number,
     scheduleId: number
   ): Promise<ScheduleResponseDto> => {
-    const response = await apiClient.get<ApiResultScheduleResponseDto>(
+    const response = await apiClient.get<ApiResult<ScheduleResponseDto>>(
       `/api/work-schedule/users/${userId}/schedules/${scheduleId}`
     );
     return response.data.data;
@@ -203,7 +187,7 @@ export const workScheduleApi = {
     scheduleId: number,
     request: UpdateScheduleRequestDto
   ): Promise<ScheduleResponseDto> => {
-    const response = await apiClient.put<ApiResultScheduleResponseDto>(
+    const response = await apiClient.put<ApiResult<ScheduleResponseDto>>(
       `/api/work-schedule/users/${userId}/schedules/${scheduleId}`,
       request
     );
@@ -212,7 +196,7 @@ export const workScheduleApi = {
 
   // 스케줄 삭제
   deleteSchedule: async (userId: number, scheduleId: number): Promise<void> => {
-    await apiClient.delete<ApiResultVoid>(
+    await apiClient.delete<ApiResult<object>>(
       `/api/work-schedule/users/${userId}/schedules/${scheduleId}`
     );
   },
@@ -224,7 +208,7 @@ export const workScheduleApi = {
     endDate: string
   ): Promise<ScheduleResponseDto[]> => {
     const params = new URLSearchParams({ startDate, endDate });
-    const response = await apiClient.post<ApiResultListScheduleResponseDto>(
+    const response = await apiClient.post<ApiResult<ScheduleResponseDto[]>>(
       `/api/work-schedule/users/${userId}/fixed-schedules?${params}`
     );
     return response.data.data;
@@ -237,7 +221,7 @@ export const workScheduleApi = {
     endDate: string
   ): Promise<ScheduleResponseDto[]> => {
     const params = new URLSearchParams({ startDate, endDate });
-    const response = await apiClient.post<ApiResultListScheduleResponseDto>(
+    const response = await apiClient.post<ApiResult<ScheduleResponseDto[]>>(
       `/api/work-schedule/users/${userId}/apply-work-policy?${params}`
     );
     return response.data.data;
@@ -245,7 +229,7 @@ export const workScheduleApi = {
 
   // 사용자 근무 정책 조회
   getUserWorkPolicy: async (userId: number): Promise<UserWorkPolicyDto> => {
-    const response = await apiClient.get<ApiResultUserWorkPolicyDto>(
+    const response = await apiClient.get<ApiResult<UserWorkPolicyDto>>(
       `/api/work-schedule/users/${userId}/work-policy`
     );
     return response.data.data;
@@ -258,7 +242,7 @@ export const workScheduleApi = {
     endDate: string
   ): Promise<ColleagueScheduleResponseDto> => {
     const params = new URLSearchParams({ startDate, endDate });
-    const response = await apiClient.get<ApiResultColleagueScheduleResponseDto>(
+    const response = await apiClient.get<ApiResult<ColleagueScheduleResponseDto>>(
       `/api/work-schedule/colleagues/${colleagueId}/schedules?${params}`
     );
     return response.data.data;
@@ -268,7 +252,7 @@ export const workScheduleApi = {
   createWorkTimeAdjustment: async (
     request: AdjustWorkTimeRequestDto
   ): Promise<WorkTimeAdjustment> => {
-    const response = await apiClient.post<ApiResultWorkTimeAdjustment>(
+    const response = await apiClient.post<ApiResult<WorkTimeAdjustment>>(
       "/api/work-schedule/work-time-adjustments",
       request
     );
@@ -280,7 +264,7 @@ export const workScheduleApi = {
 export const workPolicyApi = {
   // 전체 근무 정책 목록 조회
   getAllWorkPolicies: async (): Promise<WorkPolicyResponseDto[]> => {
-    const response = await apiClient.get<ApiResultListWorkPolicyResponseDto>(
+    const response = await apiClient.get<ApiResult<WorkPolicyResponseDto[]>>(
       "/api/workpolicy"
     );
     return response.data.data;
@@ -290,7 +274,7 @@ export const workPolicyApi = {
   getWorkPolicyById: async (
     workPolicyId: number
   ): Promise<WorkPolicyResponseDto> => {
-    const response = await apiClient.get<ApiResultWorkPolicyResponseDto>(
+    const response = await apiClient.get<ApiResult<WorkPolicyResponseDto>>(
       `/api/workpolicy/${workPolicyId}`
     );
     return response.data.data;
@@ -300,7 +284,7 @@ export const workPolicyApi = {
   createWorkPolicy: async (
     request: WorkPolicyRequestDto
   ): Promise<WorkPolicyResponseDto> => {
-    const response = await apiClient.post<ApiResultWorkPolicyResponseDto>(
+    const response = await apiClient.post<ApiResult<WorkPolicyResponseDto>>(
       "/api/workpolicy",
       request
     );
@@ -312,7 +296,7 @@ export const workPolicyApi = {
 export const annualLeaveApi = {
   // 연차 정책 조회 (ID)
   getAnnualLeaveById: async (id: number): Promise<AnnualLeaveResponseDto> => {
-    const response = await apiClient.get<ApiResultAnnualLeaveResponseDto>(
+    const response = await apiClient.get<ApiResult<AnnualLeaveResponseDto>>(
       `/api/annual-leaves/${id}`
     );
     return response.data.data;
@@ -323,7 +307,7 @@ export const annualLeaveApi = {
     id: number,
     request: AnnualLeaveUpdateDto
   ): Promise<AnnualLeaveResponseDto> => {
-    const response = await apiClient.put<ApiResultAnnualLeaveResponseDto>(
+    const response = await apiClient.put<ApiResult<AnnualLeaveResponseDto>>(
       `/api/annual-leaves/${id}`,
       request
     );
@@ -332,14 +316,14 @@ export const annualLeaveApi = {
 
   // 연차 정책 삭제
   deleteAnnualLeave: async (id: number): Promise<void> => {
-    await apiClient.delete<ApiResultVoid>(`/api/annual-leaves/${id}`);
+    await apiClient.delete<ApiResult<object>>(`/api/annual-leaves/${id}`);
   },
 
   // 근무 정책별 연차 정책 목록 조회
   getAnnualLeavesByWorkPolicyId: async (
     workPolicyId: number
   ): Promise<AnnualLeaveResponseDto[]> => {
-    const response = await apiClient.get<ApiResultListAnnualLeaveResponseDto>(
+    const response = await apiClient.get<ApiResult<AnnualLeaveResponseDto[]>>(
       `/api/annual-leaves/work-policies/${workPolicyId}`
     );
     return response.data.data;
@@ -350,7 +334,7 @@ export const annualLeaveApi = {
     workPolicyId: number,
     request: AnnualLeaveRequestDto
   ): Promise<AnnualLeaveResponseDto> => {
-    const response = await apiClient.post<ApiResultAnnualLeaveResponseDto>(
+    const response = await apiClient.post<ApiResult<AnnualLeaveResponseDto>>(
       `/api/annual-leaves/work-policies/${workPolicyId}`,
       request
     );
@@ -359,7 +343,7 @@ export const annualLeaveApi = {
 
   // 근무 정책별 총 연차 일수 계산
   calculateTotalLeaveDays: async (workPolicyId: number): Promise<number> => {
-    const response = await apiClient.get<ApiResultInteger>(
+    const response = await apiClient.get<ApiResult<number>>(
       `/api/annual-leaves/work-policies/${workPolicyId}/total-leave-days`
     );
     return response.data.data;
@@ -367,7 +351,7 @@ export const annualLeaveApi = {
 
   // 근무 정책별 총 휴일 일수 계산
   calculateTotalHolidayDays: async (workPolicyId: number): Promise<number> => {
-    const response = await apiClient.get<ApiResultInteger>(
+    const response = await apiClient.get<ApiResult<number>>(
       `/api/annual-leaves/work-policies/${workPolicyId}/total-holiday-days`
     );
     return response.data.data;
@@ -380,7 +364,7 @@ export const leaveApi = {
   createLeaveRequest: async (
     request: CreateLeaveRequestDto
   ): Promise<LeaveRequestResponseDto> => {
-    const response = await apiClient.post<ApiResultLeaveRequestResponseDto>(
+    const response = await apiClient.post<ApiResult<LeaveRequestResponseDto>>(
       "/api/leaves",
       request
     );
@@ -391,7 +375,7 @@ export const leaveApi = {
   getLeaveRequest: async (
     requestId: number
   ): Promise<LeaveRequestResponseDto> => {
-    const response = await apiClient.get<ApiResultLeaveRequestResponseDto>(
+    const response = await apiClient.get<ApiResult<LeaveRequestResponseDto>>(
       `/api/leaves/${requestId}`
     );
     return response.data.data;
@@ -402,7 +386,7 @@ export const leaveApi = {
     requestId: number,
     request: CreateLeaveRequestDto
   ): Promise<LeaveRequestResponseDto> => {
-    const response = await apiClient.put<ApiResultLeaveRequestResponseDto>(
+    const response = await apiClient.put<ApiResult<LeaveRequestResponseDto>>(
       `/api/leaves/${requestId}`,
       request
     );
@@ -414,7 +398,7 @@ export const leaveApi = {
 export const workMonitorApi = {
   // 특정 날짜 근무 모니터링 조회
   getWorkMonitorByDate: async (date: string): Promise<WorkMonitorDto> => {
-    const response = await apiClient.get<ApiResultWorkMonitorDto>(
+    const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
       `/api/work-monitor/${date}`
     );
     return response.data.data;
@@ -422,7 +406,7 @@ export const workMonitorApi = {
 
   // 오늘 근무 모니터링 조회
   getTodayWorkMonitor: async (): Promise<WorkMonitorDto> => {
-    const response = await apiClient.get<ApiResultWorkMonitorDto>(
+    const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
       "/api/work-monitor/today"
     );
     return response.data.data;
@@ -430,7 +414,7 @@ export const workMonitorApi = {
 
   // 특정 날짜 근무 모니터링 데이터 갱신
   updateWorkMonitorData: async (date: string): Promise<WorkMonitorDto> => {
-    const response = await apiClient.post<ApiResultWorkMonitorDto>(
+    const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
       `/api/work-monitor/update/${date}`
     );
     return response.data.data;
@@ -438,7 +422,7 @@ export const workMonitorApi = {
 
   // 오늘 근무 모니터링 데이터 갱신
   updateTodayWorkMonitorData: async (): Promise<WorkMonitorDto> => {
-    const response = await apiClient.post<ApiResultWorkMonitorDto>(
+    const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
       "/api/work-monitor/update/today"
     );
     return response.data.data;
