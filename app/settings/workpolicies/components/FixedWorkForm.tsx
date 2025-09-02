@@ -39,9 +39,9 @@ interface TimePickerState {
 }
 
 interface TimePickerRefs {
-  workTime: React.RefObject<HTMLDivElement>;
-  breakTimeStart: React.RefObject<HTMLDivElement>;
-  breakTimeEnd: React.RefObject<HTMLDivElement>;
+  workTime: React.RefObject<HTMLDivElement | null>;
+  breakTimeStart: React.RefObject<HTMLDivElement | null>;
+  breakTimeEnd: React.RefObject<HTMLDivElement | null>;
 }
 
 interface WeekDay {
@@ -58,7 +58,7 @@ interface CycleStartOption {
 export function FixedWorkForm({
   formData,
   setFormData,
-}: FixedWorkFormProps): JSX.Element {
+}: FixedWorkFormProps): React.ReactElement {
   const [showTimePicker, setShowTimePicker] = useState<TimePickerState>({
     workTime: false,
     breakTimeStart: false,
