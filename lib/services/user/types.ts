@@ -139,13 +139,16 @@ export interface LoginRequestDto {
 }
 
 export interface RefreshRequestDto {
-  refreshToken: string;
   email: string;
 }
 
-export interface TokenResponseDto {
+export interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
+  expiresIn: number;
+  userId: number;
+  email: string;
+  name: string;
+  role: string;
 }
 
 export interface MainProfileResponseDto {

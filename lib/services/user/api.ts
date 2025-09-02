@@ -5,7 +5,7 @@ import {
   UserResponseDto,
   LoginRequestDto,
   RefreshRequestDto,
-  TokenResponseDto,
+  LoginResponse,
   MainProfileResponseDto,
   DetailProfileResponseDto,
   ColleagueSearchRequestDto,
@@ -13,8 +13,8 @@ import {
 } from './types';
 import { ApiResult } from '../common/types';
 
-export const userApi = {
-  login: async (data: LoginRequestDto): Promise<TokenResponseDto> => {
+export const authApi = {
+  login: async (data: LoginRequestDto): Promise<LoginResponse> => {
     const response = await apiClient.post('/api/auth/login', data);
     return response.data;
   },
@@ -24,11 +24,13 @@ export const userApi = {
     return response.data;
   },
 
-  refresh: async (data: RefreshRequestDto): Promise<TokenResponseDto> => {
+  refresh: async (data: RefreshRequestDto): Promise<LoginResponse> => {
     const response = await apiClient.post('/api/auth/refresh', data);
     return response.data;
   },
+}
 
+export const userApi = {
   getAllUsers: async (): Promise<UserResponseDto[]> => {
     const response = await apiClient.get('/api/users');
     return response.data;
