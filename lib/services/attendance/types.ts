@@ -420,25 +420,3 @@ export interface ApiResult<T> {
   data: T;
 }
 
-export type ApiResultAttendanceResponse = ApiResult<AttendanceResponse>;
-export type ApiResultScheduleResponseDto = ApiResult<ScheduleResponseDto>;
-export type ApiResultListScheduleResponseDto = ApiResult<ScheduleResponseDto[]>;
-export type ApiResultWorkPolicyResponseDto = ApiResult<WorkPolicyResponseDto>;
-export type ApiResultListWorkPolicyResponseDto = ApiResult<
-  WorkPolicyResponseDto[]
->;
-export type ApiResultAnnualLeaveResponseDto = ApiResult<AnnualLeaveResponseDto>;
-export type ApiResultListAnnualLeaveResponseDto = ApiResult<
-  AnnualLeaveResponseDto[]
->;
-export type ApiResultLeaveRequestResponseDto =
-  ApiResult<LeaveRequestResponseDto>;
-export type ApiResultWorkTimeAdjustment = ApiResult<WorkTimeAdjustment>;
-export type ApiResultUserWorkPolicyDto = ApiResult<UserWorkPolicyDto>;
-export type ApiResultColleagueScheduleResponseDto =
-  ApiResult<ColleagueScheduleResponseDto>;
-export type ApiResultWeeklyWorkDetail = ApiResult<WeeklyWorkDetail>;
-export type ApiResultWorkMonitorDto = ApiResult<WorkMonitorDto>;
-export type ApiResultInteger = ApiResult<number>;
-export type ApiResultVoid = ApiResult<object>;
-export type ApiResultMapStringObject = ApiResult<Record<string, any>>;

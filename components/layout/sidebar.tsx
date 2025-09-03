@@ -5,6 +5,7 @@ import { LucideIcon } from "lucide-react";
 import { defaultMenuItems, MenuItem } from "@/lib/navigation";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import { getAccessToken } from "@/lib/services/common/api-client";
 import {
   Home,
   Users,
@@ -191,6 +192,16 @@ export function Sidebar({
             );
           })}
         </nav>
+        
+        {/* Access Token Display - Dev only */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-6 p-3 bg-gray-50 rounded-lg border">
+            <div className="text-xs font-medium text-gray-600 mb-1">Access Token:</div>
+            <div className="text-xs text-gray-800 break-all font-mono">
+              {getAccessToken() ? getAccessToken()!.substring(0, 50) + '...' : 'No token'}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

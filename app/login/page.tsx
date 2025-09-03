@@ -10,6 +10,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
+import { authApi } from '@/lib/services/user/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,42 +38,26 @@ export default function LoginPage() {
         return;
       }
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const loginData = await authApi.login({ email, password });
+
+      const userData = {
+        id: loginData.userId.toString(),
+        email: loginData.email,
+        name: loginData.name,
+        isAdmin: loginData.role === 'ADMIN',
+      };
+
+      login(userData, {
+        accessToken: loginData.accessToken,
+        expiresIn: loginData.expiresIn,
       });
 
-      const result = await response.json();
-
-      if (result.status === 'SUCCESS') {
-        const { data } = result;
-
-        const payload = JSON.parse(atob(data.accessToken.split('.')[1]));
-        const userData = {
-          userId: payload.userId,
-          email: payload.sub,
-          name: payload.name || email.split('@')[0],
-          isAdmin: payload.role === 'ADMIN',
-          role: payload.role,
-          tenantId: payload.tenantId,
-        };
-
-        login(userData, {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          tokenType: data.tokenType,
-          expiresIn: data.expiresIn,
-        });
-
-        toast.success('로그인 성공!');
-        router.push('/');
-      } else {
-        setLoginError(result.message || '로그인에 실패했습니다.');
-      }
-    } catch (error) {
+      toast.success('로그인 성공!');
+      router.push('/');
+    } catch (error: any) {
       console.error('로그인 오류:', error);
-      setLoginError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+      const errorMessage = error.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
+      setLoginError(errorMessage);
     } finally {
       setIsLoading(false);
     }
