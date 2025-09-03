@@ -15,7 +15,6 @@ interface User {
 interface AuthContextType {
   user: User | null
   isLoggedIn: boolean
-  loading: boolean
   login: (userData: Omit<User, 'isAdmin'> & { isAdmin?: boolean }, tokens: { accessToken: string; expiresIn: number }) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -124,10 +123,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     isLoggedIn: !!user,
-    loading,
     login,
     logout,
     refreshUser
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div>Loading...</div>
+      </div>
+    )
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

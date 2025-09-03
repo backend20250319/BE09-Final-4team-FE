@@ -15,13 +15,9 @@ interface MainLayoutProps {
 export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, loading: isLoading, isLoggedIn } = useAuth();
+  const { user, isLoggedIn } = useAuth();
 
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
     if (pathname === '/login') {
       if (isLoggedIn) {
         router.push('/');
@@ -38,15 +34,7 @@ export function MainLayout({ children, requireAuth = false, requireAdmin = false
       router.push('/');
       return;
     }
-  }, [isLoading, isLoggedIn, user, requireAuth, requireAdmin, router, pathname]);
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div>Loading...</div>
-      </div>
-    );
-  }
+  }, [isLoggedIn, user, requireAuth, requireAdmin, router, pathname]);
 
   return (
     <>
