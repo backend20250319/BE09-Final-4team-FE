@@ -105,7 +105,7 @@ apiClient.interceptors.response.use(
         // AuthContext에 토큰 갱신 성공 이벤트 전달
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
-            detail: { accessToken: newToken, userId, email, name, role }
+            detail: { userId, email, name, role }
           }))
         }
         

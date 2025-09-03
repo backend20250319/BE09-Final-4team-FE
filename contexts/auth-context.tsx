@@ -75,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // 토큰 갱신 이벤트 리스너
   useEffect(() => {
     const handleTokenRefresh = (event: CustomEvent) => {
-      const { accessToken, userId, email, name, role } = event.detail
+      const { userId, email, name, role } = event.detail
       const user: User = {
         id: userId,
         email,
@@ -83,20 +83,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role
       }
       setUser(user)
-      setAccessToken(accessToken)
     }
 
-    const handleTokenRefreshError = () => {
+    const handleTokenExpired = () => {
       setUser(null)
-      clearAccessToken()
     }
 
     window.addEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
-    window.addEventListener('auth:token-expired', handleTokenRefreshError)
+    window.addEventListener('auth:token-expired', handleTokenExpired)
 
     return () => {
       window.removeEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
-      window.removeEventListener('auth:token-expired', handleTokenRefreshError)
+      window.removeEventListener('auth:token-expired', handleTokenExpired)
     }
   }, [])
 
