@@ -65,8 +65,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       setUser(user)
       setAccessToken(response.accessToken)
+      console.log('인증 갱신 성공:', user)
     } catch (error) {
-      console.error('토큰 갱신 실패:', error)
+      console.error('인증 갱신 실패:', error)
       setUser(null)
       clearAccessToken()
     }
@@ -83,10 +84,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role
       }
       setUser(user)
+      console.log('인증이 자동으로 갱신되었습니다.')
     }
 
     const handleTokenExpired = () => {
       setUser(null)
+      console.error('인증이 만료되었습니다.')
     }
 
     window.addEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
@@ -102,7 +105,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        await refreshUser()
+        if (user === null) {
+          await refreshUser()
+        }
       } catch (error) {
         console.log('초기 인증 확인 실패 (정상적인 경우일 수 있음)')
       } finally {

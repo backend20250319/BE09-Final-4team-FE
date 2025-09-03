@@ -18,37 +18,37 @@ import {
   GetDocumentsParams,
   GetTemplatesParams,
 } from './types'
-import { ApiResult, PageResult } from '../common/types'
+import { PageResult } from '../common/types'
 
 // 카테고리 관련 API
 export const categoryApi = {
   // 카테고리 목록 조회
   getCategories: async (): Promise<CategoryResponse[]> => {
-    const response = await apiClient.get<ApiResult<CategoryResponse[]>>('/api/approval/categories')
-    return response.data.data
+    const response = await apiClient.get<CategoryResponse[]>('/api/approval/categories')
+    return response.data
   },
 
   // 카테고리 상세 조회
   getCategoryById: async (id: number): Promise<CategoryResponse> => {
-    const response = await apiClient.get<ApiResult<CategoryResponse>>(`/api/approval/categories/${id}`)
-    return response.data.data
+    const response = await apiClient.get<CategoryResponse>(`/api/approval/categories/${id}`)
+    return response.data
   },
 
   // 카테고리 생성
   createCategory: async (request: CreateCategoryRequest): Promise<CategoryResponse> => {
-    const response = await apiClient.post<ApiResult<CategoryResponse>>('/api/approval/categories', request)
-    return response.data.data
+    const response = await apiClient.post<CategoryResponse>('/api/approval/categories', request)
+    return response.data
   },
 
   // 카테고리 수정
   updateCategory: async (id: number, request: UpdateCategoryRequest): Promise<CategoryResponse> => {
-    const response = await apiClient.put<ApiResult<CategoryResponse>>(`/api/approval/categories/${id}`, request)
-    return response.data.data
+    const response = await apiClient.put<CategoryResponse>(`/api/approval/categories/${id}`, request)
+    return response.data
   },
 
   // 카테고리 삭제
   deleteCategory: async (id: number): Promise<void> => {
-    await apiClient.delete<ApiResult<void>>(`/api/approval/categories/${id}`)
+    await apiClient.delete<void>(`/api/approval/categories/${id}`)
   },
 }
 
@@ -57,44 +57,44 @@ export const templateApi = {
   // 템플릿 목록 조회
   getTemplates: async (params?: GetTemplatesParams): Promise<TemplateSummaryResponse[]> => {
     const queryParams = params?.categoryId ? { categoryId: params.categoryId } : {}
-    const response = await apiClient.get<ApiResult<TemplateSummaryResponse[]>>('/api/approval/templates', {
+    const response = await apiClient.get<TemplateSummaryResponse[]>('/api/approval/templates', {
       params: queryParams
     })
-    return response.data.data
+    return response.data
   },
 
   // 카테고리별 템플릿 조회
   getTemplatesByCategory: async (): Promise<TemplatesByCategoryResponse[]> => {
-    const response = await apiClient.get<ApiResult<TemplatesByCategoryResponse[]>>('/api/approval/templates/by-category')
-    return response.data.data
+    const response = await apiClient.get<TemplatesByCategoryResponse[]>('/api/approval/templates/by-category')
+    return response.data
   },
 
   // 템플릿 상세 조회
   getTemplateById: async (id: number): Promise<TemplateResponse> => {
-    const response = await apiClient.get<ApiResult<TemplateResponse>>(`/api/approval/templates/${id}`)
-    return response.data.data
+    const response = await apiClient.get<TemplateResponse>(`/api/approval/templates/${id}`)
+    return response.data
   },
 
   // 템플릿 생성
   createTemplate: async (request: CreateTemplateRequest): Promise<TemplateResponse> => {
-    const response = await apiClient.post<ApiResult<TemplateResponse>>('/api/approval/templates', request)
-    return response.data.data
+    const response = await apiClient.post<TemplateResponse>('/api/approval/templates', request)
+    return response.data
   },
 
   // 템플릿 수정
   updateTemplate: async (id: number, request: UpdateTemplateRequest): Promise<TemplateResponse> => {
-    const response = await apiClient.put<ApiResult<TemplateResponse>>(`/api/approval/templates/${id}`, request)
-    return response.data.data
+    const response = await apiClient.put<TemplateResponse>(`/api/approval/templates/${id}`, request)
+    return response.data
   },
 
   // 템플릿 삭제
   deleteTemplate: async (id: number): Promise<void> => {
-    await apiClient.delete<ApiResult<void>>(`/api/approval/templates/${id}`)
+    await apiClient.delete<void>(`/api/approval/templates/${id}`)
   },
 
   // 템플릿 공개/숨김 설정
   updateTemplateVisibility: async (id: number, isHidden: boolean): Promise<void> => {
-    await apiClient.put<ApiResult<void>>(`/api/approval/templates/${id}/visibility`, null, {
+    await apiClient.put<void>(`/api/approval/templates/${id}/visibility`, null, {
       params: { isHidden }
     })
   },
@@ -125,43 +125,43 @@ export const documentApi = {
       queryParams.endDate = params.endDate
     }
 
-    const response = await apiClient.get<ApiResult<PageResult<DocumentSummaryResponse>>>('/api/approval/documents', {
+    const response = await apiClient.get<PageResult<DocumentSummaryResponse>>('/api/approval/documents', {
       params: queryParams
     })
-    return response.data.data
+    return response.data
   },
 
   // 문서 상세 조회
   getDocumentById: async (id: number): Promise<DocumentResponse> => {
-    const response = await apiClient.get<ApiResult<DocumentResponse>>(`/api/approval/documents/${id}`)
-    return response.data.data
+    const response = await apiClient.get<DocumentResponse>(`/api/approval/documents/${id}`)
+    return response.data
   },
 
   // 문서 작성
   createDocument: async (request: CreateDocumentRequest): Promise<DocumentResponse> => {
-    const response = await apiClient.post<ApiResult<DocumentResponse>>('/api/approval/documents', request)
-    return response.data.data
+    const response = await apiClient.post<DocumentResponse>('/api/approval/documents', request)
+    return response.data
   },
 
   // 문서 수정
   updateDocument: async (id: number, request: UpdateDocumentRequest): Promise<DocumentResponse> => {
-    const response = await apiClient.put<ApiResult<DocumentResponse>>(`/api/approval/documents/${id}`, request)
-    return response.data.data
+    const response = await apiClient.put<DocumentResponse>(`/api/approval/documents/${id}`, request)
+    return response.data
   },
 
   // 문서 제출
   submitDocument: async (id: number): Promise<void> => {
-    await apiClient.post<ApiResult<void>>(`/api/approval/documents/${id}/submit`)
+    await apiClient.post<void>(`/api/approval/documents/${id}/submit`)
   },
 
   // 문서 승인
   approveDocument: async (id: number, request?: ApprovalActionRequest): Promise<void> => {
-    await apiClient.post<ApiResult<void>>(`/api/approval/documents/${id}/approve`, request || {})
+    await apiClient.post<void>(`/api/approval/documents/${id}/approve`, request || {})
   },
 
   // 문서 반려
   rejectDocument: async (id: number, request?: ApprovalActionRequest): Promise<void> => {
-    await apiClient.post<ApiResult<void>>(`/api/approval/documents/${id}/reject`, request || {})
+    await apiClient.post<void>(`/api/approval/documents/${id}/reject`, request || {})
   },
 }
 
@@ -169,14 +169,14 @@ export const documentApi = {
 export const commentApi = {
   // 문서 댓글 목록 조회
   getComments: async (documentId: number): Promise<DocumentCommentResponse[]> => {
-    const response = await apiClient.get<ApiResult<DocumentCommentResponse[]>>(`/api/approval/documents/${documentId}/comments`)
-    return response.data.data
+    const response = await apiClient.get<DocumentCommentResponse[]>(`/api/approval/documents/${documentId}/comments`)
+    return response.data
   },
 
   // 문서 댓글 작성
   createComment: async (documentId: number, request: CreateCommentRequest): Promise<DocumentCommentResponse> => {
-    const response = await apiClient.post<ApiResult<DocumentCommentResponse>>(`/api/approval/documents/${documentId}/comments`, request)
-    return response.data.data
+    const response = await apiClient.post<DocumentCommentResponse>(`/api/approval/documents/${documentId}/comments`, request)
+    return response.data
   },
 }
 

@@ -69,7 +69,7 @@ export default function LoginPage() {
     }
   };
 
-  return (
+  return !isLoggedIn && (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 animate-blob rounded-full bg-purple-300 mix-blend-multiply opacity-70 blur-xl"></div>

@@ -7,7 +7,7 @@ MSA(Microservices Architecture) 환경을 위한 서비스별 API 클라이언�
 ```
 lib/services/
 ├── common/                   # 공통 타입 및 유틸리티
-│   ├── types.ts              # 공통 API 응답 타입 (ApiResult, PageResult 등)
+│   ├── types.ts              # 공통 API 응답 타입 (PageResult 등)
 │   ├── api-client.ts         # 공통 HTTP 클라이언트 설정
 │   └── index.ts              # 공통 exports
 ├── approval/                 # 승인 서비스
@@ -35,13 +35,33 @@ import { userApi, UserRole } from '@/lib/services/user'
 
 ### 2. 공통 타입 사용
 ```typescript
-import { ApiResult, PageResult } from '@/lib/services/common'
+import { PageResult } from '@/lib/services/common'
 ```
 
 ### 3. 개별 서비스를 직접 임포트 (권장)
 ```typescript
 import { approvalApi } from '@/lib/services/approval'
 import { userApi } from '@/lib/services/user'
+
+// API 사용 예시
+const categories = await approvalApi.category.getCategories()
+const userProfile = await userApi.getProfile()
+```
+
+## API 에러 처리
+
+서비스 클라이언트에서는 `response.data`만 반환하며, 에러 처리는 `try-catch`로 수행합니다:
+
+```typescript
+try {
+  const categories = await approvalApi.category.getCategories()
+  // 성공 시 처리
+} catch (error: any) {
+  // error.status: HTTP 상태 코드
+  // error.message: 에러 메시지
+  // error.data: 서버 응답 데이터
+  console.error('API Error:', error.status, error.message)
+}
 ```
 
 ## 새로운 서비스 추가하기
@@ -67,12 +87,12 @@ export interface DocumentResponse {
 // lib/services/approval/api.ts
 import apiClient from '../common/api-client'
 import { CreateDocumentRequest, DocumentResponse } from './types'
-import { ApiResult, PageResult } from '../common/types'
+import { PageResult } from '../common/types'
 
 export const documentApi = {
   createDocument: async (request: CreateDocumentRequest): Promise<DocumentResponse> => {
-    const response = await apiClient.post<ApiResult<DocumentResponse>>('/api/approval/documents', request)
-    return response.data.data
+    const response = await apiClient.post<DocumentResponse>('/api/approval/documents', request)
+    return response.data
   },
 }
 
@@ -80,18 +100,4 @@ export const documentApi = {
 export * from './types'
 export * from './api'
 export { default as approvalApi } from './api'
-```
-
-## 가이드라인
-
-### `ApiResult<T>`
-
-**직접 제네릭 타입 사용**: `ApiResult<T>`에 대해 타입 별칭을 만들지 말고 직접 사용
-
-```typescript
-// ❌ 타입 별칭 사용
-export type ApiResultUserResponse = ApiResult<UserResponse>
-
-// ✅ 직접 제네릭 타입 사용
-const response = await apiClient.get<ApiResult<UserResponse>>('/api/users')
 ```
