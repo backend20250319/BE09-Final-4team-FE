@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AuthProvider, useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/hooks/use-auth';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
 
@@ -12,7 +12,7 @@ interface MainLayoutProps {
   requireAdmin?: boolean;
 }
 
-function MainLayoutContent({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
+export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading: isLoading, isLoggedIn } = useAuth();
@@ -60,15 +60,5 @@ function MainLayoutContent({ children, requireAuth = false, requireAdmin = false
         </div>
       </div>
     </>
-  );
-}
-
-export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
-  return (
-    <AuthProvider>
-      <MainLayoutContent requireAuth={requireAuth} requireAdmin={requireAdmin}>
-        {children}
-      </MainLayoutContent>
-    </AuthProvider>
   );
 }

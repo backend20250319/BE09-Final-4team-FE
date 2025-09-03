@@ -123,7 +123,7 @@ apiClient.interceptors.response.use(
         
         // AuthContext에 토큰 갱신 실패 이벤트 전달
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:token-refresh-error'))
+          window.dispatchEvent(new CustomEvent('auth:token-expired'))
         }
         
         return Promise.reject(refreshError)

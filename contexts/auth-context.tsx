@@ -98,11 +98,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     window.addEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
-    window.addEventListener('auth:token-refresh-error', handleTokenRefreshError)
+    window.addEventListener('auth:token-expired', handleTokenRefreshError)
 
     return () => {
       window.removeEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
-      window.removeEventListener('auth:token-refresh-error', handleTokenRefreshError)
+      window.removeEventListener('auth:token-expired', handleTokenRefreshError)
     }
   }, [])
 
