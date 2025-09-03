@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, type ReactElement } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GradientButton } from "@/components/ui/gradient-button";
@@ -22,6 +22,8 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { workPolicyApi } from "@/lib/services/attendance";
+import { toast } from "sonner";
 
 // Type definitions
 interface WorkPolicy {
@@ -30,13 +32,19 @@ interface WorkPolicy {
   details: string;
   type: string;
   status: "active" | "pending" | "inactive";
-  appliedPersonnel: number;
   color: string;
   icon: React.ComponentType<{ className?: string }>;
   workHours?: number;
+  workMinutes?: number;
   breakTime?: number;
-  overtimeAllowed?: boolean;
-  remoteWorkAllowed?: boolean;
+  weeklyWorkingDays?: number;
+  coreTimeStartText?: string;
+  coreTimeEndText?: string;
+  isHolidayFixed?: boolean;
+  isFlexibleWork?: boolean;
+  isShiftWork?: boolean;
+  isOptionalWork?: boolean;
+  isFixedWork?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,7 +60,7 @@ function PolicyList({
   policies,
   onEditPolicy,
   onDeletePolicy,
-}: PolicyListProps): JSX.Element {
+}: PolicyListProps): ReactElement {
   const [editingPolicy, setEditingPolicy] = useState<string | null>(null);
   const [editingData, setEditingData] = useState<Partial<WorkPolicy>>({});
 
@@ -69,7 +77,7 @@ function PolicyList({
     }
   };
 
-  const getStatusIcon = (status: string): JSX.Element => {
+  const getStatusIcon = (status: string): ReactElement => {
     switch (status) {
       case "active":
         return <CheckCircle className="w-4 h-4" />;
@@ -187,44 +195,25 @@ function PolicyList({
                       {displayData.name}
                     </h3>
                   )}
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={displayData.details || ""}
-                      onChange={(e) =>
-                        handleInputChange("details", e.target.value)
-                      }
-                      className="w-full text-sm text-gray-600 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl px-3 py-1 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600">
-                      {displayData.details}
-                    </p>
-                  )}
                 </div>
               </div>
 
               {/* Policy Details */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">적용 인원</span>
-                  {isEditing ? (
-                    <input
-                      type="number"
-                      value={displayData.appliedPersonnel || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "appliedPersonnel",
-                          parseInt(e.target.value) || 0
-                        )
-                      }
-                      className="w-20 text-right font-medium text-gray-800 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-xl px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  ) : (
-                    <span className="font-medium text-gray-800">
-                      {displayData.appliedPersonnel}명
-                    </span>
-                  )}
+                  <span className="text-sm text-gray-600">정책 유형</span>
+                  <span className="font-medium text-gray-800">
+                    {displayData.type}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">주 근무일</span>
+                  <span className="font-medium text-gray-800">
+                    {displayData.weeklyWorkingDays != null
+                      ? `${displayData.weeklyWorkingDays}일`
+                      : "-"}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -243,7 +232,12 @@ function PolicyList({
                     />
                   ) : (
                     <span className="font-medium text-gray-800">
-                      {displayData.workHours}시간
+                      {displayData.workHours != null
+                        ? `${displayData.workHours}시간`
+                        : "-"}{" "}
+                      {displayData.workMinutes != null
+                        ? `${displayData.workMinutes}분`
+                        : ""}
                     </span>
                   )}
                 </div>
@@ -264,23 +258,51 @@ function PolicyList({
                     />
                   ) : (
                     <span className="font-medium text-gray-800">
-                      {displayData.breakTime}분
+                      {displayData.breakTime != null
+                        ? `${displayData.breakTime}분`
+                        : "-"}
                     </span>
                   )}
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">상태</span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      displayData.status || "inactive"
-                    )}`}
-                  >
-                    {getStatusIcon(displayData.status || "inactive")}
-                    {displayData.status === "active" && "활성"}
-                    {displayData.status === "pending" && "대기"}
-                    {displayData.status === "inactive" && "비활성"}
+                  <span className="text-sm text-gray-600">코어타임</span>
+                  <span className="font-medium text-gray-800">
+                    {displayData.coreTimeStartText &&
+                    displayData.coreTimeEndText
+                      ? `${displayData.coreTimeStartText} ~ ${displayData.coreTimeEndText}`
+                      : "-"}
                   </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">휴일 고정</span>
+                  <span className="font-medium text-gray-800">
+                    {displayData.isHolidayFixed ? "예" : "아니오"}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {displayData.isFixedWork && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                      고정
+                    </span>
+                  )}
+                  {displayData.isFlexibleWork && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      유연
+                    </span>
+                  )}
+                  {displayData.isShiftWork && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                      교대
+                    </span>
+                  )}
+                  {displayData.isOptionalWork && (
+                    <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700">
+                      선택
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -310,74 +332,95 @@ function PolicyList({
   );
 }
 
-export default function WorkPoliciesPage(): JSX.Element {
-  // 샘플 데이터
-  const [policies, setPolicies] = useState<WorkPolicy[]>([
-    {
-      id: "1",
-      name: "기본 근무 정책",
-      details: "9시 출근, 6시 퇴근의 기본 근무 정책",
-      type: "fixed",
-      status: "active",
-      appliedPersonnel: 45,
-      color: "from-blue-500 to-blue-600",
-      icon: Briefcase,
-      workHours: 8,
-      breakTime: 60,
-      overtimeAllowed: true,
-      remoteWorkAllowed: false,
-      createdAt: "2024-01-01",
-      updatedAt: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "유연 근무 정책",
-      details: "코어 타임을 제외한 유연한 근무 시간",
-      type: "flexible",
-      status: "active",
-      appliedPersonnel: 23,
-      color: "from-green-500 to-green-600",
-      icon: Home,
-      workHours: 8,
-      breakTime: 60,
-      overtimeAllowed: true,
-      remoteWorkAllowed: true,
-      createdAt: "2024-01-10",
-      updatedAt: "2024-01-20",
-    },
-    {
-      id: "3",
-      name: "교대 근무 정책",
-      details: "3교대 근무 시스템",
-      type: "shift",
-      status: "pending",
-      appliedPersonnel: 12,
-      color: "from-purple-500 to-purple-600",
-      icon: RotateCcw,
-      workHours: 8,
-      breakTime: 30,
-      overtimeAllowed: false,
-      remoteWorkAllowed: false,
-      createdAt: "2024-01-15",
-      updatedAt: "2024-01-25",
-    },
-    {
-      id: "4",
-      name: "시차 출근 정책",
-      details: "개인별 시차 출근 허용",
-      type: "staggered",
-      status: "inactive",
-      appliedPersonnel: 8,
-      color: "from-orange-500 to-orange-600",
-      icon: Clock,
-      workHours: 8,
-      breakTime: 60,
-      overtimeAllowed: true,
-      remoteWorkAllowed: true,
-      createdAt: "2024-01-20",
-      updatedAt: "2024-01-30",
-    },
-  ]);
+export default function WorkPoliciesPage(): ReactElement {
+  const [policies, setPolicies] = useState<WorkPolicy[]>([]);
+
+  const mapTypeToColor = (type: string): string => {
+    switch (type) {
+      case "FIXED":
+        return "from-blue-500 to-blue-600";
+      case "FLEXIBLE":
+        return "from-green-500 to-green-600";
+      case "SHIFT":
+        return "from-purple-500 to-purple-600";
+      case "OPTIONAL":
+        return "from-orange-500 to-orange-600";
+      default:
+        return "from-gray-500 to-gray-600";
+    }
+  };
+
+  const mapTypeToIcon = (type: string) => {
+    switch (type) {
+      case "FIXED":
+        return Briefcase;
+      case "FLEXIBLE":
+        return Home;
+      case "SHIFT":
+        return RotateCcw;
+      case "OPTIONAL":
+        return Clock;
+      default:
+        return Briefcase;
+    }
+  };
+
+  const formatTime = (t?: any): string => {
+    if (!t) return "";
+    if (typeof t === "string") {
+      const parts = t.split(":");
+      if (parts.length >= 2) {
+        const hh = parts[0]?.padStart(2, "0");
+        const mm = parts[1]?.padStart(2, "0");
+        return `${hh}:${mm}`;
+      }
+      return t;
+    }
+    if (typeof t.hour === "number" && typeof t.minute === "number") {
+      const hh = String(t.hour).padStart(2, "0");
+      const mm = String(t.minute).padStart(2, "0");
+      return `${hh}:${mm}`;
+    }
+    return "";
+  };
+
+  useEffect(() => {
+    const fetchPolicies = async () => {
+      try {
+        const data = await workPolicyApi.getAllWorkPolicies();
+        const mapped: WorkPolicy[] = data.map((p) => ({
+          id: String(p.id),
+          name: p.name,
+          details: `${p.type} 정책, 주 ${p.weeklyWorkingDays}일, 근무 ${p.workHours}h ${p.workMinutes}m`,
+          type: String(p.type),
+          status: "active",
+          color: mapTypeToColor(String(p.type)),
+          icon: mapTypeToIcon(String(p.type)),
+          workHours: p.workHours,
+          workMinutes: p.workMinutes,
+          breakTime: p.breakMinutes ?? undefined,
+          weeklyWorkingDays: p.weeklyWorkingDays,
+          coreTimeStartText: formatTime(p.coreTimeStart),
+          coreTimeEndText: formatTime(p.coreTimeEnd),
+          isHolidayFixed: !!p.isHolidayFixed,
+          isFlexibleWork: !!p.isFlexibleWork,
+          isShiftWork: !!p.isShiftWork,
+          isOptionalWork: !!p.isOptionalWork,
+          isFixedWork: !!p.isFixedWork,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        }));
+        setPolicies(mapped);
+      } catch (error: any) {
+        console.error("Failed to load work policies:", error);
+        toast.error(
+          `근무 정책 조회 실패: ${error?.message || "알 수 없는 오류"}`
+        );
+      }
+    };
+
+    fetchPolicies();
+  }, []);
 
   const handleEditPolicy = (
     policyId: string,

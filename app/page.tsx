@@ -36,7 +36,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { attendanceApi } from "@/lib/services/attendance";
+import { attendanceApi, workMonitorApi } from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
 
 interface Employee {
@@ -84,6 +84,13 @@ export default function DashboardPage() {
 
   const [newsData, setNewsData] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
+
+  // 오늘 출근/지각/휴가 수
+  const [workMonitor, setWorkMonitor] = useState<{
+    attendanceCount: number;
+    lateCount: number;
+    vacationCount: number;
+  } | null>(null);
 
   useEffect(() => {
     const updateTime = () => {
@@ -147,6 +154,23 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // 오늘 출근/지각/휴가 수 불러오기
+  useEffect(() => {
+    const loadWorkMonitor = async () => {
+      try {
+        const data = await workMonitorApi.getTodayWorkMonitor();
+        setWorkMonitor({
+          attendanceCount: data.attendanceCount,
+          lateCount: data.lateCount,
+          vacationCount: data.vacationCount,
+        });
+      } catch (error: any) {
+        console.error("workMonitor load error:", error);
+      }
+    };
+    loadWorkMonitor();
+  }, []);
+
   useEffect(() => {
     const loadNews = async () => {
       try {
@@ -160,7 +184,6 @@ export default function DashboardPage() {
   // 출근
   const handleCheckIn = async () => {
     try {
-      // 사용자/토큰 준비 보장 (필요 시 새 토큰 갱신)
       if (!user?.id) {
         toast.error("사용자 정보를 확인할 수 없습니다.");
         return;
@@ -303,8 +326,7 @@ export default function DashboardPage() {
     attendanceStats: [
       {
         title: "출근",
-        value: "1,004",
-        total: "1056",
+        value: String(workMonitor?.attendanceCount ?? 0),
         unit: "people",
         icon: Users,
         backgroundColor: "#E8FFF2",
@@ -312,7 +334,7 @@ export default function DashboardPage() {
       },
       {
         title: "지각",
-        value: "4",
+        value: String(workMonitor?.lateCount ?? 0),
         unit: "people",
         icon: Clock,
         backgroundColor: "#FFF5CC",
@@ -320,56 +342,11 @@ export default function DashboardPage() {
       },
       {
         title: "휴가",
-        value: "21",
+        value: String(workMonitor?.vacationCount ?? 0),
         unit: "people",
         icon: Calendar,
         backgroundColor: "#E3F0FF",
         iconColor: "#00A8F7",
-      },
-    ],
-
-    approvals: [
-      {
-        title: "연차 신청서",
-        date: "2023.09.21",
-        status: "대기",
-        bgColor: "#E3F0FF",
-        statusColor: "#007BFF",
-      },
-      {
-        title: "출장 신청서",
-        date: "2023.07.30",
-        status: "검토",
-        bgColor: "#FFF5CC",
-        statusColor: "#EA580C",
-      },
-      {
-        title: "지출 결의서",
-        date: "2023.07.28",
-        status: "승인",
-        bgColor: "#E8FFF2",
-        statusColor: "#00C56B",
-      },
-    ],
-
-    notices: [
-      {
-        title: "2025년 하반기 인사발령",
-        date: "2025.08.01",
-        borderColor: "#007BFF",
-        bgColor: "#EEF6FC",
-      },
-      {
-        title: "여름 휴가 신청 안내",
-        date: "2025.07.30",
-        borderColor: "#00C56B",
-        bgColor: "#E8FFF2",
-      },
-      {
-        title: "사무실 이전 공지",
-        date: "2025.07.28",
-        borderColor: "#8F8F8F",
-        bgColor: "#F9FAFB",
       },
     ],
   };
@@ -460,9 +437,7 @@ export default function DashboardPage() {
                       className="text-2xl font-bold"
                       style={{ color: metric.iconColor }}
                     >
-                      {metric.total
-                        ? `${metric.value} / ${metric.total}`
-                        : metric.value}
+                      {metric.value}
                     </span>
                     <span className="text-sm text-gray-600">{metric.unit}</span>
                   </div>
@@ -657,10 +632,10 @@ export default function DashboardPage() {
                   href={item.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-lg bg_WHITE border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Globe className="w-4 h-4 text-gray-600" />
+                    <Globe className="w-4 h-4 text_GRAY-600" />
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-800 text-sm line-clamp-2">
@@ -703,7 +678,7 @@ export default function DashboardPage() {
                   borderLeftColor: item.borderColor,
                 }}
               >
-                <div className="flex justify-between items-center">
+                <div className="flex justify_between items-center">
                   <h4 className="font-medium text-gray-800">{item.title}</h4>
                   <span className="text-xs text-gray-500">{item.date}</span>
                 </div>
