@@ -4,8 +4,7 @@ import {
   UserUpdateDto,
   UserResponseDto,
   LoginRequestDto,
-  RefreshRequestDto,
-  TokenResponseDto,
+  LoginResponse,
   MainProfileResponseDto,
   DetailProfileResponseDto,
   ColleagueSearchRequestDto,
@@ -13,22 +12,23 @@ import {
 } from './types';
 import { ApiResult } from '../common/types';
 
+export const authApi = {
+  login: async (data: LoginRequestDto): Promise<LoginResponse> => {
+    const response = await apiClient.post<ApiResult<LoginResponse>>('/api/auth/login', data, {withCredentials: true});
+    return response.data.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await apiClient.post<ApiResult<void>>('/api/auth/logout');
+  },
+
+  refresh: async (): Promise<LoginResponse> => {
+    const response = await apiClient.post<ApiResult<LoginResponse>>('/api/auth/refresh', null, {withCredentials: true});
+    return response.data.data;
+  },
+}
+
 export const userApi = {
-  login: async (data: LoginRequestDto): Promise<TokenResponseDto> => {
-    const response = await apiClient.post('/api/auth/login', data);
-    return response.data;
-  },
-
-  logout: async (): Promise<ApiResult<void>> => {
-    const response = await apiClient.post('/api/auth/logout');
-    return response.data;
-  },
-
-  refresh: async (data: RefreshRequestDto): Promise<TokenResponseDto> => {
-    const response = await apiClient.post('/api/auth/refresh', data);
-    return response.data;
-  },
-
   getAllUsers: async (): Promise<UserResponseDto[]> => {
     const response = await apiClient.get('/api/users');
     return response.data;

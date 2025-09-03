@@ -49,11 +49,11 @@ export function MainLayout({ children, requireAuth = false, requireAdmin = false
       return;
     }
 
-    if (requireAuth && !isLoggedIn) {
-      console.log('🚨 MainLayout: 인증 필요 페이지인데 로그인되지 않음. 로그인 페이지로 리다이렉트.');
-      router.push('/login');
-      return;
-    }
+    // if (requireAuth && !isLoggedIn) {
+    //   console.log('🚨 MainLayout: 인증 필요 페이지인데 로그인되지 않음. 로그인 페이지로 리다이렉트.');
+    //   router.push('/login');
+    //   return;
+    // }
 
     if (requireAdmin && (!isLoggedIn || !user?.isAdmin)) {
       console.log(' MainLayout: 관리자 권한 필요 페이지인데 권한 없음. 메인 페이지로 리다이렉트.');
