@@ -1,15 +1,15 @@
-import axios from 'axios';
+import axios from "axios";
 import { NewsArticle } from "./types";
 
 const NEWS_API_BASE_URL =
-  process.env.NEXT_PUBLIC_NEWS_API_URL || "http://localhost:8083";
+  process.env.NEXT_PUBLIC_NEWS_API_URL || "http://localhost:8077";
 
 const newsApiClient = axios.create({
   baseURL: NEWS_API_BASE_URL,
-  timeout: 10000, 
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 export class NewsApiClient {
@@ -21,7 +21,9 @@ export class NewsApiClient {
 
   async getRecentNewsForDashboard(): Promise<NewsArticle[]> {
     try {
-      const response = await newsApiClient.get<NewsArticle[]>('/api/news/recent');
+      const response = await newsApiClient.get<NewsArticle[]>(
+        "/api/news/recent"
+      );
       return response.data.slice(0, 3);
     } catch (error) {
       console.error("Error fetching recent news:", error);
@@ -30,7 +32,7 @@ export class NewsApiClient {
   }
   async getAllNews(): Promise<NewsArticle[]> {
     try {
-      const response = await newsApiClient.get<NewsArticle[]>('/api/news');
+      const response = await newsApiClient.get<NewsArticle[]>("/api/news");
       return response.data;
     } catch (error) {
       console.error("Error fetching all news:", error);
