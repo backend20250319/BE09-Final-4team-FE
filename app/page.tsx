@@ -76,26 +76,28 @@ export default function DashboardPage() {
     checkOutTime: null,
     isCheckedIn: false,
     isCheckedOut: false,
-    lastCheckInDate: null
-  })
-  
-  const [newsData, setNewsData] = useState<NewsArticle[]>([])
-  const [newsLoading, setNewsLoading] = useState(true)
+    lastCheckInDate: null,
+  });
+
+  const [newsData, setNewsData] = useState<NewsArticle[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date()
-      setCurrentTime(now.toLocaleTimeString('ko-KR', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }))
-    }
-    
-    updateTime()
-    const interval = setInterval(updateTime, 1000)
-    return () => clearInterval(interval)
-  }, [])
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      );
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const getIP = async () => {
@@ -142,22 +144,28 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-
-        console.log('News API 임시 비활성화');
+        setNewsLoading(true);
+        const recentNews = await newsApi.getRecentNewsForDashboard();
+        setNewsData(recentNews);
+        console.log("뉴스 데이터 로드 완료:", recentNews);
       } catch (error) {
-        console.error('Error fetching recent news:', error);
+        console.error("Error fetching recent news:", error);
+        setNewsData([]); // 에러 발생 시 뉴스 데이터를 비웁니다.
+      } finally {
+        setNewsLoading(false);
       }
     };
+    loadNews();
   }, []);
 
   const handleCheckIn = () => {
-    const now = new Date()
-    const checkInTime = now.toLocaleTimeString('ko-KR', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    })
-    
+    const now = new Date();
+    const checkInTime = now.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
     setAttendanceState({
       ...attendanceState,
       checkInTime,
