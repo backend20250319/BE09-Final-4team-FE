@@ -1,7 +1,7 @@
 // 공통 API 응답 타입
 /**
  * @deprecated 백엔드에서 ApiResult가 deprecated 되었습니다.
- *             아직 ApiResult를 사용하는 백엔드 API가 있다면 수정해야 합니다.
+ *             아직 ApiResult를 사용하는 백엔드 API가 있다면 단계적으로 수정해야 합니다.
  */
 export interface ApiResult<T> {
   status: string
