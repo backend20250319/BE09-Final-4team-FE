@@ -121,16 +121,32 @@ export default function AnnouncementsPage() {
     setSelectedAnnouncement(null);
   };
 
-  // 수정 핸들러
-  const handleEdit = (announcement) => {
-    router.push("/announcements/edit");
+  // 수정 핸들러 - 공지사항 ID를 URL 파라미터로 전달
+  const handleEdit = () => {
+    if (selectedAnnouncement) {
+      handleCloseModal(); // 모달 닫기
+      router.push(`/announcements/edit?id=${selectedAnnouncement.id}`);
+    }
   };
 
   // 삭제 핸들러
-  const handleDelete = (announcement) => {
+  const handleDelete = async () => {
+    if (!selectedAnnouncement) return;
+    
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      alert('삭제가 완료되었습니다.');
-      handleCloseModal();
+      try {
+        // 삭제 API 호출
+        await communicationApi.announcements.deleteAnnouncement(selectedAnnouncement.id);
+        
+        alert('삭제가 완료되었습니다.');
+        handleCloseModal();
+        
+        // 목록 새로고침
+        loadData(page, searchTerm);
+      } catch (error) {
+        console.error('공지사항 삭제 실패:', error);
+        alert('삭제에 실패했습니다.');
+      }
     }
   };
 
