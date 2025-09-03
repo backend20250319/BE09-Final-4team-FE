@@ -99,8 +99,15 @@ apiClient.interceptors.response.use(
         // Refresh Token으로 새 Access Token 요청
         const response = await refreshClient.post<ApiResult<LoginResponse>>('/api/auth/refresh')
 
-        const { accessToken: newToken } = response.data.data
+        const { accessToken: newToken, userId, email, name, role } = response.data.data
         setAccessToken(newToken)
+        
+        // AuthContext에 토큰 갱신 성공 이벤트 전달
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
+            detail: { userId, email, name, role }
+          }))
+        }
         
         // 대기 중인 요청들 처리
         processQueue(null, newToken)
@@ -113,9 +120,12 @@ apiClient.interceptors.response.use(
         // Refresh 실패 시 로그아웃 처리
         processQueue(refreshError, null)
         clearAccessToken()
+        
+        // AuthContext에 토큰 갱신 실패 이벤트 전달
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          window.dispatchEvent(new CustomEvent('auth:token-expired'))
         }
+        
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

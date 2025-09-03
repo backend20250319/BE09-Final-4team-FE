@@ -24,7 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useOrganizationsList,
   useTitlesFromMembers,
@@ -86,7 +86,7 @@ export default function ProfileModal({
   employee,
   onUpdate,
 }: Props) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { organizations: orgOptions } = useOrganizationsList();
   const {
     ranks,
@@ -100,7 +100,7 @@ export default function ProfileModal({
   const [profileImage, setProfileImage] = useState<string>("");
 
   const isOwnProfile = user?.email === employee?.email;
-  const canEdit = isOwnProfile || user?.isAdmin; 
+  const canEdit = isOwnProfile || isAdmin; 
   const canEditProfileImage = isOwnProfile; 
   useEffect(() => {
     if (!employee) return;

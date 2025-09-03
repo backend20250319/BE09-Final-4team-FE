@@ -198,7 +198,7 @@ export function Sidebar({
           <div className="mt-6 p-3 bg-gray-50 rounded-lg border">
             <div className="text-xs font-medium text-gray-600 mb-1">Access Token:</div>
             <div className="text-xs text-gray-800 break-all font-mono">
-              {getAccessToken() ? getAccessToken()!.substring(0, 50) + '...' : 'No token'}
+              {getAccessToken() ?? 'No token'}
             </div>
           </div>
         )}
