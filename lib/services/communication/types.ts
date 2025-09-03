@@ -25,6 +25,7 @@ export interface AnnouncementResponseDto {
   content: string
   createdAt: string
   fileIds: string[]
+  views: number
 }
 
 // 공지사항 생성 요청
