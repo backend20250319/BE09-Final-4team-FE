@@ -41,10 +41,10 @@ export default function LoginPage() {
       const loginData = await authApi.login({ email, password });
 
       const userData = {
-        id: loginData.userId.toString(),
+        id: loginData.userId,
         email: loginData.email,
         name: loginData.name,
-        isAdmin: loginData.role === 'ADMIN',
+        role: loginData.role,
       };
 
       login(userData, {
