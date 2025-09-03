@@ -21,10 +21,15 @@ export class NewsApiClient {
 
   async getRecentNewsForDashboard(): Promise<NewsArticle[]> {
     try {
-      const response = await newsApiClient.get<NewsArticle[]>(
-        "/api/news/recent"
-      );
-      return response.data.slice(0, 3);
+      const response = await newsApiClient.get<NewsArticle[]>('/api/news'); 
+      const allNews = response.data;
+
+      if (allNews.length <= 3) {
+        return allNews; 
+      }
+
+      const shuffled = allNews.sort(() => 0.5 - Math.random()); 
+      return shuffled.slice(0, 3); 
     } catch (error) {
       console.error("Error fetching recent news:", error);
       return [];
@@ -32,7 +37,7 @@ export class NewsApiClient {
   }
   async getAllNews(): Promise<NewsArticle[]> {
     try {
-      const response = await newsApiClient.get<NewsArticle[]>("/api/news");
+      const response = await newsApiClient.get<NewsArticle[]>('/api/news');
       return response.data;
     } catch (error) {
       console.error("Error fetching all news:", error);
