@@ -14,6 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { communicationApi } from "@/lib/services/communication";
 import { formatDateTime } from "@/lib/utils/date-format";
+import { useAuth } from "@/contexts/auth-context";
+import { attachmentService } from "@/lib/services/attachment/api";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
@@ -25,12 +27,14 @@ export default function AnnouncementsDetailModal({
   onEdit,
   onDelete
 }) {
+  const { isAdmin } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [attachments, setAttachments] = useState([]);
 
   useEffect(() => {
     const loadAnnouncementData = async () => {
@@ -43,6 +47,27 @@ export default function AnnouncementsDetailModal({
         // 공지사항 상세 정보 조회
         const detailResponse = await communicationApi.announcements.getAnnouncement(announcement.id);
         setData(detailResponse.data);
+
+        // 첨부파일 정보 조회
+        if (detailResponse.data.fileIds && detailResponse.data.fileIds.length > 0) {
+          const attachmentPromises = detailResponse.data.fileIds.map(async (fileId) => {
+            try {
+              const fileInfo = await attachmentService.getFileInfo(fileId);
+              return {
+                id: fileId,
+                name: fileInfo.fileName,
+                size: `${(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB`,
+                // URL은 제거하고 다운로드 시에만 처리
+              };
+            } catch (error) {
+              console.error(`파일 정보 조회 실패: ${fileId}`, error);
+              return null;
+            }
+          });
+          
+          const attachmentResults = await Promise.all(attachmentPromises);
+          setAttachments(attachmentResults.filter(att => att !== null));
+        }
 
         // 댓글 목록 조회
         const commentsResponse = await communicationApi.comments.getCommentsByAnnouncementId(announcement.id);
@@ -110,6 +135,16 @@ export default function AnnouncementsDetailModal({
     setOpenDropdownId(openDropdownId === commentId ? null : commentId);
   };
 
+  // 첨부파일 다운로드 핸들러
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      await attachmentService.downloadFile(attachment.id, attachment.name);
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
+      alert('파일 다운로드에 실패했습니다.');
+    }
+  };
+
   if (!isOpen) return null;
 
   if (loading) {
@@ -170,16 +205,12 @@ export default function AnnouncementsDetailModal({
         </div>
 
         {/* 첨부파일 */}
-        {data.attachment && (
+        {attachments.length > 0 && (
           <div className="pt-4 border-t border-gray-200 mb-6">
             <h3 className="font-semibold mb-3 text-gray-700">첨부파일</h3>
             <AttachmentsSection
-              attachments={[{
-                id: data.attachment.id || data.attachment.name,
-                name: data.attachment.name,
-                size: data.attachment.size ? `${data.attachment.size}` : "",
-                url: data.attachment.url
-              }]}
+              attachments={attachments}
+              onDownload={handleDownloadAttachment}
             />
           </div>
         )}
@@ -280,22 +311,24 @@ export default function AnnouncementsDetailModal({
           >
             닫기
           </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onEdit}
-              className="px-6 py-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
-            >
-              <Edit className="w-4 h-4" />
-              수정
-            </button>
-            <button
-              onClick={onDelete}
-              className="px-6 py-2 rounded bg-red-100 text-red-600 hover:bg-red-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              삭제
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex gap-2">
+              <button
+                onClick={onEdit}
+                className="px-6 py-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                수정
+              </button>
+              <button
+                onClick={onDelete}
+                className="px-6 py-2 rounded bg-red-100 text-red-600 hover:bg-red-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                삭제
+              </button>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
