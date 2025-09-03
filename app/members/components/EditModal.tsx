@@ -31,7 +31,7 @@ import {
   Check,
   X
 } from "lucide-react"
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 
 interface Employee {

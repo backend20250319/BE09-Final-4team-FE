@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import AddMemberModal from "./components/AddMemberModal";
 import SettingsModal from "./components/SettingsModal";
 import MemberList from "./components/MemberList";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
 
