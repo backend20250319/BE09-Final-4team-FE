@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send } from "lucide-react";
+import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send, MoreHorizontal } from "lucide-react";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
 import {
   Dialog,
@@ -12,6 +12,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { communicationApi } from "@/lib/services/communication";
+import { formatDateTime } from "@/lib/utils/date-format";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
@@ -28,66 +30,62 @@ export default function AnnouncementsDetailModal({
   const [error, setError] = useState("");
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   useEffect(() => {
-    if (!announcement) return;
+    const loadAnnouncementData = async () => {
+      if (!announcement) return;
 
-    setLoading(true);
-    setError("");
+      setLoading(true);
+      setError("");
 
-    // 더미 데이터 사용 (실제로는 API 호출)
-    const mockData = {
-      title: announcement.title,
-      displayAuthor: announcement.displayAuthor,
-      createdAt: announcement.createdAt,
-      view: announcement.views,
-      content: announcement.content,
-      attachment: announcement.attachment
+      try {
+        // 공지사항 상세 정보 조회
+        const detailResponse = await communicationApi.announcements.getAnnouncement(announcement.id);
+        setData(detailResponse.data);
+
+        // 댓글 목록 조회
+        const commentsResponse = await communicationApi.comments.getCommentsByAnnouncementId(announcement.id);
+        setComments(commentsResponse);
+      } catch (error) {
+        console.error('데이터 로딩 실패:', error);
+        setError(error.message || '데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // 더미 댓글 데이터
-    const mockComments = [
-      {
-        id: 1,
-        author: "김철수",
-        content: "인사발령 내용 잘 확인했습니다. 감사합니다.",
-        createdAt: "2025-07-15 14:30",
-        avatar: "/placeholder-user.jpg"
-      },
-      {
-        id: 2,
-        author: "이영희",
-        content: "새로운 조직도 함께 공유해주시면 더 좋겠습니다.",
-        createdAt: "2025-07-15 15:45",
-        avatar: "/placeholder-user.jpg"
-      },
-      {
-        id: 3,
-        author: "박민수",
-        content: "인사팀 담당자께서 상세 설명 부탁드립니다.",
-        createdAt: "2025-07-15 16:20",
-        avatar: "/placeholder-user.jpg"
-      }
-    ];
-
-    setData(mockData);
-    setComments(mockComments);
-    setLoading(false);
+    loadAnnouncementData();
   }, [announcement]);
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-
-    const newCommentObj = {
-      id: comments.length + 1,
-      author: "현재 사용자",
-      content: newComment,
-      createdAt: new Date().toLocaleString('ko-KR'),
-      avatar: "/placeholder-user.jpg"
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenDropdownId(null);
     };
 
-    setComments(prev => [newCommentObj, ...prev]);
-    setNewComment("");
+    if (openDropdownId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openDropdownId]);
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      // API를 통해 댓글 생성
+      const createdComment = await communicationApi.comments.createComment(announcement.id, {
+        content: newComment
+      });
+      
+      // 댓글 목록에 추가
+      setComments(prev => [createdComment, ...prev]);
+      setNewComment("");
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
+      alert('댓글 작성에 실패했습니다.');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -95,6 +93,21 @@ export default function AnnouncementsDetailModal({
       e.preventDefault();
       handleAddComment();
     }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await communicationApi.comments.deleteComment(commentId);
+      setComments(prev => prev.filter(comment => comment.id !== commentId));
+      setOpenDropdownId(null);
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
+      alert('댓글 삭제에 실패했습니다.');
+    }
+  };
+
+  const toggleDropdown = (commentId) => {
+    setOpenDropdownId(openDropdownId === commentId ? null : commentId);
   };
 
   if (!isOpen) return null;
@@ -133,11 +146,11 @@ export default function AnnouncementsDetailModal({
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              {data.createdAt}
+              {formatDateTime(data.createdAt)}
             </span>
             <span className="flex items-center gap-1">
               <Eye className="w-4 h-4" />
-              {data.view}
+              {data.views}
             </span>
             <span className="flex items-center gap-1">
               <MessageSquare className="w-4 h-4" />
@@ -149,7 +162,7 @@ export default function AnnouncementsDetailModal({
         {/* 본문 내용 */}
         <div className="mb-6">
           <Editor
-            jsonData={JSON.stringify(data.content)}
+            jsonData={typeof data.content === 'object' ? JSON.stringify(data.content) : data.content}
             onChange={() => { }}
             readOnly={true}
             showToolbar={false}
@@ -207,12 +220,50 @@ export default function AnnouncementsDetailModal({
           {/* 댓글 목록 */}
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+              <div key={comment.id} className="flex gap-3 relative">
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0">
+                  {comment.userInfo?.profileImageUrl ? (
+                    <img 
+                      src={comment.userInfo.profileImageUrl} 
+                      alt={comment.userInfo.name}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-gray-400" />
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-800">{comment.author}</span>
-                    <span className="text-sm text-gray-500">{comment.createdAt}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-800">{comment.userInfo?.name || '사용자'}</span>
+                      <span className="text-sm text-gray-500">{new Date(comment.createdAt).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                    {comment.canDelete && (
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDropdown(comment.id);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                        </button>
+                        {openDropdownId === comment.id && (
+                          <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[100px]">
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{comment.content}</p>
                 </div>
