@@ -15,7 +15,7 @@ interface MainLayoutProps {
 export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isAdmin } = useAuth();
 
   useEffect(() => {
     if (pathname === '/login') {
@@ -30,11 +30,11 @@ export function MainLayout({ children, requireAuth = false, requireAdmin = false
       return;
     }
 
-    if (requireAdmin && (!isLoggedIn || !user?.isAdmin)) {
+    if (requireAdmin && (!isLoggedIn || !isAdmin)) {
       router.push('/');
       return;
     }
-  }, [isLoggedIn, user, requireAuth, requireAdmin, router, pathname]);
+  }, [isLoggedIn, user, isAdmin, requireAuth, requireAdmin, router, pathname]);
 
   return (
     <>

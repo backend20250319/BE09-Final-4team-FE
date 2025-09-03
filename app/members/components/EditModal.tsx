@@ -69,7 +69,7 @@ interface EditModalProps {
 }
 
 export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelete }: EditModalProps) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
   const joinDateRef = useRef<HTMLInputElement | null>(null)
   const [tempPassword, setTempPassword] = useState<string>('')
@@ -120,9 +120,9 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   }, [orgContentWidth, policyContentWidth])
 
   const isOwnProfile = user?.email === employee?.email
-  const canEdit = isOwnProfile || user?.isAdmin
-  const canDelete = user?.isAdmin
-  const canResetPassword = user?.isAdmin
+  const canEdit = isOwnProfile || isAdmin
+  const canDelete = isAdmin
+  const canResetPassword = isAdmin
 
   const workPolicies = [
     { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무', color: 'bg-blue-100 text-blue-800' },

@@ -49,7 +49,7 @@ export function Header({
   onToggleSidebar,
   isMobile = false
 }: HeaderProps) {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
 
@@ -209,7 +209,7 @@ export function Header({
           position: '대리',
           role: '개발자',
           job: '풀스택 개발',
-          isAdmin: user?.isAdmin || false,
+          isAdmin: isAdmin,
           teams: ['프론트엔드팀'],
           workPolicies: ['flexible', 'hybrid']
         }}

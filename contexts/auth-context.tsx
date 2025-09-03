@@ -9,13 +9,11 @@ interface User {
   email: string
   name: string
   role: string
-  isAdmin: boolean
 }
 
 interface AuthContextType {
   user: User | null
-  isLoggedIn: boolean
-  login: (userData: Omit<User, 'isAdmin'> & { isAdmin?: boolean }, tokens: { accessToken: string; expiresIn: number }) => void
+  login: (userData: User, tokens: { accessToken: string; expiresIn: number }) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -30,16 +28,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const login = (userData: Omit<User, 'isAdmin'> & { isAdmin?: boolean }, tokens: { accessToken: string; expiresIn: number }) => {
-    const userWithAdmin: User = {
+  const login = (userData: User, tokens: { accessToken: string; expiresIn: number }) => {
+    const user: User = {
       id: Number(userData.id),
       email: userData.email,
       name: userData.name,
-      role: userData.role,
-      isAdmin: userData.isAdmin || userData.role === 'ADMIN'
+      role: userData.role
     }
     
-    setUser(userWithAdmin)
+    setUser(user)
     setAccessToken(tokens.accessToken)
   }
 
@@ -60,14 +57,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       const response = await authApi.refresh()
-      const userWithAdmin: User = {
+      const user: User = {
         id: response.userId,
         email: response.email,
         name: response.name,
-        role: response.role,
-        isAdmin: response.role === 'ADMIN'
+        role: response.role
       }
-      setUser(userWithAdmin)
+      setUser(user)
       setAccessToken(response.accessToken)
     } catch (error) {
       console.error('토큰 갱신 실패:', error)
@@ -80,14 +76,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const handleTokenRefresh = (event: CustomEvent) => {
       const { accessToken, userId, email, name, role } = event.detail
-      const userWithAdmin: User = {
+      const user: User = {
         id: userId,
         email,
         name,
-        role,
-        isAdmin: role === 'ADMIN'
+        role
       }
-      setUser(userWithAdmin)
+      setUser(user)
       setAccessToken(accessToken)
     }
 
@@ -122,21 +117,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     user,
-    isLoggedIn: !!user,
     login,
     logout,
     refreshUser
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div>Loading...</div>
-      </div>
-    )
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return !loading && <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
@@ -144,5 +130,13 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
-  return context
+  
+  const isLoggedIn = !!context.user
+  const isAdmin = context.user?.role === 'ADMIN'
+  
+  return {
+    ...context,
+    isLoggedIn,
+    isAdmin
+  }
 }
