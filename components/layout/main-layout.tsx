@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
@@ -14,17 +14,9 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { user, isLoggedIn, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (pathname === '/login') {
-      if (isLoggedIn) {
-        router.push('/');
-      }
-      return;
-    }
-
     if (requireAuth && !isLoggedIn) {
       router.push('/login');
       return;
@@ -34,7 +26,7 @@ export function MainLayout({ children, requireAuth = false, requireAdmin = false
       router.push('/');
       return;
     }
-  }, [isLoggedIn, user, isAdmin, requireAuth, requireAdmin, router, pathname]);
+  }, [isLoggedIn, user, isAdmin, requireAuth, requireAdmin, router]);
 
   return (
     <>
