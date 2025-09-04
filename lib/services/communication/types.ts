@@ -85,3 +85,35 @@ export interface NotificationQueryParams {
 export interface UserNotificationQueryParams extends NotificationQueryParams {
   userId: number
 }
+
+// 사내 문서함 관련 타입 정의
+
+// 사내 문서 요약 정보 (목록용)
+export interface ArchiveSummaryDto {
+  id: number
+  title: string
+}
+
+// 사내 문서 상세 응답
+export interface ArchiveResponseDto {
+  id: number
+  title: string
+  authorId: number
+  description?: string
+  fileIds: string[]
+  createdAt: string
+}
+
+// 사내 문서 생성 요청
+export interface ArchiveCreateRequestDto {
+  title: string
+  description?: string
+  fileIds: string[]
+}
+
+// 사내 문서 수정 요청
+export interface ArchiveUpdateRequestDto {
+  title?: string
+  description?: string
+  fileIds?: string[]
+}

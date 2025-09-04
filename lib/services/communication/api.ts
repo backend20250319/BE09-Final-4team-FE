@@ -9,7 +9,11 @@ import {
   CommentCreateDto,
   NotificationResponseDto,
   NotificationQueryParams,
-  UserNotificationQueryParams
+  UserNotificationQueryParams,
+  ArchiveSummaryDto,
+  ArchiveResponseDto,
+  ArchiveCreateRequestDto,
+  ArchiveUpdateRequestDto
 } from './types'
 
 // 공지사항 API
@@ -41,6 +45,14 @@ export const announcementApi = {
   // 공지사항 삭제 (ADMIN 권한 필요)
   deleteAnnouncement: async (id: number): Promise<ApiResult<void>> => {
     const response = await apiClient.delete<ApiResult<void>>(`/api/announcements/${id}`)
+    return response.data
+  },
+
+  // 공지사항 검색
+  searchAnnouncements: async (keyword: string): Promise<ApiResult<AnnouncementSummaryDto[]>> => {
+    const response = await apiClient.get<ApiResult<AnnouncementSummaryDto[]>>('/api/announcements/search', {
+      params: { keyword }
+    })
     return response.data
   }
 }
@@ -102,9 +114,51 @@ export const notificationApi = {
   }
 }
 
+// 사내 문서함 API
+export const archiveApi = {
+  // 사내 문서 목록 조회
+  getAllArchives: async (): Promise<ArchiveSummaryDto[]> => {
+    const response = await apiClient.get<ArchiveSummaryDto[]>('/api/archives')
+    return response.data
+  },
+
+  // 사내 문서 상세 조회
+  getArchive: async (id: number): Promise<ApiResult<ArchiveResponseDto>> => {
+    const response = await apiClient.get<ApiResult<ArchiveResponseDto>>(`/api/archives/${id}`)
+    return response.data
+  },
+
+  // 사내 문서 생성 (ADMIN 권한 필요)
+  createArchive: async (data: ArchiveCreateRequestDto): Promise<ApiResult<ArchiveResponseDto>> => {
+    const response = await apiClient.post<ApiResult<ArchiveResponseDto>>('/api/archives', data)
+    return response.data
+  },
+
+  // 사내 문서 수정 (ADMIN 권한 필요)
+  updateArchive: async (id: number, data: ArchiveUpdateRequestDto): Promise<ApiResult<ArchiveResponseDto>> => {
+    const response = await apiClient.patch<ApiResult<ArchiveResponseDto>>(`/api/archives/${id}`, data)
+    return response.data
+  },
+
+  // 사내 문서 삭제 (ADMIN 권한 필요)
+  deleteArchive: async (id: number): Promise<ApiResult<void>> => {
+    const response = await apiClient.delete<ApiResult<void>>(`/api/archives/${id}`)
+    return response.data
+  },
+
+  // 사내 문서 검색
+  searchArchives: async (keyword: string): Promise<ApiResult<ArchiveSummaryDto[]>> => {
+    const response = await apiClient.get<ApiResult<ArchiveSummaryDto[]>>('/api/archives/search', {
+      params: { keyword }
+    })
+    return response.data
+  }
+}
+
 // 통합 Communication API 객체
 export const communicationApi = {
   announcements: announcementApi,
   comments: commentApi,
-  notifications: notificationApi
+  notifications: notificationApi,
+  archives: archiveApi
 }
