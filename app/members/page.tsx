@@ -199,9 +199,6 @@ export default function MembersPage() {
   }, [buildOrgStructure]);
 
   const fetchEmployees = useCallback(async () => {
-    if (loading) {
-      return;
-    }
 
     if (!isLoggedIn) {
       router.push('/login');
