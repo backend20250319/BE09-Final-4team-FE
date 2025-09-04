@@ -21,6 +21,7 @@ import SimpleDropdown from "./SimpleDropdown";
 import {
   useOrganizationsList,
   useTitlesFromMembers,
+  useWorkPoliciesList,
 } from "@/hooks/use-members-derived-data";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { userApi } from "@/lib/services/user/api";
 
 interface MemberOrganizations {
   main: string | null;
@@ -74,27 +76,16 @@ const initialFormData = {
   workPolicies: [] as string[],
 };
 
-// options는 실데이터에서 가져옵니다
 
-const workPolicies = [
-  {
-    id: "fixed-9to6",
-    label: "9-6 고정근무",
-    description: "오전 9시 ~ 오후 6시 고정 근무",
-  },
-  {
-    id: "flexible",
-    label: "유연근무",
-    description: "코어타임 내 자유로운 출퇴근",
-  },
-  {
-    id: "autonomous",
-    label: "자율근무",
-    description: "업무 성과 기반 자율 근무",
-  },
-  { id: "remote", label: "재택근무", description: "원격 근무 가능" },
-  { id: "hybrid", label: "하이브리드", description: "사무실 + 재택 혼합 근무" },
-];
+const checkEmailDuplicate = async (email: string) => {
+  try {
+    const users = await userApi.getAllUsers();
+    return users.some(user => user.email === email);
+  } catch (error) {
+    console.error('이메일 중복 검증 오류:', error);
+    return false;
+  }
+};
 
 export default function AddMemberModal({
   isOpen,
@@ -136,6 +127,13 @@ export default function AddMemberModal({
     loading: orgLoading,
     error: orgError,
   } = useOrganizationsList();
+  
+  const {
+    workPolicies,
+    loading: workPolicyLoading,
+    error: workPolicyError,
+  } = useWorkPoliciesList();
+  
   const {
     ranks,
     positions,
@@ -446,7 +444,18 @@ export default function AddMemberModal({
     }
   };
 
-  const handleSaveConfirm = () => {
+  const handleSaveConfirm = async () => {
+    if (!formData.email) {
+      toast.error('이메일을 입력해주세요.');
+      return;
+    }
+
+    const isDuplicate = await checkEmailDuplicate(formData.email);
+    if (isDuplicate) {
+      toast.error('이미 존재하는 이메일입니다.');
+      return;
+    }
+
     onSave(formData);
     setShowSaveConfirm(false);
   };
@@ -906,8 +915,8 @@ export default function AddMemberModal({
                             <div className="flex items-center gap-2">
                               {formData.workPolicies?.length > 0
                                 ? workPolicies.find(
-                                    (p) => p.id === formData.workPolicies[0]
-                                  )?.label ?? "근무 정책을 선택하세요"
+                                    (p) => p.id.toString() === formData.workPolicies[0]
+                                  )?.name ?? "근무 정책을 선택하세요"
                                 : "근무 정책을 선택하세요"}
                             </div>
                             <ChevronDown className="w-4 h-4" />
@@ -924,22 +933,46 @@ export default function AddMemberModal({
                           maxWidth: policyContentWidth,
                         }}
                       >
-                        {workPolicies.map((policy) => (
-                          <div
-                            key={policy.id}
-                            className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => handleWorkPolicyToggle(policy.id)}
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900">
-                                {policy.label}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {policy.description}
-                              </div>
-                            </div>
+                        {workPolicyLoading && (
+                          <div className="p-3 text-sm text-gray-500">
+                            근무 정책을 불러오는 중...
                           </div>
-                        ))}
+                        )}
+                        {workPolicyError && !workPolicyLoading && (
+                          <div className="p-3 text-sm text-red-500">
+                            근무 정책을 불러오지 못했습니다.
+                          </div>
+                        )}
+                        {!workPolicyLoading &&
+                          !workPolicyError &&
+                          workPolicies.map((policy) => {
+                            const isSelected = formData.workPolicies?.includes(policy.id.toString());
+                            return (
+                              <div
+                                key={policy.id.toString()}
+                                className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                onClick={() => handleWorkPolicyToggle(policy.id.toString())}
+                              >
+                                <div
+                                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                    isSelected ? "bg-blue-50 border-blue-500" : "border-gray-300"
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <div className="w-2 h-2 rounded-full bg-blue-600" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    {policy.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {policy.type} - {policy.workHours}시간 {policy.workMinutes}분
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                       </PopoverContent>
                     </Popover>
                   </div>

@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   useOrganizationsList,
   useTitlesFromMembers,
+  useWorkPoliciesList,
 } from "@/hooks/use-members-derived-data";
 import { useRouter } from "next/navigation";
 import modalStyles from "../members-modal.module.css";
@@ -37,55 +38,26 @@ import OrganizationDetailBlock from "./OrganizationDetailBlock";
 import DetailBlock from "./DetailBlock";
 import PolicyBlock from "./PolicyBlock";
 import EditModal from "../EditModal";
+import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   employee: MemberProfile | null;
   onUpdate?: (updatedEmployee: MemberProfile) => void;
+  onDelete?: (employeeId: string) => void;
 }
-
-const workPolicies: WorkPolicy[] = [
-  {
-    id: "fixed-9to6",
-    label: "9-6 고정근무",
-    description: "오전 9시 ~ 오후 6시 고정 근무",
-    color: "bg-blue-100 text-blue-800",
-  },
-  {
-    id: "flexible",
-    label: "유연근무",
-    description: "코어타임 내 자유로운 출퇴근",
-    color: "bg-green-100 text-green-800",
-  },
-  {
-    id: "autonomous",
-    label: "자율근무",
-    description: "업무 성과 기반 자율 근무",
-    color: "bg-purple-100 text-purple-800",
-  },
-  {
-    id: "remote",
-    label: "재택근무",
-    description: "원격 근무 가능",
-    color: "bg-orange-100 text-orange-800",
-  },
-  {
-    id: "hybrid",
-    label: "하이브리드",
-    description: "사무실 + 재택 혼합 근무",
-    color: "bg-indigo-100 text-indigo-800",
-  },
-];
 
 export default function ProfileModal({
   isOpen,
   onClose,
   employee,
   onUpdate,
+  onDelete,
 }: Props) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { organizations: orgOptions } = useOrganizationsList();
+  const { workPolicies } = useWorkPoliciesList();
   const {
     ranks,
     positions,
@@ -96,19 +68,38 @@ export default function ProfileModal({
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string>("");
-
-  const isOwnProfile = user?.email === employee?.email;
-  const canEdit = isOwnProfile || user?.isAdmin;
-  const canEditProfileImage = isOwnProfile;
+  const [currentEmployee, setCurrentEmployee] = useState<MemberProfile | null>(employee);
+  
+  useEffect(() => {
+    setCurrentEmployee(employee);
+  }, [employee]);
 
   useEffect(() => {
-    if (!employee) return;
-    setProfileImage(employee.profileImage || employee.avatarUrl || "");
-  }, [employee]);
+    const handleEmployeeUpdate = (event: any) => {
+      const updatedEmployee = event.detail;
+      if (updatedEmployee && currentEmployee?.id === updatedEmployee.id) {
+        setCurrentEmployee(updatedEmployee);
+        onUpdate?.(updatedEmployee);
+      }
+    };
+
+    window.addEventListener('employeeUpdated', handleEmployeeUpdate);
+    return () => window.removeEventListener('employeeUpdated', handleEmployeeUpdate);
+  }, [currentEmployee?.id, onUpdate]);
+
+  const isOwnProfile = user?.email === currentEmployee?.email;
+  const canEdit = isOwnProfile || isAdmin;
+  const canEditProfileImage = isOwnProfile;
+  const canViewDetails = isOwnProfile || isAdmin;
+
+  useEffect(() => {
+    if (!currentEmployee) return;
+    setProfileImage(currentEmployee.profileImage || currentEmployee.avatarUrl || "");
+  }, [currentEmployee]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !employee) return;
+    if (!file || !currentEmployee) return;
 
     const reader = new FileReader();
     reader.onload = async (ev) => {
@@ -137,7 +128,7 @@ export default function ProfileModal({
           setProfileImage(croppedImageUrl);
 
           try {
-            const response = await fetch(`/api/members/${employee.id}`, {
+            const response = await fetch(`/api/members/${currentEmployee.id}`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
@@ -152,7 +143,7 @@ export default function ProfileModal({
             }
 
             const updatedEmployee = {
-              ...employee,
+              ...currentEmployee,
               profileImage: croppedImageUrl,
             };
             onUpdate?.(updatedEmployee);
@@ -184,12 +175,20 @@ export default function ProfileModal({
     name: org,
   }));
 
-  if (!employee) return null;
+  if (!currentEmployee) return null;
 
-  const currentUserData: MemberProfile = {
-    ...employee,
-    profileImage,
-    avatarUrl: profileImage,
+  const transformEmployeeForEdit = (emp: any) => {
+    if (!emp) return emp;
+    
+    return {
+      ...emp,
+      organizations: emp.organizations?.map((org: any) => {
+        if (typeof org === 'object' && org.organizationName) {
+          return org.organizationName;
+        }
+        return org;
+      }) || []
+    };
   };
 
   return (
@@ -241,10 +240,10 @@ export default function ProfileModal({
                       <Avatar className="w-24 h-24">
                         <AvatarImage
                           src={
-                            currentUserData.avatarUrl ||
-                            currentUserData.profileImage
+                            currentEmployee.avatarUrl ||
+                            currentEmployee.profileImage
                           }
-                          alt={currentUserData.name}
+                          alt={currentEmployee.name}
                         />
                         <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
                           <User className="w-12 h-12" />
@@ -272,19 +271,19 @@ export default function ProfileModal({
                     </div>
                     <div className="flex-1">
                       <div className="text-lg font-semibold mb-2">
-                        {currentUserData.name}
+                        {currentEmployee.name}
                       </div>
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <Mail className="w-4 h-4" />
                           <span className="break-all">
-                            {currentUserData.email}
+                            {currentEmployee.email}
                           </span>
                         </div>
-                        {currentUserData.phone && (
+                        {currentEmployee.phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            <span>{currentUserData.phone}</span>
+                            <span>{currentEmployee.phone}</span>
                           </div>
                         )}
                       </div>
@@ -299,26 +298,32 @@ export default function ProfileModal({
                   <OrganizationDetailBlock
                     main={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       const mainOrg = orgs[0];
-                      return mainOrg
-                        ? { teamId: mainOrg, name: mainOrg }
-                        : null;
+                      if (!mainOrg) return null;
+                      
+                      if (typeof mainOrg === 'object' && mainOrg.organizationName) {
+                        return { teamId: mainOrg.organizationName, name: mainOrg.organizationName };
+                      }
+                      
+                      return { teamId: mainOrg, name: mainOrg };
                     })()}
-                    user={employee}
+                    user={currentEmployee}
                   />
                 </div>
 
-                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-700 font-semibold mb-3">
-                    상세 정보
+                {canViewDetails && (
+                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                    <div className="text-gray-700 font-semibold mb-3">
+                      상세 정보
+                    </div>
+                    <DetailBlock
+                      joinDate={currentEmployee.joinDate}
+                      address={currentEmployee.address}
+                    />
                   </div>
-                  <DetailBlock
-                    joinDate={employee.joinDate}
-                    address={employee.address}
-                  />
-                </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-4">
@@ -400,8 +405,8 @@ export default function ProfileModal({
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-500 text-sm mb-1">남은 연차</div>
                   <div className="text-2xl font-bold">
-                    {employee.remainingLeave ||
-                      employee.remainingLeaveDays ||
+                    {currentEmployee.remainingLeave ||
+                      currentEmployee.remainingLeaveDays ||
                       12}
                     일
                   </div>
@@ -412,7 +417,7 @@ export default function ProfileModal({
                     이번 주 근무시간
                   </div>
                   <div className="text-2xl font-bold">
-                    {employee.weeklyWorkHours || employee.thisWeekHours || 42}h
+                    {currentEmployee.weeklyWorkHours || currentEmployee.thisWeekHours || 42}h
                   </div>
                 </div>
               </div>
@@ -425,22 +430,32 @@ export default function ProfileModal({
                   <OrganizationBlock
                     main={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       const mainOrg = orgs[0];
-                      return mainOrg
-                        ? { teamId: mainOrg, name: mainOrg }
-                        : null;
+                      if (!mainOrg) return null;
+                      
+                      if (typeof mainOrg === 'object' && mainOrg.organizationName) {
+                        return { teamId: mainOrg.organizationName, name: mainOrg.organizationName };
+                      }
+                      
+                      return { teamId: mainOrg, name: mainOrg };
                     })()}
                     concurrent={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       return orgs
                         .slice(1)
-                        .map((org) => ({ teamId: org, name: org }));
+                        .map((org) => {
+                          if (typeof org === 'object' && org.organizationName) {
+                            return { teamId: org.organizationName, name: org.organizationName };
+                          }
+                          
+                          return { teamId: org, name: org };
+                        });
                     })()}
-                    user={employee}
+                    user={currentEmployee}
                   />
                 </div>
 
@@ -449,7 +464,7 @@ export default function ProfileModal({
                     근무 정책
                   </div>
                   <PolicyBlock
-                    workPolicies={employee.workPolicies}
+                    workPolicies={currentEmployee.workPolicies}
                     availablePolicies={workPolicies}
                   />
                 </div>
@@ -461,13 +476,16 @@ export default function ProfileModal({
         <EditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          employee={employee as any}
+          employee={transformEmployeeForEdit(currentEmployee)}
           onUpdate={(updated) => {
+            console.log('ProfileModal에서 받은 업데이트 데이터:', updated);
+            setCurrentEmployee(updated as any);
             onUpdate?.(updated as any);
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", { detail: updated }) as Event
             );
           }}
+          onDelete={onDelete}
         />
       </DialogContent>
     </Dialog>
