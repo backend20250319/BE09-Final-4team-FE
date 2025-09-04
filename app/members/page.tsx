@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Expand,
   Minimize,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import AddMemberModal from "./components/AddMemberModal";
@@ -23,6 +24,11 @@ import MemberList from "./components/MemberList";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/ui/spinner";
+import { organizationApi } from "@/lib/services/organization/api";
+import { OrganizationHierarchyDto } from "@/lib/services/organization/types";
+import { apiClient } from "@/lib/services/common/api-client";
+import { userApi } from "@/lib/services/user/api";
+import { UserResponseDto, UserCreateDto } from "@/lib/services/user/types";
 
 interface Employee {
   id: string;
@@ -42,6 +48,24 @@ interface Employee {
   profileImage?: string;
 }
 
+const convertUserToEmployee = (user: UserResponseDto): Employee => ({
+  id: user.id.toString(),
+  name: user.name,
+  email: user.email,
+  phone: user.phone || '',
+  address: user.address || '',
+  joinDate: user.joinDate || '',
+  organization: user.organizations?.find(org => org.isPrimary)?.organizationName,
+  organizations: user.organizations?.map(org => org.organizationName) || [],
+  position: user.position?.name || '',
+  role: user.role || '',
+  job: user.job?.name || '',
+  rank: user.rank?.name || '',
+  isAdmin: user.isAdmin,
+  teams: [],
+  profileImage: user.profileImageUrl
+});
+
 interface OrgStructure {
   name: string;
   children?: OrgStructure[];
@@ -50,7 +74,7 @@ interface OrgStructure {
 }
 
 export default function MembersPage() {
-  const { isLoading, isLoggedIn, getAuthHeaders } = useAuth();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
@@ -61,6 +85,8 @@ export default function MembersPage() {
   const [orgSearchTerm, setOrgSearchTerm] = useState("");
   const [isAllExpanded, setIsAllExpanded] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false);
 
   const filteredEmployees = useMemo(() => {
     let filtered = employees;
@@ -96,7 +122,7 @@ export default function MembersPage() {
       const orgList = Array.isArray(emp.organizations) && emp.organizations.length > 0
         ? emp.organizations
         : emp.organization ? [emp.organization] : [];
-      
+     
       orgList.forEach((orgName) => {
         orgCounts[orgName] = (orgCounts[orgName] || 0) + 1;
       });
@@ -111,9 +137,9 @@ export default function MembersPage() {
     return { orgCounts, teamCounts };
   };
 
-  const buildOrgStructure = (employees: Employee[]): OrgStructure[] => {
+  const buildOrgStructure = useCallback((employees: Employee[]): OrgStructure[] => {
     const { orgCounts, teamCounts } = calculateEmployeeCounts(employees);
-    
+   
     const orgs = Object.keys(orgCounts).map(orgName => ({
       name: orgName,
       employeeCount: orgCounts[orgName],
@@ -128,12 +154,51 @@ export default function MembersPage() {
     }));
 
     return orgs;
-  };
+  }, [calculateEmployeeCounts]);
+
+  const fetchOrganizationStructure = useCallback(async () => {
+    try {
+      setOrgLoading(true);
+      console.log('조직 구조 API 호출 시작...');
+     
+      const response = await organizationApi.getOrganizationHierarchy();
+      console.log('조직 구조 API 응답:', response);
+     
+      let orgData: OrganizationHierarchyDto[];
+
+      if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+        orgData = response.data;
+      } else if (Array.isArray(response)) {
+        orgData = response;
+      } else {
+        throw new Error('예상치 못한 응답 형식입니다.');
+      }
+      console.log('추출된 조직 데이터:', orgData);
+     
+      const convertToOrgStructure = (org: OrganizationHierarchyDto): OrgStructure => ({
+        name: org.name,
+        employeeCount: org.memberCount,
+        isExpanded: false,
+        children: org.children ? org.children.map(convertToOrgStructure) : undefined
+      });
+     
+      const convertedStructure = orgData.map(convertToOrgStructure);
+      console.log('변환된 조직 구조:', convertedStructure);
+     
+      setOrgStructure(convertedStructure);
+      toast.success('조직 구조를 성공적으로 불러왔습니다.');
+    } catch (error) {
+      console.error('조직 구조 로딩 실패:', error);
+      toast.error('조직 구조를 불러올 수 없습니다. 기존 데이터를 사용합니다.');
+     
+      const fallbackStructure = buildOrgStructure([]);
+      setOrgStructure(fallbackStructure);
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [buildOrgStructure]);
 
   const fetchEmployees = useCallback(async () => {
-    if (isLoading) {
-      return;
-    }
 
     if (!isLoggedIn) {
       router.push('/login');
@@ -142,31 +207,55 @@ export default function MembersPage() {
 
     setDataLoading(true);
     try {
-      const token = localStorage.getItem('accessToken');
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      
-      const response = await fetch("/api/members", { headers });
-      const data = await response.json();
-
-      if (data.success && data.members) {
-        setEmployees(data.members);
-        setOrgStructure(buildOrgStructure(data.members));
+      const users = await userApi.getAllUsers();
+      if (Array.isArray(users)) {
+        const convertedUsers = users.map(convertUserToEmployee);
+        setEmployees(convertedUsers);
+        if (orgStructure.length === 0 && !orgLoading) {
+          await fetchOrganizationStructure();
+        }
       } else {
+        console.warn('Users is not an array:', users);
         toast.error("직원 데이터를 불러올 수 없습니다.");
+        setEmployees([]);
       }
     } catch (error) {
       console.error("직원 데이터 로드 오류:", error);
       toast.error("직원 데이터 로드 중 오류가 발생했습니다.");
+      setEmployees([]);
+      setOrgStructure([]);
     } finally {
       setDataLoading(false);
     }
-  }, [isLoading, isLoggedIn, router]);
+  }, [isLoggedIn, router, fetchOrganizationStructure, orgLoading]);
 
-  useEffect(() => {
-    if (!isLoading && isLoggedIn) {
-      fetchEmployees();
+  const handleMemberSearchSubmit = useCallback(async (term: string) => {
+    setIsSearchingMembers(true);
+    try {
+      if (!term.trim()) {
+        await fetchEmployees();
+      } else {
+        const searchResults = await userApi.searchUsers(term);
+        if (Array.isArray(searchResults)) {
+          const convertedResults = searchResults.map(convertUserToEmployee);
+          setEmployees(convertedResults);
+        } else {
+          console.warn('검색 결과가 배열이 아님:', searchResults);
+          setEmployees([]);
+        }
+      }
+    } catch (error) {
+      console.error('직원 검색 오류:', error);
+      toast.error('직원 검색 중 오류가 발생했습니다.');
+      setEmployees([]);
+    } finally {
+      setIsSearchingMembers(false);
     }
-  }, [isLoading, isLoggedIn, fetchEmployees]);
+  }, [fetchEmployees]);
+
+  if (isLoggedIn && employees.length === 0 && !dataLoading) {
+    fetchEmployees();
+  }
 
   const handleOrgSelect = (orgName: string) => {
     setSelectedOrg(orgName === selectedOrg ? null : orgName);
@@ -206,7 +295,7 @@ export default function MembersPage() {
 
   const filteredOrgStructure = useMemo(() => {
     if (!orgSearchTerm) return orgStructure;
-    
+   
     const term = orgSearchTerm.toLowerCase();
     const filterTree = (orgs: OrgStructure[]): OrgStructure[] => {
       const result: OrgStructure[] = [];
@@ -217,7 +306,7 @@ export default function MembersPage() {
         if (selfMatch) {
           result.push({
             ...org,
-            isExpanded: filteredChildren && filteredChildren.length > 0,
+            isExpanded: true,
             children: filteredChildren,
           });
         } else if (filteredChildren && filteredChildren.length > 0) {
@@ -236,45 +325,49 @@ export default function MembersPage() {
 
   const handleAddMemberSave = async (memberData: any) => {
     try {
-      const headers = getAuthHeaders();
-      
-      const response = await fetch("/api/members", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(memberData),
-      });
+      const newUserData: UserCreateDto = {
+        name: memberData.name,
+        email: memberData.email,
+        password: "temporaryPassword123!",
+        phone: memberData.phone || "",
+        address: memberData.address || "",
+        joinDate: memberData.joinDate,
+        isAdmin: Boolean(memberData.isAdmin),
+        role: memberData.role,
+      };
 
-      const result = await response.json();
+      const result = await userApi.createUser(newUserData);
 
-      if (result.success) {
+      if (result) {
         const newMember: Employee = {
-          id: result.member.id,
-          name: memberData.name,
-          email: memberData.email,
-          phone: memberData.phone || "",
-          address: memberData.address || "",
-          joinDate: memberData.joinDate,
-          organization: memberData.organization,
-          organizations: Array.isArray(memberData.organizations) ? memberData.organizations : undefined,
-          position: memberData.position,
-          role: memberData.role,
-          job: memberData.job,
-          rank: memberData.rank || "",
-          isAdmin: Boolean(memberData.isAdmin),
-          teams: memberData.teams || [],
+          id: result.id.toString(),
+          name: result.name,
+          email: result.email,
+          phone: result.phone || "",
+          address: result.address || "",
+          joinDate: result.joinDate || "",
+          organization: result.organizations?.find(org => org.isPrimary)?.organizationName,
+          organizations: result.organizations?.map(org => org.organizationName) || [],
+          position: result.position?.name || "",
+          role: result.role || "",
+          job: result.job?.name || "",
+          rank: result.rank?.name || "",
+          isAdmin: result.isAdmin,
+          teams: [],
+          profileImage: result.profileImageUrl,
         };
 
         const updatedEmployees = [...employees, newMember];
         setEmployees(updatedEmployees);
-        setOrgStructure(buildOrgStructure(updatedEmployees));
+        await fetchOrganizationStructure();
         setShowAddMemberModal(false);
         toast.success("구성원이 성공적으로 추가되었습니다.");
       } else {
-        throw new Error(result.message);
+        throw new Error("구성원 추가 실패: 응답 데이터 없음");
       }
     } catch (error) {
       console.error("구성원 추가 오류:", error);
-      toast.error("구성원 추가 중 오류가 발생했습니다: " + (error as Error).message);
+      toast.error("구성원 추가 중 오류가 발생했습니다: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -319,7 +412,7 @@ export default function MembersPage() {
     </div>
   );
 
-  if (isLoading || dataLoading) {
+  if (dataLoading) {
     return (
       <MainLayout requireAuth={true}>
         <div className="flex justify-center items-center h-screen w-full">
@@ -360,16 +453,27 @@ export default function MembersPage() {
               employees={filteredEmployees}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              onSearchSubmit={handleMemberSearchSubmit}
               selectedOrg={selectedOrg}
-              placeholder="직원명, 조직명, 팀명으로 검색"
+              placeholder="직원명, 조직명, 이메일로 검색 (엔터)"
               onEmployeeUpdate={handleEmployeeUpdate}
+              isSearching={isSearchingMembers}
+              isSearchMode={!!searchTerm && !isSearchingMembers}
             />
           </GlassCard>
         </div>
 
         <div>
           <GlassCard className="p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">조직도</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">조직도</h3>
+              {orgLoading && (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <span className="text-sm text-gray-500">로딩 중...</span>
+                </div>
+              )}
+            </div>
 
             <div className="mb-4">
               <div className="relative">
@@ -392,6 +496,16 @@ export default function MembersPage() {
               >
                 {isAllExpanded ? <Minimize className="w-4 h-4" /> : <Expand className="w-4 h-4" />}
                 모두 {isAllExpanded ? "접기" : "펼치기"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchOrganizationStructure}
+                disabled={orgLoading}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className={`w-4 h-4 ${orgLoading ? 'animate-spin' : ''}`} />
+                새로고침
               </Button>
             </div>
 

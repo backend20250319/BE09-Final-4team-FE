@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth";
+import { userApi } from "@/lib/services/user/api";
 import ProfileModal from '@/app/members/components/ProfileModal'
 import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
 
@@ -55,25 +56,22 @@ export function Header({
 
   useEffect(() => {
     if (user?.email) {
-      const token = localStorage.getItem('accessToken');
-      fetch('/api/members', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.members) {
-            const employee = data.members.find((emp: Employee) => emp.email === user.email)
-            setEmployeeData(employee || null)
+      userApi.getAllUsers()
+        .then(users => {
+          if (Array.isArray(users)) {
+            const employee = users.find((emp: Employee) => emp.email === user.email);
+            setEmployeeData(employee || null);
+          } else {
+            console.warn('Users is not an array:', users);
+            setEmployeeData(null);
           }
         })
         .catch(error => {
-          console.error('직원 데이터 로드 오류:', error)
-        })
+          console.error('직원 데이터 로드 오류:', error);
+          setEmployeeData(null);
+        });
     }
-  }, [user])
+  }, [user]);
 
   useEffect(() => {
     const handleEmployeeUpdate = (event: CustomEvent) => {
@@ -217,4 +215,4 @@ export function Header({
       />
     </div>
   )
-} 
+}

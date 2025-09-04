@@ -28,11 +28,10 @@ interface Member {
   role: string;
   email: string;
   phone: string;
-  currentMainOrg?: string; // Add this line
-  currentMainOrgName?: string; // Add this line
+  currentMainOrg?: string;
+  currentMainOrgName?: string;
 }
 
-// Add these new interfaces
 interface SelectedMember {
   member: Member;
   assignmentType: "main" | "concurrent";
@@ -47,7 +46,7 @@ interface Organization {
   id: string;
   name: string;
   parentId?: string;
-  members: SelectedMember[]; // Change Member[] to SelectedMember[]
+  members: SelectedMember[];
   leader?: Member;
   children?: Organization[];
 }
@@ -71,9 +70,7 @@ export default function OrganizationSettingsModal({
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/organizations.json");
-        const data = await res.json();
-        setOrganizations(data as Organization[]);
+        setOrganizations([]);
       } catch (e) {
         setOrganizations([]);
       }

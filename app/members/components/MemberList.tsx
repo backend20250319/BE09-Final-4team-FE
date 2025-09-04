@@ -39,9 +39,12 @@ interface MemberListProps {
   employees: Employee[];
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  onSearchSubmit: (term: string) => void;
   selectedOrg: string | null;
   placeholder?: string;
   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
+  isSearching?: boolean;
+  isSearchMode?: boolean;
 }
 
 const getTeamColor = (team: string) => {
@@ -79,9 +82,12 @@ export default function MemberList({
   employees,
   searchTerm,
   onSearchChange,
+  onSearchSubmit,
   selectedOrg,
   placeholder,
   onEmployeeUpdate,
+  isSearching = false,
+  isSearchMode = false,
 }: MemberListProps) {
   const [displayedCount, setDisplayedCount] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +151,6 @@ export default function MemberList({
   };
 
   const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
-
     const convertedEmployee: Employee = {
       ...updatedEmployee,
       teams: (
@@ -257,9 +262,31 @@ export default function MemberList({
           placeholder={placeholder || "직원명을 입력하여 검색"}
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onSearchSubmit(searchTerm);
+            }
+          }}
           className="pl-10"
+          disabled={isSearching}
         />
+        {isSearching && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+          </div>
+        )}
       </div>
+
+      {isSearchMode && (
+        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+          💡 <strong>검색 모드</strong>: 전체 데이터베이스에서 검색된 결과입니다.
+          {searchTerm && (
+            <span className="ml-2">
+              "{searchTerm}" 검색 결과: {employees.length}명
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayedEmployees.map((employee) => (

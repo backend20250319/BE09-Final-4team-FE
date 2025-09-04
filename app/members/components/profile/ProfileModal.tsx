@@ -30,9 +30,7 @@ import {
   useTitlesFromMembers,
 } from "@/hooks/use-members-derived-data";
 import { useRouter } from "next/navigation";
-
 import modalStyles from "../members-modal.module.css";
-
 import { MemberProfile, TeamInfo, WorkPolicy } from "./types";
 import OrganizationBlock from "./OrganizationBlock";
 import OrganizationDetailBlock from "./OrganizationDetailBlock";
@@ -86,7 +84,7 @@ export default function ProfileModal({
   employee,
   onUpdate,
 }: Props) {
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { organizations: orgOptions } = useOrganizationsList();
   const {
     ranks,
@@ -100,8 +98,9 @@ export default function ProfileModal({
   const [profileImage, setProfileImage] = useState<string>("");
 
   const isOwnProfile = user?.email === employee?.email;
-  const canEdit = isOwnProfile || isAdmin; 
-  const canEditProfileImage = isOwnProfile; 
+  const canEdit = isOwnProfile || user?.isAdmin;
+  const canEditProfileImage = isOwnProfile;
+
   useEffect(() => {
     if (!employee) return;
     setProfileImage(employee.profileImage || employee.avatarUrl || "");
@@ -201,11 +200,8 @@ export default function ProfileModal({
       >
         <DialogTitle className="sr-only">프로필</DialogTitle>
 
-        {/* Header */}
         <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 pr-17">
-
           <div className="flex items-center justify-between gap-3">
-            
             <div className="flex-1 text-left">
               <h2 className="text-2xl font-bold text-gray-900 transform -translate-x-6px]">
                 프로필
@@ -447,7 +443,6 @@ export default function ProfileModal({
                     user={employee}
                   />
                 </div>
-
 
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-700 font-semibold mb-3">

@@ -13,6 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
+  // loading: boolean
   login: (userData: User, tokens: { accessToken: string; expiresIn: number }) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -120,6 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     user,
+    // loading,
     login,
     logout,
     refreshUser
