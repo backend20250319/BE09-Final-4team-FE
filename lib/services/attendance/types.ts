@@ -35,6 +35,7 @@ export enum ScheduleType {
   BUSINESS_TRIP = "BUSINESS_TRIP",
   OUT_OF_OFFICE = "OUT_OF_OFFICE",
   OVERTIME = "OVERTIME",
+  RESTTIME = "RESTTIME",
 }
 
 // 근무 정책 타입 열거형
@@ -419,4 +420,3 @@ export interface ApiResult<T> {
   message: string;
   data: T;
 }
-

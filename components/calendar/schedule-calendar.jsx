@@ -106,8 +106,12 @@ export default function ScheduleCalendar({
           return (
             aTitle === "휴게" ||
             bTitle === "휴게" ||
+            aTitle === "휴게시간" ||
+            bTitle === "휴게시간" ||
             aType === "break" ||
-            bType === "break"
+            bType === "break" ||
+            aType === "RESTTIME" ||
+            bType === "RESTTIME"
           );
         }}
         slotEventOverlap={true}
@@ -127,7 +131,9 @@ export default function ScheduleCalendar({
 
           if (
             info.event.title === "휴게" ||
-            info.event.extendedProps?.type === "break"
+            info.event.title === "휴게시간" ||
+            info.event.extendedProps?.type === "break" ||
+            info.event.extendedProps?.type === "RESTTIME"
           ) {
             info.el.style.boxShadow = "0 6px 16px rgba(0,0,0,.18)";
           }
@@ -136,7 +142,9 @@ export default function ScheduleCalendar({
         eventPositioned={(info) => {
           const isBreak =
             info.event.title === "휴게" ||
-            info.event.extendedProps?.type === "break";
+            info.event.title === "휴게시간" ||
+            info.event.extendedProps?.type === "break" ||
+            info.event.extendedProps?.type === "RESTTIME";
           if (!isBreak) return;
 
           const harness = info.el.closest(".fc-timegrid-event-harness");

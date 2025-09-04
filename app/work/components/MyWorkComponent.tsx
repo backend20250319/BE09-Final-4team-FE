@@ -101,6 +101,7 @@ const TYPE_COLORS: Record<ScheduleType, string> = {
   [ScheduleType.BUSINESS_TRIP]: "#FFB74D",
   [ScheduleType.OUT_OF_OFFICE]: "#AED581",
   [ScheduleType.OVERTIME]: "#B39DDB",
+  [ScheduleType.RESTTIME]: "#90CAF9",
 };
 
 // Backend ScheduleType(enum) → 한글 라벨 매핑
@@ -111,6 +112,7 @@ const SCHEDULE_TYPE_LABEL: Record<string, string> = {
   BUSINESS_TRIP: "출장",
   OUT_OF_OFFICE: "외근",
   OVERTIME: "초과근무",
+  RESTTIME: "휴게시간",
 };
 
 // Backend ScheduleType(enum) → 색상 매핑 (TYPE_COLORS 재사용)
@@ -121,6 +123,7 @@ const SCHEDULE_TYPE_COLOR: Record<string, string> = {
   BUSINESS_TRIP: TYPE_COLORS[ScheduleType.BUSINESS_TRIP],
   OUT_OF_OFFICE: TYPE_COLORS[ScheduleType.OUT_OF_OFFICE],
   OVERTIME: TYPE_COLORS[ScheduleType.OVERTIME],
+  RESTTIME: TYPE_COLORS[ScheduleType.RESTTIME],
 };
 
 const toLabelFromEnum = (scheduleType?: string, fallback?: string): string => {
@@ -283,10 +286,8 @@ export default function MyWorkComponent(): JSX.Element {
           const endHHmm = timeToHHmm(s.endTime) || "18:00";
           const start = `${s.startDate}T${startHHmm}:00`;
           const end = `${s.endDate}T${endHHmm}:00`;
-          const title = toLabelFromEnum(
-            s.scheduleType,
-            s.title || s.scheduleType
-          );
+          const title =
+            s.title || toLabelFromEnum(s.scheduleType, s.scheduleType);
           const color = s.color || toColorFromEnum(s.scheduleType, "#4FC3F7");
           return {
             id: String(s.id),
