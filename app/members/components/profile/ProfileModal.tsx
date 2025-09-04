@@ -53,7 +53,7 @@ export default function ProfileModal({
   employee,
   onUpdate,
 }: Props) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { organizations: orgOptions } = useOrganizationsList();
   const { workPolicies } = useWorkPoliciesList();
   const {
@@ -68,7 +68,7 @@ export default function ProfileModal({
   const [profileImage, setProfileImage] = useState<string>("");
 
   const isOwnProfile = user?.email === employee?.email;
-  const canEdit = isOwnProfile || user?.isAdmin;
+  const canEdit = isOwnProfile || isAdmin;
   const canEditProfileImage = isOwnProfile;
 
   useEffect(() => {
