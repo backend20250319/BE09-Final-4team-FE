@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Search, Mail, Phone, Calendar, Building2 } from "lucide-react";
+import { Search, Mail, Phone, Calendar, Building2, Briefcase } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { MemberProfile } from "./profile/types";
 
@@ -45,29 +45,8 @@ interface MemberListProps {
   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
   isSearching?: boolean;
   isSearchMode?: boolean;
+  onEmployeeDelete?: (employeeId: string) => void;
 }
-
-const getTeamColor = (team: string) => {
-  const teamColors: Record<string, string> = {
-    개발팀: "#10b981",
-    기획팀: "#3b82f6",
-    디자인팀: "#8b5cf6",
-    QA팀: "#f59e0b",
-    마케팅팀: "#ec4899",
-    프론트엔드팀: "#3b82f6",
-    백엔드팀: "#10b981",
-    모바일팀: "#f59e0b",
-    UI팀: "#8b5cf6",
-    UX팀: "#ec4899",
-    그래픽팀: "#ef4444",
-    브랜드팀: "#06b6d4",
-    콘텐츠팀: "#84cc16",
-    홍보팀: "#f97316",
-    경영팀: "#6366f1",
-    인사팀: "#ec4899",
-  };
-  return teamColors[team] || "#6b7280";
-};
 
 const getProfileImage = (name: string) => {
   const hash = name.split("").reduce((a, b) => {
@@ -86,6 +65,7 @@ export default function MemberList({
   selectedOrg,
   placeholder,
   onEmployeeUpdate,
+  onEmployeeDelete,
   isSearching = false,
   isSearchMode = false,
 }: MemberListProps) {
@@ -151,29 +131,61 @@ export default function MemberList({
   };
 
   const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
+    console.log('MemberList에서 받은 업데이트 데이터:', updatedEmployee); //  디버깅용 로그
+    
     const convertedEmployee: Employee = {
-      ...updatedEmployee,
-      teams: (
-        updatedEmployee.organizations || [updatedEmployee.organization]
-      ).filter(Boolean) as string[],
-      email: updatedEmployee.email || "",
+      id: updatedEmployee.id || "",
       name: updatedEmployee.name || "",
+      email: updatedEmployee.email || "",
+      phone: updatedEmployee.phone || "",
+      address: updatedEmployee.address || "",
+      joinDate: updatedEmployee.joinDate || "",
+      organization: updatedEmployee.organizations?.[0] || updatedEmployee.organization || "",
+      organizations: updatedEmployee.organizations || [],
       position: updatedEmployee.position || "",
       role: updatedEmployee.role || "",
       job: updatedEmployee.job || "",
-      joinDate: updatedEmployee.joinDate || "",
+      rank: updatedEmployee.rank || "",
       isAdmin: updatedEmployee.isAdmin || false,
+      teams: (updatedEmployee.organizations || [updatedEmployee.organization]).filter(Boolean) as string[],
+      profileImage: updatedEmployee.profileImage || "",
+      workPolicies: updatedEmployee.workPolicies || [],
     };
+    
+    console.log('변환된 Employee 데이터:', convertedEmployee); // 🔥 디버깅용 로그
     onEmployeeUpdate?.(convertedEmployee);
   };
+
+  const handleEmployeeDelete = (employeeId: string) => {
+    onEmployeeDelete?.(employeeId);
+    setShowProfileModal(false);
+    setSelectedEmployee(null);
+  };
+
+  useEffect(() => {
+    const handleEmployeeDeleted = (event: any) => {
+      const { id } = event.detail;
+      handleEmployeeDelete(id);
+    };
+
+    window.addEventListener('employeeDeleted', handleEmployeeDeleted);
+    return () => window.removeEventListener('employeeDeleted', handleEmployeeDeleted);
+  }, []);
+
+  useEffect(() => {
+    const handleEmployeeUpdated = (event: any) => {
+      const updatedEmployee = event.detail;
+      console.log('employeeUpdated 이벤트 수신:', updatedEmployee);
+      handleProfileUpdate(updatedEmployee);
+    };
+
+    window.addEventListener('employeeUpdated', handleEmployeeUpdated);
+    return () => window.removeEventListener('employeeUpdated', handleEmployeeUpdated);
+  }, []);
 
   const displayedEmployees = employees.slice(0, displayedCount);
 
   const EmployeeCard = ({ employee }: { employee: Employee }) => {
-    const teams = employee.teams || [employee.organization].filter(Boolean);
-
-    const displayTeams = teams.slice(0, 3);
-
     return (
       <Card
         className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
@@ -209,21 +221,7 @@ export default function MemberList({
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {displayTeams.map((team, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="text-xs"
-                  style={{
-                    backgroundColor: getTeamColor(team),
-                    color: "white",
-                  }}
-                >
-                  {team}
-                </Badge>
-              ))}
-            </div>
+
           </div>
         </CardHeader>
         <CardContent className="pt-0">
@@ -244,10 +242,18 @@ export default function MemberList({
                 입사일: {new Date(employee.joinDate).toLocaleDateString()}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Building2 className="w-4 h-4" />
-              <span>{employee.job}</span>
-            </div>
+            {employee.organization && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Building2 className="w-4 h-4" />
+                <span>소속: {employee.organization}</span>
+              </div>
+            )}
+            {employee.job && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Briefcase className="w-4 h-4" />
+                <span>직무: {employee.job}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -324,6 +330,7 @@ export default function MemberList({
         onClose={handleProfileModalClose}
         employee={selectedEmployee}
         onUpdate={handleProfileUpdate}
+        onDelete={handleEmployeeDelete}
       />
     </div>
   );

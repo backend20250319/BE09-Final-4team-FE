@@ -69,8 +69,8 @@ export const userApi = {
     },
 
     createUser: async (data: UserCreateDto): Promise<UserResponseDto> => {
-        const response = await apiClient.post('/api/users', data);
-        return response.data;
+        const response = await apiClient.post<ApiResult<UserResponseDto>>('/api/users', data);
+        return response.data.data;
     },
 
     updateUser: async (userId: number, data: UserUpdateDto): Promise<UserResponseDto> => {

@@ -46,6 +46,7 @@ interface Employee {
   isAdmin: boolean;
   teams: string[];
   profileImage?: string;
+  workPolicies?: string[];
 }
 
 const convertUserToEmployee = (user: UserResponseDto): Employee => ({
@@ -63,7 +64,8 @@ const convertUserToEmployee = (user: UserResponseDto): Employee => ({
   rank: user.rank?.name || '',
   isAdmin: user.isAdmin,
   teams: [],
-  profileImage: user.profileImageUrl
+  profileImage: user.profileImageUrl,
+  workPolicies: user.workPolicyId ? [user.workPolicyId.toString()] : undefined,
 });
 
 interface OrgStructure {
@@ -199,35 +201,51 @@ export default function MembersPage() {
   }, [buildOrgStructure]);
 
   const fetchEmployees = useCallback(async () => {
+  if (!isLoggedIn) {
+    router.push('/login');
+    return;
+  }
 
-    if (!isLoggedIn) {
-      router.push('/login');
+  setDataLoading(true);
+  try {
+    console.log('사용자 목록 조회 시작');
+    const users = await userApi.getAllUsers();
+    console.log('사용자 목록 조회 성공:', users);
+    
+    if (Array.isArray(users)) {
+      const convertedUsers = users.map(convertUserToEmployee);
+      
+      const sortedUsers = convertedUsers.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      setEmployees(sortedUsers);
+      if (orgStructure.length === 0 && !orgLoading) {
+        await fetchOrganizationStructure();
+      }
+    } else {
+      console.warn('Users is not an array:', users);
+      toast.error("직원 데이터를 불러올 수 없습니다.");
+      setEmployees([]);
+    }
+  } catch (error) {
+    console.error('사용자 목록 조회 실패:', error);
+    
+    if (error.response?.status === 403) {
+      toast.error('구성원 목록을 조회할 권한이 없습니다.');
       return;
     }
-
-    setDataLoading(true);
-    try {
-      const users = await userApi.getAllUsers();
-      if (Array.isArray(users)) {
-        const convertedUsers = users.map(convertUserToEmployee);
-        setEmployees(convertedUsers);
-        if (orgStructure.length === 0 && !orgLoading) {
-          await fetchOrganizationStructure();
-        }
-      } else {
-        console.warn('Users is not an array:', users);
-        toast.error("직원 데이터를 불러올 수 없습니다.");
-        setEmployees([]);
-      }
-    } catch (error) {
-      console.error("직원 데이터 로드 오류:", error);
-      toast.error("직원 데이터 로드 중 오류가 발생했습니다.");
-      setEmployees([]);
-      setOrgStructure([]);
-    } finally {
-      setDataLoading(false);
+    
+    if (error.response?.status === 500) {
+      toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      return;
     }
-  }, [isLoggedIn, router, fetchOrganizationStructure, orgLoading]);
+    
+    toast.error('구성원 목록을 불러오는데 실패했습니다.');
+  } finally {
+    setDataLoading(false);
+  }
+}, [isLoggedIn, router, orgStructure.length, orgLoading]);
 
   const handleMemberSearchSubmit = useCallback(async (term: string) => {
     setIsSearchingMembers(true);
@@ -320,11 +338,30 @@ export default function MembersPage() {
   }, [orgStructure, orgSearchTerm]);
 
   const handleEmployeeUpdate = (updatedEmployee: Employee) => {
-    setEmployees((prev) => prev.map((emp) => emp.id === updatedEmployee.id ? updatedEmployee : emp));
+    console.log('handleEmployeeUpdate 호출됨:', updatedEmployee);
+    setEmployees((prev) => {
+      const updated = prev.map((emp) => {
+        if (emp.id === updatedEmployee.id) {
+          console.log('업데이트할 직원 찾음:', emp.id, '→', updatedEmployee);
+          return updatedEmployee;
+        }
+        return emp;
+      });
+      
+      const sorted = updated.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      console.log('업데이트된 employees 배열:', sorted);
+      return sorted;
+    });
   };
 
   const handleAddMemberSave = async (memberData: any) => {
+    let createdUserId: number | null = null;
+    
     try {
+
       const newUserData: UserCreateDto = {
         name: memberData.name,
         email: memberData.email,
@@ -334,41 +371,101 @@ export default function MembersPage() {
         joinDate: memberData.joinDate,
         isAdmin: Boolean(memberData.isAdmin),
         role: memberData.role,
+        position: memberData.position ? { id: 0, name: memberData.position, sortOrder: 0 } : undefined,
+        job: memberData.job ? { id: 0, name: memberData.job, sortOrder: 0 } : undefined,
+        rank: memberData.rank ? { id: 0, name: memberData.rank, sortOrder: 0 } : undefined,
+        workPolicyId: memberData.workPolicies?.[0] ? parseInt(memberData.workPolicies[0]) : undefined,
       };
 
       const result = await userApi.createUser(newUserData);
+      createdUserId = result.id;
 
-      if (result) {
-        const newMember: Employee = {
-          id: result.id.toString(),
-          name: result.name,
-          email: result.email,
-          phone: result.phone || "",
-          address: result.address || "",
-          joinDate: result.joinDate || "",
-          organization: result.organizations?.find(org => org.isPrimary)?.organizationName,
-          organizations: result.organizations?.map(org => org.organizationName) || [],
-          position: result.position?.name || "",
-          role: result.role || "",
-          job: result.job?.name || "",
-          rank: result.rank?.name || "",
-          isAdmin: result.isAdmin,
-          teams: [],
-          profileImage: result.profileImageUrl,
-        };
-
-        const updatedEmployees = [...employees, newMember];
-        setEmployees(updatedEmployees);
-        await fetchOrganizationStructure();
-        setShowAddMemberModal(false);
-        toast.success("구성원이 성공적으로 추가되었습니다.");
-      } else {
-        throw new Error("구성원 추가 실패: 응답 데이터 없음");
+      if (!result || !result.id) {
+        throw new Error("사용자 생성 실패: 응답 데이터 없음");
       }
+
+      console.log('사용자 생성 결과:', result);
+      console.log('생성된 사용자의 근무 정책 ID:', result.workPolicyId);
+
+      if (memberData.organizations && memberData.organizations.length > 0) {
+
+        const allOrganizations = await organizationApi.getAllOrganizations();
+
+        for (let i = 0; i < memberData.organizations.length; i++) {
+          const orgName = memberData.organizations[i];
+          const organization = allOrganizations.find(org => org.name === orgName);
+          
+          if (!organization) {
+            throw new Error(`조직을 찾을 수 없습니다: ${orgName}`);
+          }
+          
+          await organizationApi.createAssignment({
+            employeeId: result.id,
+            organizationId: organization.organizationId,
+            isPrimary: i === 0,
+            isLeader: false
+          });
+        }
+        
+      }
+
+      const newMember: Employee = {
+        id: result.id.toString(),
+        name: result.name,
+        email: result.email,
+        phone: result.phone || "",
+        address: result.address || "",
+        joinDate: result.joinDate || "",
+        organization: memberData.organizations?.[0] || "",
+        organizations: memberData.organizations || [],
+        position: memberData.position || "",
+        role: memberData.role || "",
+        job: memberData.job || "",
+        rank: memberData.rank || "",
+        isAdmin: result.isAdmin,
+        teams: [],
+        profileImage: result.profileImageUrl,
+        workPolicies: result.workPolicyId ? [result.workPolicyId.toString()] : [],
+      };
+
+
+      const updatedEmployees = [...employees, newMember];
+
+      const sortedEmployees = updatedEmployees.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+
+      setEmployees(sortedEmployees);
+      await fetchOrganizationStructure();
+      setShowAddMemberModal(false);
+      toast.success("구성원이 성공적으로 추가되었습니다.");
+
     } catch (error) {
       console.error("구성원 추가 오류:", error);
+      
+      if (createdUserId) {
+        try {
+          await userApi.deleteUser(createdUserId);
+        } catch (deleteError) {
+          console.error("사용자 삭제 실패:", deleteError);
+        }
+      }
+      
       toast.error("구성원 추가 중 오류가 발생했습니다: " + (error instanceof Error ? error.message : String(error)));
     }
+  };
+
+  const handleEmployeeDelete = (employeeId: string) => {
+    setEmployees((prev) => {
+      const filtered = prev.filter((emp) => emp.id !== employeeId);
+      
+      const sorted = filtered.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      return sorted;
+    });
+    toast.success("구성원이 삭제되었습니다.");
   };
 
   const OrgTreeItem = ({ org, level = 0 }: { org: OrgStructure; level?: number }) => (
@@ -455,8 +552,9 @@ export default function MembersPage() {
               onSearchChange={setSearchTerm}
               onSearchSubmit={handleMemberSearchSubmit}
               selectedOrg={selectedOrg}
-              placeholder="직원명, 조직명, 이메일로 검색 (엔터)"
+              placeholder="직원명, 조직명, 이메일로 검색"
               onEmployeeUpdate={handleEmployeeUpdate}
+              onEmployeeDelete={handleEmployeeDelete}
               isSearching={isSearchingMembers}
               isSearchMode={!!searchTerm && !isSearchingMembers}
             />
