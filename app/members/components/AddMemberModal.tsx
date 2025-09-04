@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { userApi } from "@/lib/services/user/api";
 
 interface MemberOrganizations {
   main: string | null;
@@ -75,28 +76,16 @@ const initialFormData = {
   workPolicies: [] as string[],
 };
 
-// options는 실데이터에서 가져옵니다
 
-// Mock 데이터 제거 (라인 79-97)
-// const workPolicies = [
-//   {
-//     id: "fixed-9to6",
-//     label: "9-6 고정근무",
-//     description: "오전 9시 ~ 오후 6시 고정 근무",
-//   },
-//   {
-//     id: "flexible",
-//     label: "유연근무",
-//     description: "코어타임 내 자유로운 출퇴근",
-//   },
-//   {
-//     id: "autonomous",
-//     label: "자율근무",
-//     description: "업무 성과 기반 자율 근무",
-//   },
-//   { id: "remote", label: "재택근무", description: "원격 근무 가능" },
-//   { id: "hybrid", label: "하이브리드", description: "사무실 + 재택 혼합 근무" },
-// ];
+const checkEmailDuplicate = async (email: string) => {
+  try {
+    const users = await userApi.getAllUsers();
+    return users.some(user => user.email === email);
+  } catch (error) {
+    console.error('이메일 중복 검증 오류:', error);
+    return false;
+  }
+};
 
 export default function AddMemberModal({
   isOpen,
@@ -455,7 +444,18 @@ export default function AddMemberModal({
     }
   };
 
-  const handleSaveConfirm = () => {
+  const handleSaveConfirm = async () => {
+    if (!formData.email) {
+      toast.error('이메일을 입력해주세요.');
+      return;
+    }
+
+    const isDuplicate = await checkEmailDuplicate(formData.email);
+    if (isDuplicate) {
+      toast.error('이미 존재하는 이메일입니다.');
+      return;
+    }
+
     onSave(formData);
     setShowSaveConfirm(false);
   };
