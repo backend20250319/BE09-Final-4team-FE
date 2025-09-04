@@ -286,8 +286,10 @@ export default function MyWorkComponent(): JSX.Element {
           const endHHmm = timeToHHmm(s.endTime) || "18:00";
           const start = `${s.startDate}T${startHHmm}:00`;
           const end = `${s.endDate}T${endHHmm}:00`;
-          const title =
-            s.title || toLabelFromEnum(s.scheduleType, s.scheduleType);
+          const title = toLabelFromEnum(
+            s.scheduleType,
+            s.title || s.scheduleType
+          );
           const color = s.color || toColorFromEnum(s.scheduleType, "#4FC3F7");
           return {
             id: String(s.id),
@@ -474,27 +476,148 @@ export default function MyWorkComponent(): JSX.Element {
       return;
     }
 
+    // Client-side overlap check
+    const selStart = selectInfo.start as Date;
+    const selEnd = selectInfo.end as Date;
+    const conflicts = events.some((e) => {
+      const es = new Date(e.start);
+      const ee = new Date(e.end);
+      return es < selEnd && selStart < ee; // overlap if existing.start < selEnd && selStart < existing.end
+    });
+    if (conflicts) {
+      alert(
+        "선택한 시간이 기존 스케줄과 겹칩니다. 다른 시간대를 선택해 주세요."
+      );
+      return;
+    }
+
     const calendarApi = selectInfo.view.calendar;
+    const tempId = new Date().getTime().toString();
     const newEvent: WorkEvent = {
-      id: new Date().getTime().toString(),
+      id: tempId,
       title: "근무",
       start: selectInfo.startStr,
       end: selectInfo.endStr,
       allDay: selectInfo.allDay,
-      backgroundColor: "#3b82f6", // 임시 기본색 (선택 후 바뀜)
+      backgroundColor: "#3b82f6",
       borderColor: "#3b82f6",
       textColor: "#ffffff",
       status: "pending",
-      isNewEvent: true, // 새 이벤트 식별자 (extendedProps로 들어감)
+      isNewEvent: true,
       extendedProps: {
         isNewEvent: true,
       },
     };
 
+    // Optimistic add
     calendarApi.addEvent(newEvent);
     setEvents((prev) => [...prev, newEvent]);
     setHasPendingChanges(true);
     calendarApi.unselect();
+
+    // Persist to backend
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const startDate = newEvent.start.slice(0, 10);
+        const endDate = newEvent.end.slice(0, 10);
+        const toHHmmss = (iso: string) => {
+          const d = new Date(iso);
+          const hh = String(d.getHours()).padStart(2, "0");
+          const mm = String(d.getMinutes()).padStart(2, "0");
+          return `${hh}:${mm}:00`;
+        };
+
+        // 임시 디버그: 전송 userId와 로그인 user.id 일치 여부 확인
+        console.debug(
+          "[work] create payload userId=",
+          Number(user.id),
+          "startDate=",
+          startDate,
+          "endDate=",
+          endDate
+        );
+
+        const created = await workScheduleApi.createSchedule({
+          userId: Number(user.id),
+          title: newEvent.title,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(newEvent.start),
+          endTime: toHHmmss(newEvent.end),
+          scheduleType: ScheduleType.WORK,
+          color: newEvent.backgroundColor,
+          isAllDay: !!newEvent.allDay,
+          isRecurring: false,
+        });
+
+        // Map server response to event and replace temp
+        const start = `${created.startDate}${
+          created.startTime
+            ? "T" +
+              String(created.startTime.hour).padStart(2, "0") +
+              ":" +
+              String(created.startTime.minute).padStart(2, "0") +
+              ":00"
+            : "T09:00:00"
+        }`;
+        const end = `${created.endDate}${
+          created.endTime
+            ? "T" +
+              String(created.endTime.hour).padStart(2, "0") +
+              ":" +
+              String(created.endTime.minute).padStart(2, "0") +
+              ":00"
+            : "T18:00:00"
+        }`;
+        const title = toLabelFromEnum(
+          created.scheduleType,
+          created.title || created.scheduleType
+        );
+        const color =
+          created.color || toColorFromEnum(created.scheduleType, "#4FC3F7");
+
+        const savedEvent: WorkEvent = {
+          id: String(created.id),
+          title,
+          start,
+          end,
+          backgroundColor: color,
+          borderColor: color,
+          textColor: "#1f2937",
+          allDay: created.isAllDay,
+          extendedProps: {
+            originalTitle: created.title,
+            type: created.scheduleType,
+          },
+        } as WorkEvent;
+
+        // Replace temp event
+        setEvents((prev) =>
+          prev.filter((e) => e.id !== tempId).concat(savedEvent)
+        );
+        // Update calendar instance
+        const temp = calendarApi.getEventById(tempId);
+        if (temp) temp.remove();
+        calendarApi.addEvent(savedEvent as any);
+        setHasPendingChanges(false);
+      } catch (err: any) {
+        console.error(
+          "Failed to create schedule:",
+          err,
+          err?.data,
+          err?.response
+        );
+        // Revert optimistic event
+        setEvents((prev) => prev.filter((e) => e.id !== tempId));
+        const temp = calendarApi.getEventById(tempId);
+        if (temp) temp.remove();
+        const msg =
+          err?.message || err?.data?.message || "근무 생성에 실패했습니다.";
+        alert(msg);
+      }
+    })();
   };
 
   const handleEventClick = (clickInfo: any): void => {
@@ -538,24 +661,67 @@ export default function MyWorkComponent(): JSX.Element {
 
   // 드롭다운에서 유형 선택 시 호출: 색상은 매핑에서 조회
   const handleTitleSelect = (eventId: string, selectedType: string): void => {
-    const selectedColor = TYPE_COLORS[selectedType as ScheduleType];
-    const updated = events.map((event) => {
-      if (event.id === eventId) {
-        return {
-          ...event,
-          title: selectedType,
-          backgroundColor: selectedColor,
-          borderColor: selectedColor,
-          status: "pending",
-          isNewEvent: false, // 이후 변경 불가
-        };
-      }
-      return event;
-    });
-    setEvents(updated);
+    const target = events.find((e) => e.id === eventId);
+    if (!target) return;
+
+    const label = toLabelFromEnum(selectedType, selectedType);
+    const selectedColor =
+      TYPE_COLORS[selectedType as unknown as ScheduleType] || "#4FC3F7";
+
+    // Optimistic update
+    const prev = target;
+    const optimistic: WorkEvent = {
+      ...target,
+      title: label,
+      backgroundColor: selectedColor,
+      borderColor: selectedColor,
+      status: "pending",
+      isNewEvent: false,
+      extendedProps: {
+        ...target.extendedProps,
+        type: selectedType,
+      },
+    };
+    setEvents((list) => list.map((e) => (e.id === eventId ? optimistic : e)));
     setShowDropdown(false);
     setDropdownEventId(null);
-    setHasPendingChanges(true);
+
+    // Persist to backend if event has a numeric id (saved on server)
+    const isPersisted = !isNaN(Number(eventId));
+    if (!user?.id || !isPersisted) {
+      return;
+    }
+
+    const toHHmmss = (iso: string) => {
+      const d = new Date(iso);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${hh}:${mm}:00`;
+    };
+
+    (async () => {
+      try {
+        const startDate = optimistic.start.slice(0, 10);
+        const endDate = optimistic.end.slice(0, 10);
+        await workScheduleApi.updateSchedule(Number(user.id), Number(eventId), {
+          title: label,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(optimistic.start),
+          endTime: toHHmmss(optimistic.end),
+          scheduleType: selectedType as unknown as ScheduleType,
+          color: selectedColor,
+          isAllDay: !!optimistic.allDay,
+          isRecurring: false,
+        });
+      } catch (err) {
+        console.error("Failed to update schedule type:", err);
+        // Revert
+        setEvents((list) => list.map((e) => (e.id === eventId ? prev : e)));
+        alert("근무 유형 변경에 실패했습니다.");
+      }
+    })();
   };
 
   // 드롭다운 메뉴 컴포넌트 (텍스트만, fixed 포지셔닝, 내부 클릭 보호)
@@ -570,7 +736,15 @@ export default function MyWorkComponent(): JSX.Element {
     onSelect: (eventId: string, selectedType: string) => void;
     onClose: () => void;
   }): JSX.Element => {
-    const options = ["근무", "재택", "외근", "출장", "휴가", "휴게"];
+    const options = [
+      { key: "WORK", label: SCHEDULE_TYPE_LABEL.WORK },
+      { key: "OUT_OF_OFFICE", label: SCHEDULE_TYPE_LABEL.OUT_OF_OFFICE },
+      { key: "BUSINESS_TRIP", label: SCHEDULE_TYPE_LABEL.BUSINESS_TRIP },
+      { key: "VACATION", label: SCHEDULE_TYPE_LABEL.VACATION },
+      { key: "SICK_LEAVE", label: SCHEDULE_TYPE_LABEL.SICK_LEAVE },
+      { key: "OVERTIME", label: SCHEDULE_TYPE_LABEL.OVERTIME },
+      { key: "RESTTIME", label: SCHEDULE_TYPE_LABEL.RESTTIME },
+    ];
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -606,10 +780,10 @@ export default function MyWorkComponent(): JSX.Element {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {options.map((label) => (
+        {options.map((opt) => (
           <button
-            key={label}
-            onClick={() => onSelect(eventId, label)}
+            key={opt.key}
+            onClick={() => onSelect(eventId, opt.key)}
             style={{
               cursor: "pointer",
               background: "white",
@@ -627,7 +801,7 @@ export default function MyWorkComponent(): JSX.Element {
               (e.currentTarget.style.backgroundColor = "white")
             }
           >
-            {label}
+            {opt.label}
           </button>
         ))}
       </div>
@@ -637,13 +811,11 @@ export default function MyWorkComponent(): JSX.Element {
   // SimpleEvent: 제목 클릭 → 드롭다운을 제목 바로 아래에 표시
   const SimpleEvent = ({ event }: { event: WorkEvent }): JSX.Element => {
     const handleTitleClick = (e: React.MouseEvent): void => {
-      if (event.extendedProps?.isNewEvent) {
-        e.stopPropagation();
-        const rect = e.currentTarget.getBoundingClientRect();
-        setDropdownPosition({ x: rect.left, y: rect.bottom + 5 }); // 텍스트 바로 아래
-        setDropdownEventId(event.id);
-        setShowDropdown(true);
-      }
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPosition({ x: rect.left, y: rect.bottom + 5 }); // 텍스트 바로 아래
+      setDropdownEventId(event.id);
+      setShowDropdown(true);
     };
 
     return (

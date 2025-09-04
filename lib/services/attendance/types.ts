@@ -135,8 +135,8 @@ export interface CreateScheduleRequestDto {
   description?: string;
   startDate: string;
   endDate: string;
-  startTime?: LocalTime;
-  endTime?: LocalTime;
+  startTime?: string; // HH:mm:ss
+  endTime?: string; // HH:mm:ss
   scheduleType: ScheduleType;
   color?: string;
   isAllDay: boolean;
@@ -158,8 +158,8 @@ export interface UpdateScheduleRequestDto {
   description?: string;
   startDate: string;
   endDate: string;
-  startTime?: LocalTime;
-  endTime?: LocalTime;
+  startTime?: string; // HH:mm:ss
+  endTime?: string; // HH:mm:ss
   scheduleType: ScheduleType;
   color?: string;
   isAllDay: boolean;

@@ -146,7 +146,12 @@ export const workScheduleApi = {
       "/api/work-schedule/schedules",
       request
     );
-    return response.data.data;
+    const result = response.data;
+    if (!result || result.status !== "success" || !result.data) {
+      const msg = result?.message || "스케줄 생성 실패";
+      throw { message: msg, data: result };
+    }
+    return result.data;
   },
 
   // 스케줄 조회 (사용자별)
@@ -242,9 +247,9 @@ export const workScheduleApi = {
     endDate: string
   ): Promise<ColleagueScheduleResponseDto> => {
     const params = new URLSearchParams({ startDate, endDate });
-    const response = await apiClient.get<ApiResult<ColleagueScheduleResponseDto>>(
-      `/api/work-schedule/colleagues/${colleagueId}/schedules?${params}`
-    );
+    const response = await apiClient.get<
+      ApiResult<ColleagueScheduleResponseDto>
+    >(`/api/work-schedule/colleagues/${colleagueId}/schedules?${params}`);
     return response.data.data;
   },
 
