@@ -1,4 +1,13 @@
-import { ApiResult, PageResult, Pageable } from '../common/types'
+import { Pageable } from '../common/types'
+
+// 사용자 프로필 타입
+export interface UserProfile {
+  id: number
+  name: string
+  email: string
+  phone: string
+  profileImageUrl: string
+}
 
 // 승인 서비스 특화 열거형
 export enum DocumentStatus {
@@ -84,12 +93,12 @@ export interface TemplateFieldRequest {
 export interface ApprovalTargetResponse {
   id: number
   targetType: TargetType
-  userId?: number
+  user?: UserProfile
   organizationId?: number
   managerLevel?: number
   isReference: boolean
   isApproved?: boolean
-  approvedBy?: number
+  approver?: UserProfile
   approvedAt?: string
 }
 
@@ -209,7 +218,7 @@ export interface DocumentFieldValueRequest {
 export interface DocumentActivityResponse {
   id: number
   activityType: ActivityType
-  userId: number
+  user: UserProfile
   description?: string
   reason?: string
   createdAt: string
@@ -218,7 +227,7 @@ export interface DocumentActivityResponse {
 export interface DocumentCommentResponse {
   id: number
   content: string
-  authorId: number
+  author: UserProfile
   createdAt: string
   updatedAt: string
 }
@@ -228,7 +237,7 @@ export interface DocumentResponse {
   title: string
   content?: string
   status: DocumentStatus
-  authorId: number
+  author: UserProfile
   currentStage?: number
   template: TemplateResponse
   fieldValues: DocumentFieldValueResponse[]
@@ -248,7 +257,7 @@ export interface DocumentSummaryResponse {
   title: string
   content?: string
   status: DocumentStatus
-  authorId: number
+  author: UserProfile
   templateTitle: string
   currentStage?: number
   totalStages: number
