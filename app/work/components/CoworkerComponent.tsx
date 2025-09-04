@@ -393,7 +393,7 @@ export default function CoworkerComponent(): JSX.Element {
     Object.entries(scheduleData).forEach(([day, events]) => {
       const dateString = weekDates[parseInt(day)];
 
-      events.forEach((event, index) => {
+      events.forEach((event: ScheduleEvent, index: number) => {
         let startTime: string, endTime: string, allDay: boolean;
 
         if (event.startTime && event.endTime) {
@@ -569,6 +569,11 @@ export default function CoworkerComponent(): JSX.Element {
           {isClient && (
             <ScheduleCalendar
               events={events}
+              onEventDrop={() => {}}
+              onEventResize={() => {}}
+              onSelect={() => {}}
+              onEventClick={() => {}}
+              dayCellDidMount={() => {}}
               eventContent={eventContent}
               editable={false}
             />
