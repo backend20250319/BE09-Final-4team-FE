@@ -45,6 +45,7 @@ interface Props {
   onClose: () => void;
   employee: MemberProfile | null;
   onUpdate?: (updatedEmployee: MemberProfile) => void;
+  onDelete?: (employeeId: string) => void;
 }
 
 export default function ProfileModal({
@@ -52,6 +53,7 @@ export default function ProfileModal({
   onClose,
   employee,
   onUpdate,
+  onDelete,
 }: Props) {
   const { user, isAdmin } = useAuth();
   const { organizations: orgOptions } = useOrganizationsList();
@@ -478,6 +480,7 @@ export default function ProfileModal({
               new CustomEvent("employeeUpdated", { detail: updated }) as Event
             );
           }}
+          onDelete={onDelete}
         />
       </DialogContent>
     </Dialog>

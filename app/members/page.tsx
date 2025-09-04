@@ -418,6 +418,11 @@ export default function MembersPage() {
     }
   };
 
+  const handleEmployeeDelete = (employeeId: string) => {
+    setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
+    toast.success("구성원이 삭제되었습니다.");
+  };
+
   const OrgTreeItem = ({ org, level = 0 }: { org: OrgStructure; level?: number }) => (
     <div className="ml-4">
       <button
@@ -502,8 +507,9 @@ export default function MembersPage() {
               onSearchChange={setSearchTerm}
               onSearchSubmit={handleMemberSearchSubmit}
               selectedOrg={selectedOrg}
-              placeholder="직원명, 조직명, 이메일로 검색 (엔터)"
+              placeholder="직원명, 조직명, 이메일로 검색"
               onEmployeeUpdate={handleEmployeeUpdate}
+              onEmployeeDelete={handleEmployeeDelete}
               isSearching={isSearchingMembers}
               isSearchMode={!!searchTerm && !isSearchingMembers}
             />

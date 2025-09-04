@@ -201,7 +201,6 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         role: editedEmployee.role || null,
         workPolicyId: editedEmployee.workPolicies?.[0] ? parseInt(editedEmployee.workPolicies[0]) : null,
         profileImageUrl: editedEmployee.profileImage || null,
-        // 추가된 필드들
         position: editedEmployee.position ? { id: 0, name: editedEmployee.position, sortOrder: 0 } : null,
         job: editedEmployee.job ? { id: 0, name: editedEmployee.job, sortOrder: 0 } : null,
         rank: editedEmployee.rank ? { id: 0, name: editedEmployee.rank, sortOrder: 0 } : null,
@@ -237,7 +236,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
       const response = await apiClient.delete(`/api/users/${employee.id}`)
       const result = response.data
 
-      if (result.success) {
+      if (result.status === 'SUCCESS') {
         onDelete?.(employee.id)
         window.dispatchEvent(new CustomEvent('employeeDeleted', { 
           detail: { id: employee.id } 

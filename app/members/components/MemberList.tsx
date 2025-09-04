@@ -45,6 +45,7 @@ interface MemberListProps {
   onEmployeeUpdate?: (updatedEmployee: Employee) => void;
   isSearching?: boolean;
   isSearchMode?: boolean;
+  onEmployeeDelete?: (employeeId: string) => void;
 }
 
 const getTeamColor = (team: string) => {
@@ -86,6 +87,7 @@ export default function MemberList({
   selectedOrg,
   placeholder,
   onEmployeeUpdate,
+  onEmployeeDelete,
   isSearching = false,
   isSearchMode = false,
 }: MemberListProps) {
@@ -166,6 +168,22 @@ export default function MemberList({
     };
     onEmployeeUpdate?.(convertedEmployee);
   };
+
+  const handleEmployeeDelete = (employeeId: string) => {
+    onEmployeeDelete?.(employeeId);
+    setShowProfileModal(false);
+    setSelectedEmployee(null);
+  };
+
+  useEffect(() => {
+    const handleEmployeeDeleted = (event: any) => {
+      const { id } = event.detail;
+      handleEmployeeDelete(id);
+    };
+
+    window.addEventListener('employeeDeleted', handleEmployeeDeleted);
+    return () => window.removeEventListener('employeeDeleted', handleEmployeeDeleted);
+  }, []);
 
   const displayedEmployees = employees.slice(0, displayedCount);
 
@@ -324,6 +342,7 @@ export default function MemberList({
         onClose={handleProfileModalClose}
         employee={selectedEmployee}
         onUpdate={handleProfileUpdate}
+        onDelete={handleEmployeeDelete}
       />
     </div>
   );
