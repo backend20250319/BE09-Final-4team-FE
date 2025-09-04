@@ -74,7 +74,7 @@ interface OrgStructure {
 }
 
 export default function MembersPage() {
-  const { loading, isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuth();
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
@@ -227,7 +227,7 @@ export default function MembersPage() {
     } finally {
       setDataLoading(false);
     }
-  }, [loading, isLoggedIn, router, fetchOrganizationStructure, orgLoading]);
+  }, [isLoggedIn, router, fetchOrganizationStructure, orgLoading]);
 
   const handleMemberSearchSubmit = useCallback(async (term: string) => {
     setIsSearchingMembers(true);
@@ -253,7 +253,7 @@ export default function MembersPage() {
     }
   }, [fetchEmployees]);
 
-  if (!loading && isLoggedIn && employees.length === 0 && !dataLoading) {
+  if (isLoggedIn && employees.length === 0 && !dataLoading) {
     fetchEmployees();
   }
 
@@ -412,7 +412,7 @@ export default function MembersPage() {
     </div>
   );
 
-  if (loading || dataLoading) {
+  if (dataLoading) {
     return (
       <MainLayout requireAuth={true}>
         <div className="flex justify-center items-center h-screen w-full">
