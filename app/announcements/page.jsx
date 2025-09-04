@@ -69,7 +69,8 @@ export default function AnnouncementsPage() {
       setAnnouncements(result.data)
       setTotal(result.totalLength)
     } catch (e) {
-      setError(e.message || "에러 발생")
+      console.error(e);
+      setError("공지사항을 불러오는 데에 실패했습니다.")
     } finally {
       setLoading(false)
     }

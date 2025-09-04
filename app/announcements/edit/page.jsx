@@ -360,12 +360,7 @@ function AnnouncementEditContent() {
               showToolbar={true}
               key={`editor-${searchParams.get('id') || 'new'}`} // ID 기반으로 key 설정
             />
-            {/* 디버깅용: 현재 content 상태 표시 */}
-            <div className="text-xs text-gray-500 mt-2">
-              현재 content: {content ? '있음' : '없음'}
-            </div>
           </div>
-
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold">첨부파일</label>
             {isUploading && (
