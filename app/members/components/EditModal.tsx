@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/services/common/api-client'
 
 interface Employee {
   id: string
@@ -190,17 +191,25 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!editedEmployee) return
 
     try {
-      const response = await fetch(`/api/members`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editedEmployee),
-      })
 
-      const result = await response.json()
+      const updateData = {
+        name: editedEmployee.name,
+        email: editedEmployee.email,
+        phone: editedEmployee.phone || null,
+        address: editedEmployee.address || null,
+        joinDate: editedEmployee.joinDate,
+        isAdmin: editedEmployee.isAdmin,
+        role: editedEmployee.role || null,
+        workPolicyId: editedEmployee.workPolicies?.[0] ? parseInt(editedEmployee.workPolicies[0]) : null,
+        profileImageUrl: editedEmployee.profileImage || null,
+      }
 
-      if (result.success) {
+      console.log('전송할 데이터:', updateData)
+
+      const response = await apiClient.patch(`/api/users/${editedEmployee.id}`, updateData)
+      const result = response.data
+
+      if (result.status === 'SUCCESS') {
         onUpdate?.(editedEmployee)
         window.dispatchEvent(new CustomEvent('employeeUpdated', { 
           detail: editedEmployee 
@@ -222,14 +231,14 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!confirm('정말로 이 구성원을 삭제하시겠습니까?')) return
 
     try {
-      const response = await fetch(`/api/members?id=${employee.id}`, {
-        method: 'DELETE',
-      })
-
-      const result = await response.json()
+      const response = await apiClient.delete(`/api/users/${employee.id}`)
+      const result = response.data
 
       if (result.success) {
         onDelete?.(employee.id)
+        window.dispatchEvent(new CustomEvent('employeeDeleted', { 
+          detail: { id: employee.id } 
+        }))
         onClose()
         toast.success('구성원이 성공적으로 삭제되었습니다.')
       } else {

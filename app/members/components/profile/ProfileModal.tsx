@@ -162,6 +162,20 @@ export default function ProfileModal({
     avatarUrl: profileImage,
   };
 
+  const transformEmployeeForEdit = (emp: any) => {
+    if (!emp) return emp;
+    
+    return {
+      ...emp,
+      organizations: emp.organizations?.map((org: any) => {
+        if (typeof org === 'object' && org.organizationName) {
+          return org.organizationName;
+        }
+        return org;
+      }) || []
+    };
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -272,9 +286,13 @@ export default function ProfileModal({
                         employee.organizations ??
                         (employee.organization ? [employee.organization] : []);
                       const mainOrg = orgs[0];
-                      return mainOrg
-                        ? { teamId: mainOrg, name: mainOrg }
-                        : null;
+                      if (!mainOrg) return null;
+                      
+                      if (typeof mainOrg === 'object' && mainOrg.organizationName) {
+                        return { teamId: mainOrg.organizationName, name: mainOrg.organizationName };
+                      }
+                      
+                      return { teamId: mainOrg, name: mainOrg };
                     })()}
                     user={employee}
                   />
@@ -398,9 +416,13 @@ export default function ProfileModal({
                         employee.organizations ??
                         (employee.organization ? [employee.organization] : []);
                       const mainOrg = orgs[0];
-                      return mainOrg
-                        ? { teamId: mainOrg, name: mainOrg }
-                        : null;
+                      if (!mainOrg) return null;
+                      
+                      if (typeof mainOrg === 'object' && mainOrg.organizationName) {
+                        return { teamId: mainOrg.organizationName, name: mainOrg.organizationName };
+                      }
+                      
+                      return { teamId: mainOrg, name: mainOrg };
                     })()}
                     concurrent={(() => {
                       const orgs =
@@ -408,7 +430,13 @@ export default function ProfileModal({
                         (employee.organization ? [employee.organization] : []);
                       return orgs
                         .slice(1)
-                        .map((org) => ({ teamId: org, name: org }));
+                        .map((org) => {
+                          if (typeof org === 'object' && org.organizationName) {
+                            return { teamId: org.organizationName, name: org.organizationName };
+                          }
+                          
+                          return { teamId: org, name: org };
+                        });
                     })()}
                     user={employee}
                   />
@@ -431,7 +459,7 @@ export default function ProfileModal({
         <EditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          employee={employee as any}
+          employee={transformEmployeeForEdit(employee)}
           onUpdate={(updated) => {
             onUpdate?.(updated as any);
             window.dispatchEvent(
