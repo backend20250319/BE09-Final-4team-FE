@@ -68,11 +68,9 @@ function AnnouncementEditContent() {
   const [content, setContent] = useState("");
   const editorRef = useRef(null);
   const [attachments, setAttachments] = useState([]);
-  const [originalFileIds, setOriginalFileIds] = useState([]); // 원본 파일 ID 목록
-  const [uploadedFileIds, setUploadedFileIds] = useState([]); // 새로 업로드된 파일 ID 목록
+  const [originalFileIds, setOriginalFileIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorDialogMessage, setErrorDialogMessage] = useState("");
@@ -180,58 +178,11 @@ function AnnouncementEditContent() {
   }, [searchParams]);
 
   // 파일이 추가될 때 실제 업로드 수행
-  const handleAttachmentsChange = async (newAttachments) => {
-    const addedAttachments = newAttachments.filter(newAttachment => 
-      !attachments.some(existing => existing.id === newAttachment.id)
-    );
-    
-    if (addedAttachments.length === 0) {
-      setAttachments(newAttachments);
-      return;
-    }
-
+  // AttachmentsManager가 이미 실제 업로드를 처리하므로 단순히 상태만 업데이트
+  const handleAttachmentsChange = (newAttachments) => {
     setAttachments(newAttachments);
-    
-    // 새로 추가된 파일들을 업로드
-    for (const attachment of addedAttachments) {
-      await uploadFile(attachment);
-    }
   };
 
-  // 개별 파일 업로드 함수
-  const uploadFile = async (attachment) => {
-    try {
-      setIsUploading(true);
-      
-      // File 객체 가져오기 (blob URL에서 복원)
-      const response = await fetch(attachment.url);
-      const blob = await response.blob();
-      const file = new File([blob], attachment.name, { type: blob.type });
-      
-      const uploadResponse = await attachmentService.uploadFiles([file]);
-      
-      if (uploadResponse && uploadResponse.length > 0) {
-        const uploadedFile = uploadResponse[0];
-        setUploadedFileIds(prev => [...prev, uploadedFile.fileId]);
-        
-        // attachment 상태 업데이트 (업로드 완료 표시)
-        setAttachments(prev => prev.map(att => 
-          att.id === attachment.id 
-            ? { ...att, uploaded: true, fileId: uploadedFile.fileId }
-            : att
-        ));
-      }
-    } catch (error) {
-      console.error('파일 업로드 실패:', error);
-      setErrorDialogMessage(`파일 업로드에 실패했습니다: ${attachment.name}`);
-      setShowErrorDialog(true);
-      
-      // 업로드 실패한 파일은 목록에서 제거
-      setAttachments(prev => prev.filter(att => att.id !== attachment.id));
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -239,12 +190,6 @@ function AnnouncementEditContent() {
     setError("");
 
     try {
-      // 업로드가 진행 중인지 확인
-      if (isUploading) {
-        setError('파일 업로드가 진행 중입니다. 잠시만 기다려주세요.');
-        return;
-      }
-
       const announcementId = searchParams.get('id');
       if (!announcementId) {
         setError('공지사항 ID가 없습니다.');
@@ -262,17 +207,14 @@ function AnnouncementEditContent() {
         }
       }
 
-      // 최종 파일 ID 목록 계산
-      const remainingOriginalFileIds = originalFileIds.filter(fileId => 
-        attachments.some(att => att.id === fileId && att.isOriginal)
-      );
-      const finalFileIds = [...remainingOriginalFileIds, ...uploadedFileIds];
+      // AttachmentsManager가 이미 실제 fileId를 제공하므로 직접 사용
+      const fileIds = attachments.map(attachment => attachment.id);
 
       const updateData = {
         title: title.trim(),
         displayAuthor: author.trim(),
         content: currentContent || "",
-        fileIds: finalFileIds
+        fileIds: fileIds
       };
 
       // API 호출
@@ -303,7 +245,7 @@ function AnnouncementEditContent() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout requireAuth requireAdmin>
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-8">
           <button
@@ -360,22 +302,9 @@ function AnnouncementEditContent() {
               showToolbar={true}
               key={`editor-${searchParams.get('id') || 'new'}`} // ID 기반으로 key 설정
             />
-            {/* 디버깅용: 현재 content 상태 표시 */}
-            <div className="text-xs text-gray-500 mt-2">
-              현재 content: {content ? '있음' : '없음'}
-            </div>
           </div>
-
           <div className="mb-8">
             <label className="block mb-2 text-gray-700 font-semibold">첨부파일</label>
-            {isUploading && (
-              <Alert className="mb-2 bg-blue-50 border-blue-200">
-                <Spinner size="sm" className="text-blue-600" />
-                <AlertDescription className="text-blue-700">
-                  파일을 업로드하는 중입니다...
-                </AlertDescription>
-              </Alert>
-            )}
             <AttachmentsManager
               attachments={attachments}
               onAttachmentsChange={handleAttachmentsChange}
@@ -389,7 +318,7 @@ function AnnouncementEditContent() {
               type="button"
               className="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
               onClick={() => router.back()}
-              disabled={isLoading || isUploading}
+              disabled={isLoading}
             >
               <X className="w-4 h-4" />
               취소
@@ -398,17 +327,12 @@ function AnnouncementEditContent() {
               type="submit" 
               variant="primary" 
               className="px-6 py-3"
-              disabled={isLoading || isUploading || !title.trim() || !author.trim()}
+              disabled={isLoading || !title.trim() || !author.trim()}
             >
               {isLoading ? (
                 <>
                   <Spinner size="sm" className="text-white mr-2" />
                   저장 중...
-                </>
-              ) : isUploading ? (
-                <>
-                  <Spinner size="sm" className="text-white mr-2" />
-                  파일 업로드 중...
                 </>
               ) : (
                 <>
