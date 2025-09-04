@@ -12,6 +12,14 @@ import { SelectWorkForm } from "../components/SelectWorkForm";
 import { typography } from "@/lib/design-tokens";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { workPolicyApi } from "@/lib/services/attendance";
+import {
+  DayOfWeek,
+  WorkCycle,
+  WorkPolicyType,
+} from "@/lib/services/attendance";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Type definitions
 interface FormData {
@@ -26,6 +34,7 @@ interface PolicyData {
 export default function CreateWorkPolicyPage(): JSX.Element {
   const [workType, setWorkType] = useState<string>("fixed");
   const [formData, setFormData] = useState<FormData>({});
+  const router = useRouter();
 
   // 근무 유형별 폼 컴포넌트 렌더링
   const renderWorkForm = (): JSX.Element => {
@@ -48,13 +57,121 @@ export default function CreateWorkPolicyPage(): JSX.Element {
     }
   };
 
-  const handleSave = (): void => {
-    const policyData: PolicyData = {
-      workType,
-      ...formData,
-    };
-    console.log("정책 생성:", policyData);
-    // 여기에 저장 로직 추가
+  const toTimeString = (timeStr?: string): string | undefined => {
+    if (!timeStr) return undefined;
+    const [hh, mm] = timeStr.split(":");
+    const h = String(hh ?? "00").padStart(2, "0");
+    const m = String(mm ?? "00").padStart(2, "0");
+    return `${h}:${m}:00`;
+  };
+
+  const toEnumDay = (key: string): DayOfWeek | null => {
+    switch (key) {
+      case "monday":
+        return DayOfWeek.MONDAY;
+      case "tuesday":
+        return DayOfWeek.TUESDAY;
+      case "wednesday":
+        return DayOfWeek.WEDNESDAY;
+      case "thursday":
+        return DayOfWeek.THURSDAY;
+      case "friday":
+        return DayOfWeek.FRIDAY;
+      case "saturday":
+        return DayOfWeek.SATURDAY;
+      case "sunday":
+        return DayOfWeek.SUNDAY;
+      default:
+        return null;
+    }
+  };
+
+  const mapWorkTypeToEnum = (t: string): WorkPolicyType => {
+    switch (t) {
+      case "fixed":
+        return WorkPolicyType.FIXED;
+      case "shift":
+        return WorkPolicyType.SHIFT;
+      case "time":
+        return WorkPolicyType.FLEXIBLE;
+      case "select":
+        return WorkPolicyType.OPTIONAL;
+      default:
+        return WorkPolicyType.FIXED;
+    }
+  };
+
+  const handleSave = async (): Promise<void> => {
+    try {
+      const policyData: PolicyData = {
+        workType,
+        ...formData,
+      };
+
+      const name: string = policyData.workName || "근무 정책";
+      const type: WorkPolicyType = mapWorkTypeToEnum(workType);
+
+      const workingDaysMap = (policyData.workingDays as Record<
+        string,
+        boolean
+      >) || {
+        monday: true,
+        tuesday: true,
+        wednesday: true,
+        thursday: true,
+        friday: true,
+        saturday: false,
+        sunday: false,
+      };
+      const workDays: DayOfWeek[] = Object.keys(workingDaysMap)
+        .filter((k) => workingDaysMap[k])
+        .map((k) => toEnumDay(k)!)
+        .filter(Boolean) as DayOfWeek[];
+
+      const weeklyWorkingDays = workDays.filter(
+        (d) => d !== DayOfWeek.SATURDAY && d !== DayOfWeek.SUNDAY
+      ).length;
+
+      const startTimeStr: string = policyData.workTime || "09:00";
+      const startTime = toTimeString(startTimeStr);
+      const workHours = Number(policyData.workHours ?? 8);
+      const workMinutes = Number(policyData.workMinutes ?? 0);
+
+      const breakTimes = (policyData.breakTimes as Array<{
+        start: string;
+        end: string;
+      }>) || [{ start: "12:00", end: "13:00" }];
+      const breakStartTime = toTimeString(breakTimes[0]?.start);
+
+      const totalRequiredMinutes = workHours * 60 + workMinutes;
+
+      const request = {
+        name,
+        type,
+        workCycle: undefined as WorkCycle | undefined,
+        startDayOfWeek: toEnumDay(String(policyData.cycleStartDay || "monday")) as DayOfWeek, 
+        workCycleStartDay: undefined as number | undefined,
+        workDays,
+        weeklyWorkingDays,
+        startTime, // string "HH:mm:ss"
+        startTimeEnd: undefined,
+        workHours,
+        workMinutes,
+        coreTimeStart: undefined,
+        coreTimeEnd: undefined,
+        breakStartTime, // string "HH:mm:ss"
+        avgWorkTime: undefined,
+        totalRequiredMinutes,
+        annualLeaves: undefined,
+      };
+
+      const created = await workPolicyApi.createWorkPolicy(request as any);
+      toast.success(`정책이 생성되었습니다: ${created.name}`);
+      router.push("/settings/workpolicies");
+    } catch (error: any) {
+      console.error("정책 생성 실패:", error);
+      toast.error(`정책 생성 실패: ${error?.message || "알 수 없는 오류"}`);
+    }
   };
 
   return (

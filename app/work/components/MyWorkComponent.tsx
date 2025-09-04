@@ -8,6 +8,9 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { colors } from "@/lib/design-tokens";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { workScheduleApi } from "@/lib/services/attendance";
+import { useAuth } from "@/hooks/use-auth";
+import { ScheduleType } from "@/lib/services/attendance";
 
 // Type definitions
 interface WorkEvent {
@@ -90,17 +93,48 @@ const ScheduleCalendar = dynamic(
   }
 );
 
-// 유형 ↔ 색상 매핑 (요청 팔레트)
-const TYPE_COLORS: { [key: string]: string } = {
-  근무: "#4FC3F7",
-  재택: "#B39DDB",
-  외근: "#AED581",
-  출장: "#FFB74D",
-  휴가: "#F48FB1",
-  휴게: "#B2DFDB",
+// 유형 ↔ 색상 매핑 (Backend ScheduleType 기준)
+const TYPE_COLORS: Record<ScheduleType, string> = {
+  [ScheduleType.WORK]: "#4FC3F7",
+  [ScheduleType.SICK_LEAVE]: "#F48FB1",
+  [ScheduleType.VACATION]: "#F48FB1",
+  [ScheduleType.BUSINESS_TRIP]: "#FFB74D",
+  [ScheduleType.OUT_OF_OFFICE]: "#AED581",
+  [ScheduleType.OVERTIME]: "#B39DDB",
+};
+
+// Backend ScheduleType(enum) → 한글 라벨 매핑
+const SCHEDULE_TYPE_LABEL: Record<string, string> = {
+  WORK: "근무",
+  SICK_LEAVE: "병가",
+  VACATION: "휴가",
+  BUSINESS_TRIP: "출장",
+  OUT_OF_OFFICE: "외근",
+  OVERTIME: "초과근무",
+};
+
+// Backend ScheduleType(enum) → 색상 매핑 (TYPE_COLORS 재사용)
+const SCHEDULE_TYPE_COLOR: Record<string, string> = {
+  WORK: TYPE_COLORS[ScheduleType.WORK],
+  SICK_LEAVE: TYPE_COLORS[ScheduleType.SICK_LEAVE],
+  VACATION: TYPE_COLORS[ScheduleType.VACATION],
+  BUSINESS_TRIP: TYPE_COLORS[ScheduleType.BUSINESS_TRIP],
+  OUT_OF_OFFICE: TYPE_COLORS[ScheduleType.OUT_OF_OFFICE],
+  OVERTIME: TYPE_COLORS[ScheduleType.OVERTIME],
+};
+
+const toLabelFromEnum = (scheduleType?: string, fallback?: string): string => {
+  if (!scheduleType) return fallback || "";
+  return SCHEDULE_TYPE_LABEL[scheduleType] || fallback || scheduleType;
+};
+
+const toColorFromEnum = (scheduleType?: string, fallback?: string): string => {
+  if (!scheduleType) return fallback || "#4FC3F7";
+  return SCHEDULE_TYPE_COLOR[scheduleType] || fallback || "#4FC3F7";
 };
 
 export default function MyWorkComponent(): JSX.Element {
+  const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<string>("");
   const [events, setEvents] = useState<WorkEvent[]>([]);
   const [originalEvents, setOriginalEvents] = useState<WorkEvent[]>([]);
@@ -189,6 +223,97 @@ export default function MyWorkComponent(): JSX.Element {
     setWeekDates(weekMapping);
   }, [isClient, baseDate]);
 
+  // 정책을 반영하여 해당 주의 고정 스케줄을 생성하고, 스케줄 불러오기
+  useEffect(() => {
+    const syncSchedulesWithPolicy = async () => {
+      try {
+        if (!user?.id || !isClient) return;
+
+        // 주의 월요일~일요일 계산
+        const d = new Date(baseDate);
+        const currentDay = d.getDay();
+        const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+        const monday = new Date(d);
+        monday.setDate(d.getDate() + mondayOffset);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const toStr = (date: Date) => {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, "0");
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        };
+
+        const startDate = toStr(monday);
+        const endDate = toStr(sunday);
+
+        // Work Policy를 스케줄에 반영 (근무/휴게/코어/시차 등 전체 반영)
+        await workScheduleApi.applyWorkPolicyToSchedule(
+          Number(user.id),
+          startDate,
+          endDate
+        );
+
+        // 기간 스케줄 조회
+        const schedules = await workScheduleApi.getUserSchedulesByDateRange(
+          Number(user.id),
+          startDate,
+          endDate
+        );
+
+        // LocalTime(string/object) → HH:mm 변환
+        const timeToHHmm = (t: any): string | undefined => {
+          if (!t) return undefined;
+          if (typeof t === "string") {
+            // "HH:mm:ss" 또는 "HH:mm" → 앞 5자리
+            return t.slice(0, 5);
+          }
+          if (typeof t.hour === "number" && typeof t.minute === "number") {
+            return `${String(t.hour).padStart(2, "0")}:${String(
+              t.minute
+            ).padStart(2, "0")}`;
+          }
+          return undefined;
+        };
+
+        // 스케줄 → 캘린더 이벤트 매핑
+        const mapped: WorkEvent[] = schedules.map((s) => {
+          const startHHmm = timeToHHmm(s.startTime) || "09:00";
+          const endHHmm = timeToHHmm(s.endTime) || "18:00";
+          const start = `${s.startDate}T${startHHmm}:00`;
+          const end = `${s.endDate}T${endHHmm}:00`;
+          const title = toLabelFromEnum(
+            s.scheduleType,
+            s.title || s.scheduleType
+          );
+          const color = s.color || toColorFromEnum(s.scheduleType, "#4FC3F7");
+          return {
+            id: String(s.id),
+            title,
+            start,
+            end,
+            backgroundColor: color,
+            borderColor: color,
+            textColor: "#1f2937",
+            allDay: s.isAllDay || false,
+            extendedProps: {
+              originalTitle: s.title,
+              type: s.scheduleType, // keep enum for logic
+            },
+          } as WorkEvent;
+        });
+        setEvents(mapped);
+        setOriginalEvents(mapped);
+      } catch (e) {
+        // 실패해도 화면은 유지
+        console.error("Failed to sync schedules with policy:", e);
+      }
+    };
+
+    syncSchedulesWithPolicy();
+  }, [user?.id, isClient, baseDate]);
+
   // 현재 주 기준으로 scheduleData 생성
   const generateScheduleData = (): ScheduleData => {
     const today = new Date();
@@ -198,62 +323,13 @@ export default function MyWorkComponent(): JSX.Element {
     monday.setDate(today.getDate() + mondayOffset);
 
     const scheduleData: ScheduleData = {};
-
     for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(monday);
-      currentDate.setDate(monday.getDate() + i);
-      const dayKey = currentDate.getDate();
-      const dayOfWeek = currentDate.getDay();
-
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        // 평일: 다양한 근무 유형으로 구성
-        const workTypes = ["근무", "재택", "외근", "출장"];
-        const randomType =
-          workTypes[Math.floor(Math.random() * workTypes.length)];
-
-        scheduleData[dayKey] = [
-          {
-            startTime: "09:00",
-            endTime: "12:00",
-            title: randomType,
-            color: TYPE_COLORS[randomType],
-            type: "work",
-          },
-          {
-            startTime: "12:00",
-            endTime: "13:00",
-            title: "휴게",
-            color: TYPE_COLORS.휴게,
-            type: "break",
-          },
-          {
-            startTime: "13:00",
-            endTime: "18:00",
-            title: randomType,
-            color: TYPE_COLORS[randomType],
-            type: "work",
-          },
-        ];
-      } else if (dayOfWeek === 0) {
-        // 일요일: 휴가
-        scheduleData[dayKey] = [
-          {
-            title: "휴가",
-            color: TYPE_COLORS.휴가,
-            type: "vacation",
-          },
-        ];
-      } else if (dayOfWeek === 6) {
-        // 토요일: 휴가
-        scheduleData[dayKey] = [
-          {
-            title: "휴가",
-            color: TYPE_COLORS.휴가,
-            type: "vacation",
-          },
-        ];
-      }
+      const dateKey = new Date(monday);
+      dateKey.setDate(monday.getDate() + i);
+      const key = dateKey.getDate();
+      scheduleData[key] = [];
     }
+
     return scheduleData;
   };
 
@@ -268,7 +344,7 @@ export default function MyWorkComponent(): JSX.Element {
     Object.entries(scheduleData).forEach(([day, events]) => {
       const dateString = weekDates[parseInt(day)];
 
-      events.forEach((event, index) => {
+      events.forEach((event: ScheduleEvent, index: number) => {
         let startTime: string, endTime: string, allDay: boolean;
 
         if (event.startTime && event.endTime) {
@@ -461,7 +537,7 @@ export default function MyWorkComponent(): JSX.Element {
 
   // 드롭다운에서 유형 선택 시 호출: 색상은 매핑에서 조회
   const handleTitleSelect = (eventId: string, selectedType: string): void => {
-    const selectedColor = TYPE_COLORS[selectedType];
+    const selectedColor = TYPE_COLORS[selectedType as ScheduleType];
     const updated = events.map((event) => {
       if (event.id === eventId) {
         return {
