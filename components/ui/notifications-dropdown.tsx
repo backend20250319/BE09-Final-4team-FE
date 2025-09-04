@@ -1,17 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { Button } from './button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from './dropdown-menu'
+import { communicationApi } from '@/lib/services/communication'
+import { useRouter } from 'next/navigation'
 
 interface Notification {
-  id: string
-  title: string
+  id: number
+  userId: number
+  type: 'ANNOUNCEMENT' | 'APPROVAL_REQUEST' | 'APPROVAL_APPROVED' | 'APPROVAL_REJECTED' | 'APPROVAL_REFERENCE'
   content: string
+  referenceId: number
   createdAt: string // ISO 8601 문자열
-  type: string
-  isRead: boolean
+  read: boolean
 }
 
 interface NotificationsDropdownProps {
@@ -40,109 +43,136 @@ function timeAgo(dateString: string): string {
 }
 
 export function NotificationsDropdown({
-  hasNewNotifications = true,
+  hasNewNotifications = false,
   notifications = [],
   onNotificationClick,
 }: NotificationsDropdownProps) {
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(5)
+  const [notificationsList, setNotificationsList] = useState<Notification[]>([])
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(hasNewNotifications)
-  const [notificationsList, setNotificationsList] = useState<Notification[]>([
-    {
-      id: '1',
-      title: '새로운 공지사항이 등록되었습니다',
-      content: '2025년 하반기 인사발령에 대한 공지사항이 등록되었습니다.',
-      createdAt: '2025-08-11T14:35:00Z', // 오늘 오후 2시 35분
-      type: 'NOTICE',
-      isRead: false,
-    },
-    {
-      id: '2',
-      title: '휴가 신청이 승인되었습니다',
-      content: '8월 15일 휴가 신청이 승인되었습니다.',
-      createdAt: '2025-08-11T13:10:00Z', // 오늘 오후 1시 10분
-      type: 'APPROVAL_APPROVED',
-      isRead: false,
-    },
-    {
-      id: '3',
-      title: '결재 대기 문서가 있습니다',
-      content: '인사규정 변경안에 대한 결재가 대기 중입니다.',
-      createdAt: '2025-08-11T09:50:00Z', // 오늘 오전 9시 50분
-      type: 'APPROVAL_REQUESTED',
-      isRead: true,
-    },
-    {
-      id: '4',
-      title: '보안 점검 안내',
-      content: '내일 오전 9시 서버 점검이 예정되어 있습니다.',
-      createdAt: '2025-08-11T06:25:00Z', // 오늘 오전 6시 25분
-      type: 'NOTICE',
-      isRead: true,
-    },
-    {
-      id: '5',
-      title: '회의 일정 변경',
-      content: '주간 회의 시간이 오후 3시로 변경되었습니다.',
-      createdAt: '2025-08-10T22:40:00Z', // 어제 오후 10시 40분
-      type: 'APPROVAL_REQUESTED',
-      isRead: false,
-    },
-    {
-      id: '6',
-      title: '회의 일정 변경',
-      content: '주간 회의 시간이 오후 2시로 변경되었습니다.',
-      createdAt: '2025-08-10T08:15:00Z', // 어제 오전 8시 15분
-      type: 'APPROVAL_REQUESTED',
-      isRead: false,
-    },
-  ])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [lastId, setLastId] = useState<number | null>(null)
+  const [hasMore, setHasMore] = useState(true)
+
+  // 알림 목록 조회
+  const loadNotifications = async (reset: boolean = false) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const params = reset ? {} : (lastId ? { lastId } : {})
+      const response = await communicationApi.notifications.getMyNotifications(params)
+      const newNotifications = response.data || []
+      
+      setNotificationsList(prev => reset ? newNotifications : [...prev, ...newNotifications])
+      
+      if (newNotifications.length > 0) {
+        setLastId(newNotifications[newNotifications.length - 1].id)
+      }
+      setHasMore(newNotifications.length >= 20) // 20개씩 로드하므로 20개 미만이면 더 이상 없음
+    } catch (error) {
+      console.error('알림 목록 조회 실패:', error)
+      setError('알림을 불러오는데 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 읽지 않은 알림 체크
+  const checkUnreadNotifications = async () => {
+    try {
+      const response = await communicationApi.notifications.hasUnreadNotifications()
+      setHasUnreadNotifications(response.data || false)
+    } catch (error) {
+      console.error('읽지 않은 알림 체크 실패:', error)
+    }
+  }
+
+  // 알림 읽음 처리
+  const markNotificationAsRead = async (notificationId: number) => {
+    try {
+      await communicationApi.notifications.markAsRead(notificationId)
+      
+      // 로컬 상태 업데이트
+      setNotificationsList(prev =>
+        prev.map(n =>
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      )
+      
+      // 읽지 않은 알림 상태 재체크
+      await checkUnreadNotifications()
+    } catch (error) {
+      console.error('알림 읽음 처리 실패:', error)
+    }
+  }
 
   const displayNotifications = notifications.length > 0 ? notifications : notificationsList
 
-  const getTypeColor = (type: string) => {
+  const getTypeColor = (type: Notification['type']) => {
     switch (type) {
-      case 'NOTICE':
+      case 'ANNOUNCEMENT':
         return 'bg-blue-500'
-      case 'APPROVAL_REQUESTED':
+      case 'APPROVAL_REQUEST':
         return 'bg-yellow-400'
       case 'APPROVAL_REJECTED':
         return 'bg-red-600'
       case 'APPROVAL_APPROVED':
         return 'bg-green-500'
-      case 'NEW_COMMENT':
+      case 'APPROVAL_REFERENCE':
         return 'bg-purple-500'
-      case 'INFO_UPDATED':
-        return 'bg-gray-500'
       default:
         return 'bg-gray-400'
     }
   }
 
-  const handleNotificationClick = (notification: Notification) => {
-    alert(`"${notification.title}" 알림으로 이동합니다.`)
+  const handleNotificationClick = async (notification: Notification) => {
+    // 읽지 않은 알림인 경우 읽음 처리
+    if (!notification.read) {
+      await markNotificationAsRead(notification.id)
+    }
 
-    // 알림 클릭 시 isRead를 true로 변경
-    setNotificationsList(prev =>
-      prev.map(n =>
-        n.id === notification.id ? { ...n, isRead: true } : n
-      )
-    )
+    // 알림 타입별 라우팅
+    switch (notification.type) {
+      case 'ANNOUNCEMENT':
+        router.push(`/announcements#${notification.referenceId}`)
+        break
+      case 'APPROVAL_REQUEST':
+      case 'APPROVAL_APPROVED':
+      case 'APPROVAL_REJECTED':
+      case 'APPROVAL_REFERENCE':
+        alert('결재 관련 알림입니다. 결재 페이지로 이동합니다.')
+        break
+      default:
+        console.warn('알 수 없는 알림 타입:', notification.type)
+    }
 
     onNotificationClick?.(notification)
   }
 
   const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 5)
-  }
-
-  const handleDropdownOpen = (open: boolean) => {
-    setIsOpen(open)
-    // 알림창을 열면 읽지 않은 알림 표시를 false로 변경
-    if (open && hasUnreadNotifications) {
-      setHasUnreadNotifications(false)
+    if (!loading && hasMore) {
+      loadNotifications(false)
     }
   }
+
+  const handleDropdownOpen = async (open: boolean) => {
+    setIsOpen(open)
+    
+    if (open) {
+      // 드롭다운 열 때 최신 알림 목록 조회
+      await loadNotifications(true)
+      // 읽지 않은 알림 상태 체크
+      await checkUnreadNotifications()
+    }
+  }
+
+  // 컴포넌트 마운트 시 읽지 않은 알림 상태 체크
+  useEffect(() => {
+    checkUnreadNotifications()
+  }, [])
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleDropdownOpen}>
@@ -159,7 +189,25 @@ export function NotificationsDropdown({
           <h3 className="text-sm font-semibold text-gray-900">알림</h3>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {displayNotifications.slice(0, visibleCount).map((notification) => (
+          {error && (
+            <div className="p-3 text-center text-red-500 text-sm">
+              {error}
+              <button
+                onClick={() => loadNotifications(true)}
+                className="block mt-2 text-blue-600 hover:text-blue-800 text-xs"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+          
+          {displayNotifications.length === 0 && !loading && !error && (
+            <div className="p-3 text-center text-gray-500 text-sm">
+              알림이 없습니다.
+            </div>
+          )}
+          
+          {displayNotifications.map((notification) => (
             <div
               key={notification.id}
               className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
@@ -168,18 +216,25 @@ export function NotificationsDropdown({
               <div className="flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${getTypeColor(notification.type)}`}></div>
                 <div className="flex-1">
-                  <p className={`text-sm font-medium ${notification.isRead ? 'text-gray-600' : 'text-gray-900'}`}>
-                    {notification.title}
+                  <p className={`text-sm font-medium ${notification.read ? 'text-gray-600' : 'text-gray-900'}`}>
+                    {notification.content}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">{notification.content}</p>
                   <p className="text-xs text-gray-400 mt-1">{timeAgo(notification.createdAt)}</p>
                 </div>
-                {!notification.isRead && <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>}
+                {!notification.read && <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>}
               </div>
             </div>
           ))}
+          
+          {loading && (
+            <div className="p-3 text-center text-gray-500 text-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              알림을 불러오는 중...
+            </div>
+          )}
         </div>
-        {visibleCount < displayNotifications.length && (
+        
+        {hasMore && !loading && !error && displayNotifications.length > 0 && (
           <div className="p-3 border-t border-gray-200">
             <button
               onClick={handleLoadMore}
