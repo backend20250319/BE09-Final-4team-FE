@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\august\\BE09-Final-4team-FE\\lib\\services\\communication/**)",
+      "Read(/C:\\august\\BE09-Final-4team-FE\\app\\documents\\edit/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
