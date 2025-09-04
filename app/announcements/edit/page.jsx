@@ -9,22 +9,12 @@ import { Input } from "@/components/ui/input";
 import { colors, typography } from "@/lib/design-tokens";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Save, X } from "lucide-react";
-import {
-  AttachmentsManager,
-  Attachment,
-} from "@/components/ui/attachments-manager";
+import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager";
 import { communicationApi } from "@/lib/services/communication";
 import { attachmentService } from "@/lib/services/attachment/api";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 const Editor = dynamic(() => import("../write/components/Editor"), {
   ssr: false,
@@ -52,21 +42,21 @@ const DUMMY_ANNOUNCEMENT = {
           children: [
             {
               text: "2025년 하반기 인사발령이 발표되었습니다. 주요 인사 변동 사항은 다음과 같습니다.",
-              type: "text",
-            },
+              type: "text"
+            }
           ],
-          type: "paragraph",
-        },
+          type: "paragraph"
+        }
       ],
-      type: "root",
-    },
+      type: "root"
+    }
   },
   attachment: {
     id: "file-1",
     name: "2025_하반기_인사발령.pdf",
     size: "2.1 MB",
-    url: "/file-1.pdf",
-  },
+    url: "/file-1.pdf"
+  }
 };
 
 // useSearchParams를 사용하는 컴포넌트를 별도로 분리
@@ -87,7 +77,7 @@ function AnnouncementEditContent() {
 
   useEffect(() => {
     // URL 파라미터에서 공지사항 ID를 받아와서 데이터 로드
-    const announcementId = searchParams.get("id");
+    const announcementId = searchParams.get('id');
 
     // 실제 API로 공지사항 데이터 로드
     const loadAnnouncementData = async () => {
@@ -96,18 +86,15 @@ function AnnouncementEditContent() {
         setError("");
 
         // 공지사항 상세 정보 조회
-        const detailResponse =
-          await communicationApi.announcements.getAnnouncement(
-            parseInt(announcementId)
-          );
+        const detailResponse = await communicationApi.announcements.getAnnouncement(parseInt(announcementId));
         const data = detailResponse.data;
 
         setTitle(data.title || "");
         setAuthor(data.displayAuthor || "");
-
+        
         // content가 문자열인지 객체인지 확인하고 적절히 처리
         let contentData = data.content || "";
-        if (typeof contentData === "string") {
+        if (typeof contentData === 'string') {
           try {
             // JSON 문자열인 경우 그대로 사용
             JSON.parse(contentData);
@@ -116,19 +103,15 @@ function AnnouncementEditContent() {
             // 일반 텍스트인 경우 Lexical 형태로 변환
             const lexicalContent = {
               root: {
-                children: [
-                  {
-                    children: [
-                      {
-                        text: contentData,
-                        type: "text",
-                      },
-                    ],
-                    type: "paragraph",
-                  },
-                ],
-                type: "root",
-              },
+                children: [{
+                  children: [{
+                    text: contentData,
+                    type: "text"
+                  }],
+                  type: "paragraph"
+                }],
+                type: "root"
+              }
             };
             setContent(JSON.stringify(lexicalContent));
           }
@@ -136,15 +119,15 @@ function AnnouncementEditContent() {
           // 객체인 경우 JSON 문자열로 변환
           setContent(JSON.stringify(contentData));
         }
-
-        console.log("로드된 content:", data.content);
-        console.log("설정할 content:", contentData);
-        console.log("content 타입:", typeof contentData);
-
+        
+        console.log('로드된 content:', data.content);
+        console.log('설정할 content:', contentData);
+        console.log('content 타입:', typeof contentData);
+        
         // 원본 파일 ID 목록 저장
         if (data.fileIds && data.fileIds.length > 0) {
           setOriginalFileIds(data.fileIds);
-
+          
           // 첨부파일 정보 조회
           const attachmentPromises = data.fileIds.map(async (fileId) => {
             try {
@@ -153,16 +136,16 @@ function AnnouncementEditContent() {
                 id: fileId,
                 name: fileInfo.fileName,
                 size: `${(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB`,
-                isOriginal: true, // 원본 파일 표시
+                isOriginal: true // 원본 파일 표시
               };
             } catch (error) {
               console.error(`파일 정보 조회 실패: ${fileId}`, error);
               return null;
             }
           });
-
+          
           const attachmentResults = await Promise.all(attachmentPromises);
-          setAttachments(attachmentResults.filter((att) => att !== null));
+          setAttachments(attachmentResults.filter(att => att !== null));
         }
 
         setLoading(false);
@@ -200,15 +183,16 @@ function AnnouncementEditContent() {
     setAttachments(newAttachments);
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
     try {
-      const announcementId = searchParams.get("id");
+      const announcementId = searchParams.get('id');
       if (!announcementId) {
-        setError("공지사항 ID가 없습니다.");
+        setError('공지사항 ID가 없습니다.');
         return;
       }
 
@@ -218,29 +202,27 @@ function AnnouncementEditContent() {
         try {
           currentContent = editorRef.current.getEditorState();
         } catch (error) {
-          console.error("에디터 상태 가져오기 실패:", error);
+          console.error('에디터 상태 가져오기 실패:', error);
           currentContent = content; // 기존 content 사용
         }
       }
 
       // AttachmentsManager가 이미 실제 fileId를 제공하므로 직접 사용
-      const fileIds = attachments.map((attachment) => attachment.id);
+      const fileIds = attachments.map(attachment => attachment.id);
 
       const updateData = {
         title: title.trim(),
         displayAuthor: author.trim(),
         content: currentContent || "",
-        fileIds: fileIds,
+        fileIds: fileIds
       };
 
       // API 호출
-      await communicationApi.announcements.updateAnnouncement(
-        parseInt(announcementId),
-        updateData
-      );
-
+      await communicationApi.announcements.updateAnnouncement(parseInt(announcementId), updateData);
+      
       console.log("공지사항 수정 성공");
       router.push("/announcements");
+      
     } catch (error) {
       console.error("공지사항 수정 실패:", error);
       setError(error.message || "공지사항 수정에 실패했습니다.");
@@ -263,7 +245,7 @@ function AnnouncementEditContent() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout requireAuth requireAdmin>
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-8">
           <button
@@ -274,9 +256,7 @@ function AnnouncementEditContent() {
           </button>
           <div>
             <h1 className={`${typography.h1} text-gray-800`}>공지사항 수정</h1>
-            <p className="text-gray-600">
-              공지사항 내용을 수정하고 저장하세요.
-            </p>
+            <p className="text-gray-600">공지사항 내용을 수정하고 저장하세요.</p>
           </div>
         </div>
       </div>
@@ -287,29 +267,25 @@ function AnnouncementEditContent() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-
+        
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block mb-2 text-gray-700 font-semibold">
-                제목
-              </label>
+              <label className="block mb-2 text-gray-700 font-semibold">제목</label>
               <Input
                 placeholder="공지사항 제목을 입력하세요"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={e => setTitle(e.target.value)}
                 required
                 className="h-12 text-lg"
               />
             </div>
             <div>
-              <label className="block mb-2 text-gray-700 font-semibold">
-                작성자
-              </label>
+              <label className="block mb-2 text-gray-700 font-semibold">작성자</label>
               <Input
                 placeholder="작성자를 입력하세요"
                 value={author}
-                onChange={(e) => setAuthor(e.target.value)}
+                onChange={e => setAuthor(e.target.value)}
                 required
                 className="h-12 text-lg"
               />
@@ -317,22 +293,18 @@ function AnnouncementEditContent() {
           </div>
 
           <div className="mb-8">
-            <label className="block mb-2 text-gray-700 font-semibold">
-              내용
-            </label>
-            <Editor
+            <label className="block mb-2 text-gray-700 font-semibold">내용</label>
+            <Editor 
               ref={editorRef}
-              jsonData={content}
+              jsonData={content} 
               onChange={() => {}} // 빈 함수로 설정
-              readOnly={false}
+              readOnly={false} 
               showToolbar={true}
-              key={`editor-${searchParams.get("id") || "new"}`} // ID 기반으로 key 설정
+              key={`editor-${searchParams.get('id') || 'new'}`} // ID 기반으로 key 설정
             />
           </div>
           <div className="mb-8">
-            <label className="block mb-2 text-gray-700 font-semibold">
-              첨부파일
-            </label>
+            <label className="block mb-2 text-gray-700 font-semibold">첨부파일</label>
             <AttachmentsManager
               attachments={attachments}
               onAttachmentsChange={handleAttachmentsChange}
@@ -351,9 +323,9 @@ function AnnouncementEditContent() {
               <X className="w-4 h-4" />
               취소
             </button>
-            <GradientButton
-              type="submit"
-              variant="primary"
+            <GradientButton 
+              type="submit" 
+              variant="primary" 
               className="px-6 py-3"
               disabled={isLoading || !title.trim() || !author.trim()}
             >
@@ -372,7 +344,7 @@ function AnnouncementEditContent() {
           </div>
         </form>
       </div>
-
+      
       {/* 파일 업로드 실패 다이얼로그 */}
       <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
         <AlertDialogContent>

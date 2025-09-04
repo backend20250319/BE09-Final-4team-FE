@@ -8,7 +8,6 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { FileText, ArrowLeft, Save, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AttachmentsManager } from '@/components/ui/attachments-manager';
-import { useAuth } from '@/hooks/use-auth';
 import { communicationApi } from '@/lib/services/communication/api';
 import { attachmentApi } from '@/lib/services/attachment/api';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,7 +17,6 @@ export default function DocumentEditPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const documentId = searchParams.get('id');
-  const { isAdmin, isLoggedIn } = useAuth();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -28,17 +26,6 @@ export default function DocumentEditPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      router.push('/login');
-      return;
-    }
-    
-    if (!isAdmin) {
-      toast.error('관리자만 문서를 수정할 수 있습니다.');
-      router.push('/documents');
-      return;
-    }
-
     // 문서 ID가 없으면 목록으로 돌아가기
     if (!documentId) {
       toast.error('문서 ID가 필요합니다.');
@@ -48,7 +35,7 @@ export default function DocumentEditPage() {
 
     // 문서 데이터 로드
     loadDocumentData();
-  }, [isLoggedIn, isAdmin, router, documentId]);
+  }, [router, documentId]);
 
   const loadDocumentData = async () => {
     try {
@@ -142,7 +129,7 @@ export default function DocumentEditPage() {
 
   if (loading) {
     return (
-      <MainLayout>
+      <MainLayout requireAuth requireAdmin>
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-8">
             <Skeleton className="w-10 h-10 rounded-lg" />
@@ -188,7 +175,7 @@ export default function DocumentEditPage() {
 
   if (error) {
     return (
-      <MainLayout>
+      <MainLayout requireAuth requireAdmin>
         <div className="flex justify-center items-center py-20">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
@@ -202,7 +189,7 @@ export default function DocumentEditPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout requireAuth requireAdmin>
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-8">
           <button
