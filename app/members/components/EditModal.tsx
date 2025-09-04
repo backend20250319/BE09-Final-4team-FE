@@ -191,7 +191,6 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!editedEmployee) return
 
     try {
-
       const updateData = {
         name: editedEmployee.name,
         email: editedEmployee.email,
@@ -202,6 +201,10 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         role: editedEmployee.role || null,
         workPolicyId: editedEmployee.workPolicies?.[0] ? parseInt(editedEmployee.workPolicies[0]) : null,
         profileImageUrl: editedEmployee.profileImage || null,
+        // 추가된 필드들
+        position: editedEmployee.position ? { id: 0, name: editedEmployee.position, sortOrder: 0 } : null,
+        job: editedEmployee.job ? { id: 0, name: editedEmployee.job, sortOrder: 0 } : null,
+        rank: editedEmployee.rank ? { id: 0, name: editedEmployee.rank, sortOrder: 0 } : null,
       }
 
       console.log('전송할 데이터:', updateData)
@@ -352,9 +355,11 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       id="email"
                       type="email"
                       value={editedEmployee?.email || ''}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="이메일을 입력하세요"
+                      readOnly // 읽기 전용으로 변경
+                      className="bg-gray-50 cursor-not-allowed" // 스타일 추가
+                      placeholder="이메일은 수정할 수 없습니다"
                     />
+                    <p className="text-xs text-gray-500">이메일은 계정 ID이므로 수정할 수 없습니다.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">전화번호</Label>

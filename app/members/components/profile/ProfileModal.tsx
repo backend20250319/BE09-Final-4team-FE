@@ -66,19 +66,37 @@ export default function ProfileModal({
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string>("");
+  const [currentEmployee, setCurrentEmployee] = useState<MemberProfile | null>(employee);
+  
+  useEffect(() => {
+    setCurrentEmployee(employee);
+  }, [employee]);
 
-  const isOwnProfile = user?.email === employee?.email;
+  useEffect(() => {
+    const handleEmployeeUpdate = (event: any) => {
+      const updatedEmployee = event.detail;
+      if (updatedEmployee && currentEmployee?.id === updatedEmployee.id) {
+        setCurrentEmployee(updatedEmployee);
+        onUpdate?.(updatedEmployee);
+      }
+    };
+
+    window.addEventListener('employeeUpdated', handleEmployeeUpdate);
+    return () => window.removeEventListener('employeeUpdated', handleEmployeeUpdate);
+  }, [currentEmployee?.id, onUpdate]);
+
+  const isOwnProfile = user?.email === currentEmployee?.email;
   const canEdit = isOwnProfile || isAdmin;
   const canEditProfileImage = isOwnProfile;
 
   useEffect(() => {
-    if (!employee) return;
-    setProfileImage(employee.profileImage || employee.avatarUrl || "");
-  }, [employee]);
+    if (!currentEmployee) return;
+    setProfileImage(currentEmployee.profileImage || currentEmployee.avatarUrl || "");
+  }, [currentEmployee]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !employee) return;
+    if (!file || !currentEmployee) return;
 
     const reader = new FileReader();
     reader.onload = async (ev) => {
@@ -107,7 +125,7 @@ export default function ProfileModal({
           setProfileImage(croppedImageUrl);
 
           try {
-            const response = await fetch(`/api/members/${employee.id}`, {
+            const response = await fetch(`/api/members/${currentEmployee.id}`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
@@ -122,7 +140,7 @@ export default function ProfileModal({
             }
 
             const updatedEmployee = {
-              ...employee,
+              ...currentEmployee,
               profileImage: croppedImageUrl,
             };
             onUpdate?.(updatedEmployee);
@@ -154,13 +172,7 @@ export default function ProfileModal({
     name: org,
   }));
 
-  if (!employee) return null;
-
-  const currentUserData: MemberProfile = {
-    ...employee,
-    profileImage,
-    avatarUrl: profileImage,
-  };
+  if (!currentEmployee) return null;
 
   const transformEmployeeForEdit = (emp: any) => {
     if (!emp) return emp;
@@ -225,10 +237,10 @@ export default function ProfileModal({
                       <Avatar className="w-24 h-24">
                         <AvatarImage
                           src={
-                            currentUserData.avatarUrl ||
-                            currentUserData.profileImage
+                            currentEmployee.avatarUrl ||
+                            currentEmployee.profileImage
                           }
-                          alt={currentUserData.name}
+                          alt={currentEmployee.name}
                         />
                         <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">
                           <User className="w-12 h-12" />
@@ -256,19 +268,19 @@ export default function ProfileModal({
                     </div>
                     <div className="flex-1">
                       <div className="text-lg font-semibold mb-2">
-                        {currentUserData.name}
+                        {currentEmployee.name}
                       </div>
                       <div className="space-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <Mail className="w-4 h-4" />
                           <span className="break-all">
-                            {currentUserData.email}
+                            {currentEmployee.email}
                           </span>
                         </div>
-                        {currentUserData.phone && (
+                        {currentEmployee.phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4" />
-                            <span>{currentUserData.phone}</span>
+                            <span>{currentEmployee.phone}</span>
                           </div>
                         )}
                       </div>
@@ -283,8 +295,8 @@ export default function ProfileModal({
                   <OrganizationDetailBlock
                     main={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       const mainOrg = orgs[0];
                       if (!mainOrg) return null;
                       
@@ -294,7 +306,7 @@ export default function ProfileModal({
                       
                       return { teamId: mainOrg, name: mainOrg };
                     })()}
-                    user={employee}
+                    user={currentEmployee}
                   />
                 </div>
 
@@ -303,8 +315,8 @@ export default function ProfileModal({
                     상세 정보
                   </div>
                   <DetailBlock
-                    joinDate={employee.joinDate}
-                    address={employee.address}
+                    joinDate={currentEmployee.joinDate}
+                    address={currentEmployee.address}
                   />
                 </div>
               </div>
@@ -388,8 +400,8 @@ export default function ProfileModal({
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-500 text-sm mb-1">남은 연차</div>
                   <div className="text-2xl font-bold">
-                    {employee.remainingLeave ||
-                      employee.remainingLeaveDays ||
+                    {currentEmployee.remainingLeave ||
+                      currentEmployee.remainingLeaveDays ||
                       12}
                     일
                   </div>
@@ -400,7 +412,7 @@ export default function ProfileModal({
                     이번 주 근무시간
                   </div>
                   <div className="text-2xl font-bold">
-                    {employee.weeklyWorkHours || employee.thisWeekHours || 42}h
+                    {currentEmployee.weeklyWorkHours || currentEmployee.thisWeekHours || 42}h
                   </div>
                 </div>
               </div>
@@ -413,8 +425,8 @@ export default function ProfileModal({
                   <OrganizationBlock
                     main={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       const mainOrg = orgs[0];
                       if (!mainOrg) return null;
                       
@@ -426,8 +438,8 @@ export default function ProfileModal({
                     })()}
                     concurrent={(() => {
                       const orgs =
-                        employee.organizations ??
-                        (employee.organization ? [employee.organization] : []);
+                        currentEmployee.organizations ??
+                        (currentEmployee.organization ? [currentEmployee.organization] : []);
                       return orgs
                         .slice(1)
                         .map((org) => {
@@ -438,7 +450,7 @@ export default function ProfileModal({
                           return { teamId: org, name: org };
                         });
                     })()}
-                    user={employee}
+                    user={currentEmployee}
                   />
                 </div>
 
@@ -447,7 +459,7 @@ export default function ProfileModal({
                     근무 정책
                   </div>
                   <PolicyBlock
-                    workPolicies={employee.workPolicies}
+                    workPolicies={currentEmployee.workPolicies}
                     availablePolicies={workPolicies}
                   />
                 </div>
@@ -459,7 +471,7 @@ export default function ProfileModal({
         <EditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
-          employee={transformEmployeeForEdit(employee)}
+          employee={transformEmployeeForEdit(currentEmployee)}
           onUpdate={(updated) => {
             onUpdate?.(updated as any);
             window.dispatchEvent(
