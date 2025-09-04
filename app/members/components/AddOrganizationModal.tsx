@@ -86,7 +86,6 @@ export default function AddOrganizationModal({
   const [showDeleteWarn, setShowDeleteWarn] = useState(false);
   const [deleteWarnMessage, setDeleteWarnMessage] = useState("");
 
-  // 메인/겸직 변경 경고 메시지 상태
   const [showMainOrgWarning, setShowMainOrgWarning] = useState(false);
   const [mainOrgWarningMembers, setMainOrgWarningMembers] = useState<
     SelectedMember[]
@@ -117,30 +116,29 @@ export default function AddOrganizationModal({
     return flat.filter((opt) => !excludedIds.has(opt.id));
   }, [organizations, excludedIds]);
 
-  useEffect(() => {
-    if (isOpen) {
-      if (organization) {
-        setOrgName(organization.name);
-        setParentOrg(organization.parentId || "");
-        // null 체크 추가
-        setSelectedLeader(
-          organization.leader
-            ? { member: organization.leader, assignmentType: "main" }
-            : null
-        );
-        setSelectedMembers(organization.members || []);
-        setIsDirty(false);
-      } else {
-        setOrgName("");
-        setParentOrg("");
-        setSelectedLeader(null);
-        setSelectedMembers([]);
-        setIsDirty(false);
-      }
+  const memoizedSelectedLeader = useMemo(() => {
+    if (organization?.leader) {
+      return { member: organization.leader, assignmentType: "main" as const };
     }
-  }, [isOpen, organization]);
+    return null;
+  }, [organization?.leader?.id, organization?.leader?.name, organization?.leader?.role, organization?.leader?.email]);
 
-  // 메인 조직 변경 경고 체크
+  if (isOpen && !isDirty) {
+    if (organization) {
+      setOrgName(organization.name);
+      setParentOrg(organization.parentId || "");
+      setSelectedLeader(memoizedSelectedLeader);
+      setSelectedMembers(organization.members || []);
+      setIsDirty(false);
+    } else {
+      setOrgName("");
+      setParentOrg("");
+      setSelectedLeader(null);
+      setSelectedMembers([]);
+      setIsDirty(false);
+    }
+  }
+
   const checkMainOrgChanges = (members: SelectedMember[]) => {
     const mainOrgChanges = members.filter(
       (item) => item.assignmentType === "main" && item.member.currentMainOrg
@@ -160,7 +158,6 @@ export default function AddOrganizationModal({
       return;
     }
 
-    // 메인 조직 변경 경고 체크
     if (checkMainOrgChanges(selectedMembers)) {
       return;
     }
@@ -170,7 +167,6 @@ export default function AddOrganizationModal({
       name: orgName,
       parentId: parentOrg || undefined,
       members: selectedMembers,
-      // SelectedLeader에서 member만 추출
       leader: selectedLeader?.member || undefined,
     };
 
@@ -301,7 +297,6 @@ export default function AddOrganizationModal({
     onClose();
   };
 
-  // 메인 조직 변경 경고 확인 후 저장 진행
   const confirmMainOrgChange = () => {
     setShowMainOrgWarning(false);
     const newOrg: Organization = {
@@ -309,7 +304,6 @@ export default function AddOrganizationModal({
       name: orgName,
       parentId: parentOrg || undefined,
       members: selectedMembers,
-      // SelectedLeader에서 member만 추출
       leader: selectedLeader?.member || undefined,
     };
     onSave(newOrg);
@@ -478,7 +472,6 @@ export default function AddOrganizationModal({
         </DialogContent>
       </Dialog>
 
-      {/* 메인 조직 변경 경고 모달 */}
       <Dialog open={showMainOrgWarning} onOpenChange={setShowMainOrgWarning}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -591,7 +584,7 @@ export default function AddOrganizationModal({
         isOpen={showLeaderModal}
         onClose={() => setShowLeaderModal(false)}
         onSelect={handleLeaderSelect}
-        selectedLeader={selectedLeader}
+        selectedLeader={memoizedSelectedLeader}
         excludeMemberIds={selectedMembers.map((item) => item.member.id)}
       />
 
@@ -600,7 +593,7 @@ export default function AddOrganizationModal({
         onClose={() => setShowMemberModal(false)}
         onSelect={handleMemberSelect}
         selectedMembers={selectedMembers}
-        excludeMemberIds={selectedLeader ? [selectedLeader.member.id] : []}
+        excludeMemberIds={memoizedSelectedLeader ? [memoizedSelectedLeader.member.id] : []}
       />
     </>
   );

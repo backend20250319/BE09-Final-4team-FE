@@ -20,14 +20,7 @@ export default function OrganizationBlock({
   concurrent = [],
   user,
 }: OrgBlockProps) {
-  // 더미 데이터
-  const dummyConcurrentTeams: TeamInfo[] = [
-    { teamId: "team-a", name: "경영지원팀" },
-    { teamId: "team-b", name: "마케팅팀" },
-  ];
-
-  const teamsToDisplay =
-    concurrent.length > 0 ? concurrent : dummyConcurrentTeams;
+  const teamsToDisplay = concurrent;
 
   return (
     <Tabs defaultValue="main" className="w-full">
