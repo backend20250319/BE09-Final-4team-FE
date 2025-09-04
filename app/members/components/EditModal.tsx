@@ -34,6 +34,7 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/services/common/api-client'
+import { organizationApi } from '@/lib/services/organization/api'; // 추가
 
 interface Employee {
   id: string
@@ -211,10 +212,78 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
       const response = await apiClient.patch(`/api/users/${editedEmployee.id}`, updateData)
       const result = response.data
 
+      console.log('서버 응답:', result)
+
       if (result.status === 'SUCCESS') {
-        onUpdate?.(editedEmployee)
+        const updatedEmployeeData = result.data;
+        console.log('업데이트된 사용자 데이터:', updatedEmployeeData)
+        
+        console.log('editedEmployee.organizations 확인:', editedEmployee.organizations); // 🔥 추가
+
+        if (editedEmployee.organizations && editedEmployee.organizations.length > 0) {
+          console.log('조직 할당 시작:', editedEmployee.organizations);
+          
+          try {
+            const allOrganizations = await organizationApi.getAllOrganizations();
+            console.log('전체 조직 목록:', allOrganizations);
+            
+            for (let i = 0; i < editedEmployee.organizations.length; i++) {
+              const orgName = editedEmployee.organizations[i];
+              console.log(`처리 중인 조직: ${orgName}`); // 🔥 추가
+              
+              const organization = allOrganizations.find(org => org.name === orgName);
+              
+              if (!organization) {
+                console.warn(`조직을 찾을 수 없습니다: ${orgName}`);
+                continue;
+              }
+              
+              console.log(`조직 할당: ${orgName} (ID: ${organization.organizationId})`);
+              
+              try {
+                const assignmentResult = await organizationApi.createAssignment({
+                  employeeId: parseInt(editedEmployee.id),
+                  organizationId: organization.organizationId,
+                  isPrimary: i === 0,
+                  isLeader: false
+                });
+                
+                console.log(`조직 할당 성공: ${orgName}`, assignmentResult); // 🔥 추가
+              } catch (assignmentError) {
+                console.error(`조직 할당 실패: ${orgName}`, assignmentError); // 🔥 추가
+              }
+            }
+            console.log('조직 할당 완료');
+          } catch (orgError) {
+            console.error('조직 할당 실패:', orgError);
+          }
+        } else {
+          console.log('조직 할당 건너뜀: organizations가 비어있음'); // 🔥 추가
+        }
+        
+        const updatedEmployee: Employee = {
+          id: updatedEmployeeData.id.toString(),
+          name: updatedEmployeeData.name,
+          email: updatedEmployeeData.email,
+          phone: updatedEmployeeData.phone || "",
+          address: updatedEmployeeData.address || "",
+          joinDate: updatedEmployeeData.joinDate || "",
+          organizations: editedEmployee.organizations || [],
+          position: updatedEmployeeData.position?.name || "",
+          role: updatedEmployeeData.role || "",
+          job: updatedEmployeeData.job?.name || "",
+          rank: updatedEmployeeData.rank?.name || "",
+          isAdmin: updatedEmployeeData.isAdmin,
+          teams: [],
+          profileImage: updatedEmployeeData.profileImageUrl,
+          workPolicies: updatedEmployeeData.workPolicyId ? [updatedEmployeeData.workPolicyId.toString()] : [],
+        };
+
+        console.log('변환된 Employee 데이터:', updatedEmployee)
+
+        onUpdate?.(updatedEmployee)
         window.dispatchEvent(new CustomEvent('employeeUpdated', { 
-          detail: editedEmployee 
+          detail: updatedEmployee
         }))
         onClose()
         toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
@@ -354,11 +423,10 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       id="email"
                       type="email"
                       value={editedEmployee?.email || ''}
-                      readOnly // 읽기 전용으로 변경
-                      className="bg-gray-50 cursor-not-allowed" // 스타일 추가
+                      readOnly
+                      className="bg-gray-50 cursor-not-allowed"
                       placeholder="이메일은 수정할 수 없습니다"
                     />
-                    <p className="text-xs text-gray-500">이메일은 계정 ID이므로 수정할 수 없습니다.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">전화번호</Label>

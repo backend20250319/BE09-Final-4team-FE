@@ -478,6 +478,8 @@ export default function ProfileModal({
           onClose={() => setIsEditModalOpen(false)}
           employee={transformEmployeeForEdit(currentEmployee)}
           onUpdate={(updated) => {
+            console.log('ProfileModal에서 받은 업데이트 데이터:', updated);
+            setCurrentEmployee(updated as any);
             onUpdate?.(updated as any);
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", { detail: updated }) as Event

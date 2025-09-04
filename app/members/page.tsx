@@ -201,47 +201,51 @@ export default function MembersPage() {
   }, [buildOrgStructure]);
 
   const fetchEmployees = useCallback(async () => {
+  if (!isLoggedIn) {
+    router.push('/login');
+    return;
+  }
 
-    if (!isLoggedIn) {
-      router.push('/login');
+  setDataLoading(true);
+  try {
+    console.log('사용자 목록 조회 시작');
+    const users = await userApi.getAllUsers();
+    console.log('사용자 목록 조회 성공:', users);
+    
+    if (Array.isArray(users)) {
+      const convertedUsers = users.map(convertUserToEmployee);
+      
+      const sortedUsers = convertedUsers.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      setEmployees(sortedUsers);
+      if (orgStructure.length === 0 && !orgLoading) {
+        await fetchOrganizationStructure();
+      }
+    } else {
+      console.warn('Users is not an array:', users);
+      toast.error("직원 데이터를 불러올 수 없습니다.");
+      setEmployees([]);
+    }
+  } catch (error) {
+    console.error('사용자 목록 조회 실패:', error);
+    
+    if (error.response?.status === 403) {
+      toast.error('구성원 목록을 조회할 권한이 없습니다.');
       return;
     }
-
-    setDataLoading(true);
-    try {
-      console.log('사용자 목록 조회 시작');
-      const users = await userApi.getAllUsers();
-      console.log('사용자 목록 조회 성공:', users);
-      
-      if (Array.isArray(users)) {
-        const convertedUsers = users.map(convertUserToEmployee);
-        setEmployees(convertedUsers);
-        if (orgStructure.length === 0 && !orgLoading) {
-          await fetchOrganizationStructure();
-        }
-      } else {
-        console.warn('Users is not an array:', users);
-        toast.error("직원 데이터를 불러올 수 없습니다.");
-        setEmployees([]);
-      }
-    } catch (error) {
-      console.error('사용자 목록 조회 실패:', error);
-      
-      if (error.response?.status === 403) {
-        toast.error('구성원 목록을 조회할 권한이 없습니다.');
-        return;
-      }
-      
-      if (error.response?.status === 500) {
-        toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-        return;
-      }
-      
-      toast.error('구성원 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setDataLoading(false);
+    
+    if (error.response?.status === 500) {
+      toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      return;
     }
-  }, [isLoggedIn, router, fetchOrganizationStructure, orgLoading]);
+    
+    toast.error('구성원 목록을 불러오는데 실패했습니다.');
+  } finally {
+    setDataLoading(false);
+  }
+}, [isLoggedIn, router, orgStructure.length, orgLoading]);
 
   const handleMemberSearchSubmit = useCallback(async (term: string) => {
     setIsSearchingMembers(true);
@@ -334,7 +338,23 @@ export default function MembersPage() {
   }, [orgStructure, orgSearchTerm]);
 
   const handleEmployeeUpdate = (updatedEmployee: Employee) => {
-    setEmployees((prev) => prev.map((emp) => emp.id === updatedEmployee.id ? updatedEmployee : emp));
+    console.log('handleEmployeeUpdate 호출됨:', updatedEmployee);
+    setEmployees((prev) => {
+      const updated = prev.map((emp) => {
+        if (emp.id === updatedEmployee.id) {
+          console.log('업데이트할 직원 찾음:', emp.id, '→', updatedEmployee);
+          return updatedEmployee;
+        }
+        return emp;
+      });
+      
+      const sorted = updated.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      console.log('업데이트된 employees 배열:', sorted);
+      return sorted;
+    });
   };
 
   const handleAddMemberSave = async (memberData: any) => {
@@ -410,9 +430,14 @@ export default function MembersPage() {
 
 
       const updatedEmployees = [...employees, newMember];
-      setEmployees(updatedEmployees);
+
+      const sortedEmployees = updatedEmployees.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+
+      setEmployees(sortedEmployees);
       await fetchOrganizationStructure();
-      setShowAddMemberModal(false); // 모달 닫기
+      setShowAddMemberModal(false);
       toast.success("구성원이 성공적으로 추가되었습니다.");
 
     } catch (error) {
@@ -431,7 +456,15 @@ export default function MembersPage() {
   };
 
   const handleEmployeeDelete = (employeeId: string) => {
-    setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
+    setEmployees((prev) => {
+      const filtered = prev.filter((emp) => emp.id !== employeeId);
+      
+      const sorted = filtered.sort((a, b) => {
+        return a.name.localeCompare(b.name, 'ko', { numeric: true });
+      });
+      
+      return sorted;
+    });
     toast.success("구성원이 삭제되었습니다.");
   };
 

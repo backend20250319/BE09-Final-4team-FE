@@ -131,19 +131,28 @@ export default function MemberList({
   };
 
   const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
+    console.log('MemberList에서 받은 업데이트 데이터:', updatedEmployee); //  디버깅용 로그
+    
     const convertedEmployee: Employee = {
-      ...updatedEmployee,
-      teams: (
-        updatedEmployee.organizations || [updatedEmployee.organization]
-      ).filter(Boolean) as string[],
-      email: updatedEmployee.email || "",
+      id: updatedEmployee.id || "",
       name: updatedEmployee.name || "",
+      email: updatedEmployee.email || "",
+      phone: updatedEmployee.phone || "",
+      address: updatedEmployee.address || "",
+      joinDate: updatedEmployee.joinDate || "",
+      organization: updatedEmployee.organizations?.[0] || updatedEmployee.organization || "",
+      organizations: updatedEmployee.organizations || [],
       position: updatedEmployee.position || "",
       role: updatedEmployee.role || "",
       job: updatedEmployee.job || "",
-      joinDate: updatedEmployee.joinDate || "",
+      rank: updatedEmployee.rank || "",
       isAdmin: updatedEmployee.isAdmin || false,
+      teams: (updatedEmployee.organizations || [updatedEmployee.organization]).filter(Boolean) as string[],
+      profileImage: updatedEmployee.profileImage || "",
+      workPolicies: updatedEmployee.workPolicies || [],
     };
+    
+    console.log('변환된 Employee 데이터:', convertedEmployee); // 🔥 디버깅용 로그
     onEmployeeUpdate?.(convertedEmployee);
   };
 
@@ -161,6 +170,17 @@ export default function MemberList({
 
     window.addEventListener('employeeDeleted', handleEmployeeDeleted);
     return () => window.removeEventListener('employeeDeleted', handleEmployeeDeleted);
+  }, []);
+
+  useEffect(() => {
+    const handleEmployeeUpdated = (event: any) => {
+      const updatedEmployee = event.detail;
+      console.log('employeeUpdated 이벤트 수신:', updatedEmployee);
+      handleProfileUpdate(updatedEmployee);
+    };
+
+    window.addEventListener('employeeUpdated', handleEmployeeUpdated);
+    return () => window.removeEventListener('employeeUpdated', handleEmployeeUpdated);
   }, []);
 
   const displayedEmployees = employees.slice(0, displayedCount);
