@@ -90,6 +90,7 @@ export default function ProfileModal({
   const isOwnProfile = user?.email === currentEmployee?.email;
   const canEdit = isOwnProfile || isAdmin;
   const canEditProfileImage = isOwnProfile;
+  const canViewDetails = isOwnProfile || isAdmin;
 
   useEffect(() => {
     if (!currentEmployee) return;
@@ -312,15 +313,17 @@ export default function ProfileModal({
                   />
                 </div>
 
-                <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
-                  <div className="text-gray-700 font-semibold mb-3">
-                    상세 정보
+                {canViewDetails && (
+                  <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
+                    <div className="text-gray-700 font-semibold mb-3">
+                      상세 정보
+                    </div>
+                    <DetailBlock
+                      joinDate={currentEmployee.joinDate}
+                      address={currentEmployee.address}
+                    />
                   </div>
-                  <DetailBlock
-                    joinDate={currentEmployee.joinDate}
-                    address={currentEmployee.address}
-                  />
-                </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-4">
