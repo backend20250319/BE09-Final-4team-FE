@@ -16,7 +16,11 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { communicationApi } from "@/lib/services/communication/api";
+import { attachmentApi } from "@/lib/services/attachment/api";
 import { useAuth } from "@/hooks/use-auth";
+import { AttachmentsSection } from "@/components/ui/attachments-section";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 export default function DocumentsTable() {
   const [inputText, setInputText] = useState("");
@@ -24,6 +28,7 @@ export default function DocumentsTable() {
   const [page, setPage] = useState(1);
   const [expandedDocs, setExpandedDocs] = useState(new Set());
   const [documents, setDocuments] = useState([]);
+  const [attachments, setAttachments] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const itemsPerPage = 7;
@@ -36,6 +41,50 @@ export default function DocumentsTable() {
         setLoading(true);
         const response = await communicationApi.archives.getAllArchives();
         setDocuments(response);
+        
+        // 각 문서의 첨부파일 정보 로드
+        const attachmentPromises = response.map(async (doc) => {
+          if (doc.fileIds && doc.fileIds.length > 0) {
+            try {
+              const fileInfos = await Promise.all(
+                doc.fileIds.map(fileId => attachmentApi.getFileInfo(fileId))
+              );
+              return {
+                docId: doc.id,
+                files: fileInfos.map(info => {
+                  let sizeDisplay = '';
+                  if (info.fileSize) {
+                    const bytes = info.fileSize;
+                    if (bytes >= 1024 * 1024) {
+                      sizeDisplay = `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+                    } else if (bytes >= 1024) {
+                      sizeDisplay = `${(bytes / 1024).toFixed(0)} KB`;
+                    } else {
+                      sizeDisplay = `${bytes} bytes`;
+                    }
+                  }
+                  return {
+                    id: info.fileId,
+                    name: info.fileName,
+                    size: sizeDisplay,
+                    url: attachmentApi.getDownloadUrl(info.fileId)
+                  };
+                })
+              };
+            } catch (err) {
+              console.error(`문서 ${doc.id}의 첨부파일 정보 로드 실패:`, err);
+              return { docId: doc.id, files: [] };
+            }
+          }
+          return { docId: doc.id, files: [] };
+        });
+        
+        const attachmentResults = await Promise.all(attachmentPromises);
+        const attachmentMap = {};
+        attachmentResults.forEach(result => {
+          attachmentMap[result.docId] = result.files;
+        });
+        setAttachments(attachmentMap);
       } catch (err) {
         console.error("문서 목록을 불러오는데 실패했습니다:", err);
         setError("문서 목록을 불러오는데 실패했습니다.");
@@ -77,7 +126,7 @@ export default function DocumentsTable() {
   };
 
   const handleEdit = (doc) => {
-    router.push(`/documents/edit`);
+    router.push(`/documents/edit?id=${doc.id}`);
   };
 
   const handleDelete = async (doc) => {
@@ -85,11 +134,25 @@ export default function DocumentsTable() {
       try {
         await communicationApi.archives.deleteArchive(doc.id);
         setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
-        alert("삭제가 완료되었습니다.");
+        setAttachments((prev) => {
+          const newAttachments = { ...prev };
+          delete newAttachments[doc.id];
+          return newAttachments;
+        });
+        toast.success("삭제가 완료되었습니다.");
       } catch (err) {
         console.error("삭제 실패:", err);
-        alert("삭제 중 오류가 발생했습니다.");
+        toast.error("삭제 중 오류가 발생했습니다.");
       }
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      await attachmentApi.downloadFile(attachment.id, attachment.name);
+    } catch (err) {
+      console.error("파일 다운로드 실패:", err);
+      toast.error("파일 다운로드 중 오류가 발생했습니다.");
     }
   };
 
@@ -157,8 +220,20 @@ export default function DocumentsTable() {
       {/* Documents List */}
       <div className="space-y-4 min-h-[400px]">
         {loading ? (
-          <div className="text-center text-gray-400 py-12">
-            문서 목록을 불러오는 중...
+          // 스켈레톤 로딩 UI
+          <div className="space-y-4">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="w-12 h-12 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                  <Skeleton className="w-5 h-5" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="text-center text-red-500 py-12">
@@ -190,10 +265,16 @@ export default function DocumentsTable() {
                       </h3>
                     </div>
                     <p className="text-gray-500 text-sm">
-                      {doc.fileIds && doc.fileIds.length > 0 
-                        ? `${doc.fileIds.length}개의 첨부파일`
-                        : '첨부파일 없음'
-                      }
+                      {(() => {
+                        const files = attachments[doc.id];
+                        if (!files || files.length === 0) {
+                          return '첨부파일 없음';
+                        } else if (files.length === 1) {
+                          return files[0].name;
+                        } else {
+                          return `${files[0].name} 외 ${files.length - 1}개`;
+                        }
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -220,15 +301,15 @@ export default function DocumentsTable() {
                     </div>
                   </div>
 
-                  {/* 첨부파일 정보 */}
-                  <div className="pt-4 p-2 px-4">
-                    <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
-                      📎 {doc.fileIds && doc.fileIds.length > 0 
-                        ? `${doc.fileIds.length}개의 파일이 첨부되었습니다.`
-                        : '첨부된 파일이 없습니다.'
-                      }
+                  {/* 첨부파일 섹션 */}
+                  {attachments[doc.id] && attachments[doc.id].length > 0 && (
+                    <div className="pt-4 p-2 px-4">
+                      <AttachmentsSection
+                        attachments={attachments[doc.id]}
+                        onDownload={handleDownloadAttachment}
+                      />
                     </div>
-                  </div>
+                  )}
 
                   {isAdmin && (
                     <div className="flex flex-row gap-2 flex-shrink-0 justify-end items-center px-4 py-4">
