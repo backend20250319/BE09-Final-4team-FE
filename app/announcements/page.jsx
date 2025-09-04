@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input"
 import { colors, typography } from "@/lib/design-tokens"
 import { Search, Plus, Megaphone, Calendar, User, Eye, MessageSquare } from "lucide-react"
 import { useEffect } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import StyledPaging from "@/components/paging/styled-paging"
 import AnnouncementsDetailModal from "./components/AnnouncementsDetailModal"
 import { communicationApi } from "@/lib/services/communication"
 import { useAuth } from "@/hooks/use-auth"
 import { formatDateTime } from "@/lib/utils/date-format"
+import { toast } from "sonner"
 
 // 공지사항 목록 조회 함수
 async function fetchAnnouncements({ page, search }) {
@@ -45,6 +46,7 @@ async function fetchAnnouncements({ page, search }) {
 
 export default function AnnouncementsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isLoggedIn, loading: authLoading } = useAuth();
   const [inputText, setInputText] = useState("");
   const [searchTerm, setSearchTerm] = useState("")
@@ -88,6 +90,36 @@ export default function AnnouncementsPage() {
     // 로그인된 상태에서만 데이터 요청
     loadData(page, searchTerm)
   }, [page, searchTerm, isLoggedIn, authLoading, router])
+  
+  // URL fragment에서 id를 감지하여 모달 자동 열기
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1); // # 제거
+      
+      if (hash && announcements.length > 0) {
+        // ID에 해당하는 공지사항 찾기
+        const targetAnnouncement = announcements.find(
+          announcement => announcement.id === parseInt(hash)
+        );
+        
+        if (targetAnnouncement) {
+          console.log('URL fragment로 공지사항 열기:', targetAnnouncement);
+          setSelectedAnnouncement(targetAnnouncement);
+          setIsModalOpen(true);
+        }
+      }
+    };
+    
+    // 초기 로드 시 체크
+    handleHashChange();
+    
+    // hashchange 이벤트 리스너 추가
+    window.addEventListener('hashchange', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [announcements]);
 
   // 검색 아이콘 클릭 핸들러
   const handleSearchClick = () => {
@@ -110,9 +142,8 @@ export default function AnnouncementsPage() {
   // 공지사항 클릭 핸들러 - 모달 열기로 변경
   const handleGlassCardClick = (announcement) => {
     console.log('공지사항 클릭됨:', announcement);
-    setSelectedAnnouncement(announcement);
-    setIsModalOpen(true);
-    console.log('모달 상태 변경됨:', true);
+    // URL fragment 추가하여 모달 열기
+    router.push(`/announcements#${announcement.id}`);
   };
 
   // 모달 닫기 핸들러
@@ -120,6 +151,11 @@ export default function AnnouncementsPage() {
     console.log('모달 닫기');
     setIsModalOpen(false);
     setSelectedAnnouncement(null);
+    
+    // URL에서 fragment 제거
+    if (window.location.hash) {
+      router.push('/announcements');
+    }
   };
 
   // 수정 핸들러 - 공지사항 ID를 URL 파라미터로 전달
@@ -139,14 +175,14 @@ export default function AnnouncementsPage() {
         // 삭제 API 호출
         await communicationApi.announcements.deleteAnnouncement(selectedAnnouncement.id);
         
-        alert('삭제가 완료되었습니다.');
+        toast.success('삭제가 완료되었습니다.');
         handleCloseModal();
         
         // 목록 새로고침
         loadData(page, searchTerm);
       } catch (error) {
         console.error('공지사항 삭제 실패:', error);
-        alert('삭제에 실패했습니다.');
+        toast.error('삭제에 실패했습니다.');
       }
     }
   };

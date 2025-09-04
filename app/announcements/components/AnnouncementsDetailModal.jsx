@@ -16,6 +16,7 @@ import { communicationApi } from "@/lib/services/communication";
 import { formatDateTime } from "@/lib/utils/date-format";
 import { useAuth } from "@/contexts/auth-context";
 import { attachmentService } from "@/lib/services/attachment/api";
+import { toast } from "sonner";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
@@ -109,7 +110,7 @@ export default function AnnouncementsDetailModal({
       setNewComment("");
     } catch (error) {
       console.error('댓글 작성 실패:', error);
-      alert('댓글 작성에 실패했습니다.');
+      toast.error('댓글 작성에 실패했습니다.');
     }
   };
 
@@ -127,7 +128,7 @@ export default function AnnouncementsDetailModal({
       setOpenDropdownId(null);
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
-      alert('댓글 삭제에 실패했습니다.');
+      toast.error('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -141,7 +142,7 @@ export default function AnnouncementsDetailModal({
       await attachmentService.downloadFile(attachment.id, attachment.name);
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
-      alert('파일 다운로드에 실패했습니다.');
+      toast.error('파일 다운로드에 실패했습니다.');
     }
   };
 
