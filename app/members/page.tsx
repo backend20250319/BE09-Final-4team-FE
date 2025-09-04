@@ -209,7 +209,10 @@ export default function MembersPage() {
 
     setDataLoading(true);
     try {
+      console.log('사용자 목록 조회 시작');
       const users = await userApi.getAllUsers();
+      console.log('사용자 목록 조회 성공:', users);
+      
       if (Array.isArray(users)) {
         const convertedUsers = users.map(convertUserToEmployee);
         setEmployees(convertedUsers);
@@ -222,10 +225,19 @@ export default function MembersPage() {
         setEmployees([]);
       }
     } catch (error) {
-      console.error("직원 데이터 로드 오류:", error);
-      toast.error("직원 데이터 로드 중 오류가 발생했습니다.");
-      setEmployees([]);
-      setOrgStructure([]);
+      console.error('사용자 목록 조회 실패:', error);
+      
+      if (error.response?.status === 403) {
+        toast.error('구성원 목록을 조회할 권한이 없습니다.');
+        return;
+      }
+      
+      if (error.response?.status === 500) {
+        toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      
+      toast.error('구성원 목록을 불러오는데 실패했습니다.');
     } finally {
       setDataLoading(false);
     }
