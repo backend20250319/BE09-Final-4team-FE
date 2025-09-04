@@ -174,11 +174,18 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        console.log("News API 임시 비활성화");
+        setNewsLoading(true); // 로딩 시작
+        const recentNews = await newsApi.getRecentNewsForDashboard();
+        setNewsData(recentNews);
+        console.log("뉴스 데이터 로드 완료:", recentNews);
       } catch (error) {
         console.error("Error fetching recent news:", error);
+        setNewsData([]); // 에러 발생 시 뉴스 데이터를 비웁니다.
+      } finally {
+        setNewsLoading(false); // 로딩 종료
       }
     };
+    loadNews(); // 컴포넌트 마운트 시 뉴스 로드 함수 호출
   }, []);
 
   // 출근
