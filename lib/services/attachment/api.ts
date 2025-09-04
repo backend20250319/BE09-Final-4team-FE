@@ -17,7 +17,7 @@ export const attachmentApi = {
       formData.append('files', file)
     })
 
-    const response = await apiClient.post<ApiResult<AttachmentInfoListResponse>>(
+    const response = await apiClient.post<AttachmentInfoListResponse>(
       '/api/attachments/upload',
       formData,
       {
@@ -26,15 +26,15 @@ export const attachmentApi = {
         },
       }
     )
-    return response.data.data
+    return response.data
   },
 
   // 파일 정보 조회
   getFileInfo: async (fileId: string): Promise<AttachmentInfoResponse> => {
-    const response = await apiClient.get<ApiResult<AttachmentInfoResponse>>(
+    const response = await apiClient.get<AttachmentInfoResponse>(
       `/api/attachments/${fileId}/info`
     )
-    return response.data.data
+    return response.data
   },
 
   // 파일 다운로드 (브라우저에서 다운로드 실행)
@@ -75,7 +75,7 @@ export const attachmentApi = {
 
   // 파일 삭제 (ADMIN 권한 필요)
   deleteFile: async (fileId: string): Promise<void> => {
-    await apiClient.delete<ApiResult<void>>(`/api/attachments/${fileId}`)
+    await apiClient.delete<void>(`/api/attachments/${fileId}`)
   }
 }
 
