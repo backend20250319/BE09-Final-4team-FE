@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from "lexical";
 import ExampleTheme from "./themes/ExampleTheme";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
@@ -28,34 +28,49 @@ function Placeholder() {
   );
 }
 
-function EditorInitializer({ json }) {
+function EditorInitializer({ json, setEditorInstance }) {
   const [editor] = useLexicalComposerContext();
+  
+  useEffect(() => {
+    setEditorInstance(editor);
+  }, [editor, setEditorInstance]);
 
   useEffect(() => {
-    if (json) {
+    if (json && json.trim() !== '') {
       try {
-        const editorState = editor.parseEditorState(json);
+        const parsedData = JSON.parse(json);
+        const editorState = editor.parseEditorState(parsedData);
         editor.setEditorState(editorState);
+        console.log('에디터 상태 로드 성공');
       } catch (error) {
         console.error('Failed to parse editor state:', error);
+        console.log('Fallback to empty state');
         // Fallback to empty state
         editor.update(() => {
           const root = $getRoot();
           root.clear();
           const paragraph = $createParagraphNode();
+          paragraph.append($createTextNode(''));
           root.append(paragraph);
         });
       }
-    }  else {
-      // Create empty state more simply
+    } else {
+      // Create empty state
+      console.log('Creating empty editor state');
       editor.update(() => {
         const root = $getRoot();
         root.clear();
         const paragraph = $createParagraphNode();
+        paragraph.append($createTextNode(''));
         root.append(paragraph);
-        paragraph.select(); // 첫번째 block 선택
       });
     }
+    
+    // 에디터가 편집 가능한지 확인
+    setTimeout(() => {
+      console.log('에디터 편집 가능 상태:', editor.isEditable());
+    }, 100);
+    
   }, [json, editor]);
 
   return null; // 실제로 렌더링되는 UI는 없음
@@ -81,8 +96,21 @@ const editorConfigBase = {
   ],
 };
 
-export default function Editor({ jsonData: json, onChange, readOnly = false, showToolbar = true, backgroundColor }) {
+const Editor = forwardRef(({ jsonData: json, onChange, readOnly = false, showToolbar = true, backgroundColor }, ref) => {
   const [mounted, setMounted] = useState(false);
+  const [editorInstance, setEditorInstance] = useState(null);
+  
+  // ref를 통해 외부에서 에디터 상태를 가져올 수 있도록 함
+  useImperativeHandle(ref, () => ({
+    getEditorState: () => {
+      if (editorInstance) {
+        const editorState = editorInstance.getEditorState();
+        return JSON.stringify(editorState.toJSON());
+      }
+      return "";
+    }
+  }), [editorInstance]);
+
   function handleChange(editorState) {
     const jsonString = JSON.stringify(editorState.toJSON());
     onChange?.(jsonString);  // 상위에서 내려온 콜백에 전달
@@ -109,6 +137,7 @@ export default function Editor({ jsonData: json, onChange, readOnly = false, sho
       initialConfig={{
         ...editorConfigBase,
         editable: !readOnly,
+        namespace: 'lexical-editor',
       }}
     >
       <div className="editor-container">
@@ -131,10 +160,14 @@ export default function Editor({ jsonData: json, onChange, readOnly = false, sho
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <CodeHighlightPlugin />
-          <EditorInitializer json={json} />
+          <EditorInitializer json={json} setEditorInstance={setEditorInstance} />
         </div>
         {!readOnly && <OnChangePlugin onChange={handleChange} />}
       </div>
     </LexicalComposer>
   );
-}
+});
+
+Editor.displayName = 'Editor';
+
+export default Editor;
