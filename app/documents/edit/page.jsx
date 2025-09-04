@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,15 +8,30 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { FileText, ArrowLeft, Save, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AttachmentsManager } from '@/components/ui/attachments-manager';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function DocumentEditPage() {
   const router = useRouter();
+  const { isAdmin, isLoggedIn } = useAuth();
   const [title, setTitle] = useState('2025년 신입사원 온보딩 가이드');
   const [description, setDescription] = useState('신입사원이 회사 문화와 업무 프로세스를 빠르게 이해할 수 있도록 제작된 교육 자료입니다. 회사 소개, 조직 문화, 기본 업무 가이드라인, 필수 시스템 사용법 등을 포함하고 있습니다. 신입사원 온보딩 필수 문서이며, 교육 기간 동안의 강의 자료와 실습 가이드를 담고 있습니다.');
   const [attachments, setAttachments] = useState([
     { id: '1', name: '2025_하반기_인사발령_명단.pdf', size: '1.2 MB', url: '/2025_하반기_인사발령_명단.pdf' },
     { id: '2', name: '2025_신입사원_온보딩_가이드.pdf', size: '1.4 MB', url: '/2025_신입사원_온보딩_가이드.pdf' }
   ]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    
+    if (!isAdmin) {
+      alert('관리자만 문서를 수정할 수 있습니다.');
+      router.push('/documents');
+      return;
+    }
+  }, [isLoggedIn, isAdmin, router]);
 
   const handleSave = () => {
     // 저장 로직 구현

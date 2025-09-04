@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,12 +8,27 @@ import { GradientButton } from '@/components/ui/gradient-button';
 import { FileText, ArrowLeft, Upload, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AttachmentsManager } from '@/components/ui/attachments-manager';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function DocumentUploadPage() {
   const router = useRouter();
+  const { isAdmin, isLoggedIn } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [attachments, setAttachments] = useState([]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
+    
+    if (!isAdmin) {
+      alert('관리자만 문서를 업로드할 수 있습니다.');
+      router.push('/documents');
+      return;
+    }
+  }, [isLoggedIn, isAdmin, router]);
 
   const handleUpload = () => {
     if (!title.trim()) {
