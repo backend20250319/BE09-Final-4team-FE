@@ -41,18 +41,18 @@ export default function DocumentsTable() {
         setLoading(true);
         const response = await communicationApi.archives.getAllArchives();
         setDocuments(response);
-        
+
         // 각 문서의 첨부파일 정보 로드
         const attachmentPromises = response.map(async (doc) => {
           if (doc.fileIds && doc.fileIds.length > 0) {
             try {
               const fileInfos = await Promise.all(
-                doc.fileIds.map(fileId => attachmentApi.getFileInfo(fileId))
+                doc.fileIds.map((fileId) => attachmentApi.getFileInfo(fileId))
               );
               return {
                 docId: doc.id,
-                files: fileInfos.map(info => {
-                  let sizeDisplay = '';
+                files: fileInfos.map((info) => {
+                  let sizeDisplay = "";
                   if (info.fileSize) {
                     const bytes = info.fileSize;
                     if (bytes >= 1024 * 1024) {
@@ -67,9 +67,9 @@ export default function DocumentsTable() {
                     id: info.fileId,
                     name: info.fileName,
                     size: sizeDisplay,
-                    url: attachmentApi.getDownloadUrl(info.fileId)
+                    url: attachmentApi.getDownloadUrl(info.fileId),
                   };
-                })
+                }),
               };
             } catch (err) {
               console.error(`문서 ${doc.id}의 첨부파일 정보 로드 실패:`, err);
@@ -78,10 +78,10 @@ export default function DocumentsTable() {
           }
           return { docId: doc.id, files: [] };
         });
-        
+
         const attachmentResults = await Promise.all(attachmentPromises);
         const attachmentMap = {};
-        attachmentResults.forEach(result => {
+        attachmentResults.forEach((result) => {
           attachmentMap[result.docId] = result.files;
         });
         setAttachments(attachmentMap);
@@ -99,7 +99,8 @@ export default function DocumentsTable() {
   const searchFiltered = documents.filter(
     (doc) =>
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (doc.description && doc.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      (doc.description &&
+        doc.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   const totalPages = Math.ceil(searchFiltered.length / itemsPerPage);
   const paged = searchFiltered.slice(
@@ -163,7 +164,7 @@ export default function DocumentsTable() {
         <div className="flex items-center mb-2">
           <h1 className={`${typography.h1} text-gray-800`}>문서함</h1>
         </div>
-        <p className="text-gray-600">회사의 중요한 소식을 확인하세요</p>
+        <p className="text-gray-600">회사에 필요한 문서를 업로드하세요</p>
       </div>
 
       {/* Search and Filter */}
@@ -223,7 +224,10 @@ export default function DocumentsTable() {
           // 스켈레톤 로딩 UI
           <div className="space-y-4">
             {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white rounded-xl border border-gray-200 p-6">
+              <div
+                key={index}
+                className="bg-white rounded-xl border border-gray-200 p-6"
+              >
                 <div className="flex items-center gap-4">
                   <Skeleton className="w-12 h-12 rounded-xl" />
                   <div className="flex-1 space-y-2">
@@ -236,9 +240,7 @@ export default function DocumentsTable() {
             ))}
           </div>
         ) : error ? (
-          <div className="text-center text-red-500 py-12">
-            {error}
-          </div>
+          <div className="text-center text-red-500 py-12">{error}</div>
         ) : paged.length === 0 ? (
           <div className="text-center text-gray-400 py-12">
             등록된 문서가 없습니다.
@@ -268,7 +270,7 @@ export default function DocumentsTable() {
                       {(() => {
                         const files = attachments[doc.id];
                         if (!files || files.length === 0) {
-                          return '첨부파일 없음';
+                          return "첨부파일 없음";
                         } else if (files.length === 1) {
                           return files[0].name;
                         } else {
@@ -296,7 +298,7 @@ export default function DocumentsTable() {
                   <div className="pt-8 flex items-start gap-4 px-4 py-8">
                     <div className="flex-1">
                       <p className="text-gray-600 leading-relaxed">
-                        {doc.description || '설명이 없습니다.'}
+                        {doc.description || "설명이 없습니다."}
                       </p>
                     </div>
                   </div>
