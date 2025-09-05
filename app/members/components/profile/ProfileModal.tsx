@@ -39,6 +39,7 @@ import DetailBlock from "./DetailBlock";
 import PolicyBlock from "./PolicyBlock";
 import EditModal from "../EditModal";
 import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
+import { userApi } from "@/lib/services/user/api";
 
 interface Props {
   isOpen: boolean;
@@ -69,6 +70,7 @@ export default function ProfileModal({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string>("");
   const [currentEmployee, setCurrentEmployee] = useState<MemberProfile | null>(employee);
+  const [detailInfo, setDetailInfo] = useState<{address?: string, joinDate?: string} | null>(null);
   
   useEffect(() => {
     setCurrentEmployee(employee);
@@ -88,7 +90,7 @@ export default function ProfileModal({
   }, [currentEmployee?.id, onUpdate]);
 
   const isOwnProfile = user?.email === currentEmployee?.email;
-  const canEdit = isOwnProfile || isAdmin;
+  const canEdit = isAdmin;
   const canEditProfileImage = isOwnProfile;
   const canViewDetails = isOwnProfile || isAdmin;
 
@@ -96,6 +98,26 @@ export default function ProfileModal({
     if (!currentEmployee) return;
     setProfileImage(currentEmployee.profileImage || currentEmployee.avatarUrl || "");
   }, [currentEmployee]);
+
+  const handleModalOpen = async () => {
+    if (employee?.id && canViewDetails) {
+      try {
+        const response = await userApi.getDetailProfile(employee.id);
+        if (response.data) {
+          setDetailInfo({
+            address: response.data.address,
+            joinDate: response.data.joinDate
+          });
+        }
+      } catch (error) {
+        console.error('상세 정보 조회 실패:', error);
+      }
+    }
+  };
+
+  if (isOpen && !detailInfo) {
+    handleModalOpen();
+  }
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -319,8 +341,23 @@ export default function ProfileModal({
                       상세 정보
                     </div>
                     <DetailBlock
-                      joinDate={currentEmployee.joinDate}
-                      address={currentEmployee.address}
+                      joinDate={detailInfo?.joinDate || (async () => {
+                        if (employee?.id && !detailInfo) {
+                          try {
+                            const response = await userApi.getDetailProfile(employee.id);
+                            if (response.data) {
+                              setDetailInfo({
+                                address: response.data.address,
+                                joinDate: response.data.joinDate
+                              });
+                            }
+                          } catch (error) {
+                            console.error('상세 정보 조회 실패:', error);
+                          }
+                        }
+                        return detailInfo?.joinDate;
+                      })()}
+                      address={detailInfo?.address}
                     />
                   </div>
                 )}

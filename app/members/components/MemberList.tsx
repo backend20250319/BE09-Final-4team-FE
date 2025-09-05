@@ -131,7 +131,6 @@ export default function MemberList({
   };
 
   const handleProfileUpdate = (updatedEmployee: MemberProfile) => {
-    console.log('MemberList에서 받은 업데이트 데이터:', updatedEmployee); //  디버깅용 로그
     
     const convertedEmployee: Employee = {
       id: updatedEmployee.id || "",
@@ -152,7 +151,6 @@ export default function MemberList({
       workPolicies: updatedEmployee.workPolicies || [],
     };
     
-    console.log('변환된 Employee 데이터:', convertedEmployee); // 🔥 디버깅용 로그
     onEmployeeUpdate?.(convertedEmployee);
   };
 
@@ -175,7 +173,6 @@ export default function MemberList({
   useEffect(() => {
     const handleEmployeeUpdated = (event: any) => {
       const updatedEmployee = event.detail;
-      console.log('employeeUpdated 이벤트 수신:', updatedEmployee);
       handleProfileUpdate(updatedEmployee);
     };
 
@@ -236,12 +233,7 @@ export default function MemberList({
                 <span>{employee.phone}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-4 h-4" />
-              <span>
-                입사일: {new Date(employee.joinDate).toLocaleDateString()}
-              </span>
-            </div>
+            
             {employee.organization && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Building2 className="w-4 h-4" />
@@ -325,13 +317,15 @@ export default function MemberList({
         </div>
       )}
 
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={handleProfileModalClose}
-        employee={selectedEmployee}
-        onUpdate={handleProfileUpdate}
-        onDelete={handleEmployeeDelete}
-      />
+      {showProfileModal && selectedEmployee && (
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={handleProfileModalClose}
+          employee={selectedEmployee}
+          onUpdate={handleProfileUpdate}
+          onDelete={handleEmployeeDelete}
+        />
+      )}
     </div>
   );
 }

@@ -92,7 +92,9 @@ export function Header({
   const displayEmail = user?.email || ''
 
   const handleMyProfileClick = () => {
-    setShowProfileModal(true)
+    if (employeeData) {
+      setShowProfileModal(true)
+    }
   }
 
   const handleProfileModalClose = () => {
@@ -193,26 +195,14 @@ export function Header({
         </div>
       </div>
 
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={handleProfileModalClose}
-        employee={employeeData || {
-          id: 'temp',
-          name: user?.name || '사용자',
-          email: user?.email || '',
-          phone: '010-1234-5678',
-          address: '서울시 서초구 신반포로15길 19 (아크로리버파크)',
-          joinDate: new Date().toISOString().split('T')[0],
-          organization: '개발본부',
-          position: '대리',
-          role: '개발자',
-          job: '풀스택 개발',
-          isAdmin: isAdmin,
-          teams: ['프론트엔드팀'],
-          workPolicies: ['flexible', 'hybrid']
-        }}
-        onUpdate={handleProfileUpdate}
-      />
+      {showProfileModal && employeeData && (
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={handleProfileModalClose}
+          employee={employeeData}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
     </div>
   )
 }
