@@ -75,7 +75,7 @@ export default function ApprovalsPage() {
 
   // API에서 문서 데이터 가져오기
   const statusFilter = activeTab === "inProgress" 
-    ? [DocumentStatus.DRAFT, DocumentStatus.PENDING, DocumentStatus.IN_PROGRESS]
+    ? [DocumentStatus.DRAFT, DocumentStatus.IN_PROGRESS]
     : [DocumentStatus.APPROVED, DocumentStatus.REJECTED]
 
   const { data: documentsData, isLoading, error } = useDocuments({
@@ -94,11 +94,11 @@ export default function ApprovalsPage() {
     doc.status === DocumentStatus.DRAFT
   )
   const myPendingDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    (doc.status === DocumentStatus.PENDING || doc.status === DocumentStatus.IN_PROGRESS) && 
+    doc.status === DocumentStatus.IN_PROGRESS && 
     doc.userRole === UserRole.APPROVER
   )
   const inProgressDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    (doc.status === DocumentStatus.PENDING || doc.status === DocumentStatus.IN_PROGRESS) && 
+    doc.status === DocumentStatus.IN_PROGRESS && 
     doc.userRole !== UserRole.APPROVER
   )
   // 진행중 및 완료된 문서
@@ -111,7 +111,6 @@ export default function ApprovalsPage() {
     switch (status) {
       case DocumentStatus.DRAFT:
         return FileText
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
         return userRole === UserRole.APPROVER ? AlertCircle : Clock
@@ -128,7 +127,6 @@ export default function ApprovalsPage() {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.bg
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
         return userRole === UserRole.APPROVER ? colors.status.warning.bg : colors.status.info.bg
@@ -145,7 +143,6 @@ export default function ApprovalsPage() {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.text
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
         return userRole === UserRole.APPROVER ? colors.status.warning.text : colors.status.info.text
@@ -240,7 +237,6 @@ export default function ApprovalsPage() {
       switch (status) {
         case DocumentStatus.DRAFT:
           return "작성중"
-        case DocumentStatus.PENDING:
         case DocumentStatus.IN_PROGRESS:
           return userRole === UserRole.APPROVER ? "승인 필요" : "진행중"
         case DocumentStatus.APPROVED:

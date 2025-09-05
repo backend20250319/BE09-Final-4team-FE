@@ -8,7 +8,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { colors, typography } from "@/lib/design-tokens"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import {
   Calendar,
@@ -28,71 +27,8 @@ import {
   FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { Attachment } from "@/components/ui/attachments-manager"
 import { DocumentSummaryResponse } from "@/lib/services/approval/types"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "@/lib/hooks/useApproval"
-
-// 타입 정의
-export interface User {
-  id: string
-  name: string
-  avatar?: string
-  position?: string
-}
-
-interface TimelineItem {
-  id: string
-  date: string
-  user: User
-  action: string
-  content?: string
-  changes?: Array<{
-    field: string
-    oldValue: string
-    newValue: string
-  }>
-  type?: 'history' | 'comment'
-  uniqueId?: string
-}
-
-interface Approver {
-  userId: string
-  name: string
-  avatar?: string
-  position: string
-  status: 'pending' | 'completed' | 'rejected'
-}
-
-interface ApprovalStage {
-  id: string
-  status: 'pending' | 'current' | 'completed' | 'rejected'
-  approvers: Approver[]
-}
-
-interface Reference {
-  id: string
-  name: string
-  avatar?: string
-  position: string
-}
-
-export interface Approval {
-  id: number
-  formTemplateId: string
-  content: string
-  department: string
-  requester: string
-  date: string
-  status: 'pending' | 'approved' | 'rejected'
-  priority?: 'low' | 'medium' | 'high'
-  isMyApproval?: boolean
-  attachments?: Attachment[]
-  history?: TimelineItem[]
-  comments?: TimelineItem[]
-  approvalStages?: ApprovalStage[]
-  references?: Reference[]
-  formFields?: Record<string, any>
-}
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -403,12 +339,12 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
               <div className={`text-sm flex-shrink-0 ${
                 !stage.isCompleted && stageIndex === 0 ? "text-blue-700 font-medium" : "text-gray-500"
               }`}>
-                {stage.targets?.filter((t: any) => t.isApproved).length || 0}/{stage.targets?.length || 0} 승인
+                {stage.approvalTargets?.filter((t: any) => t.isApproved).length || 0}/{stage.approvalTargets?.length || 0} 승인
               </div>
             </div>
 
             <div className="space-y-1">
-              {stage.targets?.map((target: any, targetIndex: number) => (
+              {stage.approvalTargets?.map((target: any, targetIndex: number) => (
                 <div key={target.id || `target-${stageIndex}-${targetIndex}`} className="flex items-center justify-between p-2">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="w-8 h-8 flex-shrink-0">
@@ -419,7 +355,7 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 truncate">{target.user?.name || "알 수 없음"}</p>
-                      <p className="text-xs text-gray-500 truncate">{target.user?.departmentName || ""}</p>
+                      <p className="text-xs text-gray-500 truncate">{target.user?.email || ""}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -470,7 +406,7 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-800 truncate">{reference.user?.name || "알 수 없음"}</p>
-                    <p className="text-xs text-gray-500 truncate">{reference.user?.departmentName || ""}</p>
+                    <p className="text-xs text-gray-500 truncate">{reference.user?.email || ""}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
@@ -604,9 +540,9 @@ export function ApprovalModal({
   }
 
   const canApprove = () => {
-    // 승인 권한 체크: APPROVER 역할이면서 문서 상태가 PENDING 또는 IN_PROGRESS여야 함
+    // 승인 권한 체크: APPROVER 역할이면서 문서 상태가 IN_PROGRESS여야 함
     const hasApproverRole = documentSummary?.userRole === "APPROVER" || documentDetail?.userRole === "APPROVER"
-    const isApprovableStatus = displayData?.status === "PENDING" || displayData?.status === "IN_PROGRESS"
+    const isApprovableStatus = displayData?.status === "IN_PROGRESS"
     return hasApproverRole && isApprovableStatus
   }
 
@@ -662,7 +598,7 @@ export function ApprovalModal({
       id: activity.id?.toString() || index.toString(),
       date: activity.createdAt,
       user: activity.user,
-      action: activity.type.toLowerCase(),
+      action: activity.activityType.toLowerCase(),
       content: activity.reason,
       type: 'history' as const,
       uniqueId: `activity-${activity.id || index}`

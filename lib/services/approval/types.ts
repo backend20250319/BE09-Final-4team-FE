@@ -12,7 +12,6 @@ export interface UserProfile {
 // 승인 서비스 특화 열거형
 export enum DocumentStatus {
   DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED'
