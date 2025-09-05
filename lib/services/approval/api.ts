@@ -163,6 +163,11 @@ export const documentApi = {
   rejectDocument: async (id: number, request?: ApprovalActionRequest): Promise<void> => {
     await apiClient.post<void>(`/api/approval/documents/${id}/reject`, request || {})
   },
+
+  // 문서 삭제
+  deleteDocument: async (id: number): Promise<void> => {
+    await apiClient.delete<void>(`/api/approval/documents/${id}`)
+  },
 }
 
 // 댓글 관련 API

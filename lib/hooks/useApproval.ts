@@ -6,7 +6,11 @@ import {
   CreateDocumentRequest,
   UpdateDocumentRequest,
   ApprovalActionRequest,
-  CreateCommentRequest
+  CreateCommentRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  CreateTemplateRequest,
+  UpdateTemplateRequest
 } from '@/lib/services/approval/types'
 import { toast } from 'sonner'
 
@@ -116,6 +120,15 @@ export const useRejectDocument = () => {
   })
 }
 
+// 댓글 목록 조회
+export const useComments = (documentId: number | null) => {
+  return useQuery({
+    queryKey: ['comments', documentId],
+    queryFn: () => documentId ? approvalApi.comment.getComments(documentId) : Promise.reject('No document ID'),
+    enabled: !!documentId,
+  })
+}
+
 // 댓글 생성
 export const useCreateComment = () => {
   const queryClient = useQueryClient()
@@ -125,10 +138,27 @@ export const useCreateComment = () => {
       approvalApi.comment.createComment(documentId, request),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['document', variables.documentId] })
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.documentId] })
       toast.success('댓글이 작성되었습니다.')
     },
     onError: () => {
       toast.error('댓글 작성에 실패했습니다.')
+    },
+  })
+}
+
+// 문서 삭제
+export const useDeleteDocument = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: number) => approvalApi.document.deleteDocument(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      toast.success('문서가 성공적으로 삭제되었습니다.')
+    },
+    onError: () => {
+      toast.error('문서 삭제에 실패했습니다.')
     },
   })
 }
@@ -149,10 +179,151 @@ export const useTemplatesByCategory = () => {
   })
 }
 
+// 템플릿 상세 조회
+export const useTemplate = (id: number | null) => {
+  return useQuery({
+    queryKey: ['template', id],
+    queryFn: () => id ? approvalApi.template.getTemplateById(id) : Promise.reject('No ID'),
+    enabled: !!id,
+  })
+}
+
+// 템플릿 생성
+export const useCreateTemplate = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (request: CreateTemplateRequest) => 
+      approvalApi.template.createTemplate(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      toast.success('템플릿이 성공적으로 생성되었습니다.')
+    },
+    onError: () => {
+      toast.error('템플릿 생성에 실패했습니다.')
+    },
+  })
+}
+
+// 템플릿 수정
+export const useUpdateTemplate = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, request }: { id: number; request: UpdateTemplateRequest }) =>
+      approvalApi.template.updateTemplate(id, request),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['template', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      toast.success('템플릿이 성공적으로 수정되었습니다.')
+    },
+    onError: () => {
+      toast.error('템플릿 수정에 실패했습니다.')
+    },
+  })
+}
+
+// 템플릿 삭제
+export const useDeleteTemplate = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: number) => approvalApi.template.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      toast.success('템플릿이 성공적으로 삭제되었습니다.')
+    },
+    onError: () => {
+      toast.error('템플릿 삭제에 실패했습니다.')
+    },
+  })
+}
+
+// 템플릿 공개/숨김 설정
+export const useUpdateTemplateVisibility = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, isHidden }: { id: number; isHidden: boolean }) =>
+      approvalApi.template.updateTemplateVisibility(id, isHidden),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['template', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      toast.success(variables.isHidden ? '템플릿이 숨김 처리되었습니다.' : '템플릿이 공개되었습니다.')
+    },
+    onError: () => {
+      toast.error('템플릿 공개 설정에 실패했습니다.')
+    },
+  })
+}
+
 // 카테고리 목록 조회
 export const useCategories = () => {
   return useQuery({
     queryKey: ['categories'],
     queryFn: () => approvalApi.category.getCategories(),
+  })
+}
+
+// 카테고리 상세 조회
+export const useCategory = (id: number | null) => {
+  return useQuery({
+    queryKey: ['category', id],
+    queryFn: () => id ? approvalApi.category.getCategoryById(id) : Promise.reject('No ID'),
+    enabled: !!id,
+  })
+}
+
+// 카테고리 생성
+export const useCreateCategory = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: approvalApi.category.createCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      toast.success('카테고리가 성공적으로 생성되었습니다.')
+    },
+    onError: () => {
+      toast.error('카테고리 생성에 실패했습니다.')
+    },
+  })
+}
+
+// 카테고리 수정
+export const useUpdateCategory = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ id, request }: { id: number; request: UpdateCategoryRequest }) =>
+      approvalApi.category.updateCategory(id, request),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['category', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      toast.success('카테고리가 성공적으로 수정되었습니다.')
+    },
+    onError: () => {
+      toast.error('카테고리 수정에 실패했습니다.')
+    },
+  })
+}
+
+// 카테고리 삭제
+export const useDeleteCategory = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (id: number) => approvalApi.category.deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      toast.success('카테고리가 성공적으로 삭제되었습니다.')
+    },
+    onError: () => {
+      toast.error('카테고리 삭제에 실패했습니다.')
+    },
   })
 }
