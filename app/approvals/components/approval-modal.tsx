@@ -27,8 +27,9 @@ import {
   FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { DocumentSummaryResponse } from "@/lib/services/approval/types"
+import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus } from "@/lib/services/approval/types"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "@/lib/hooks/useApproval"
+import { Separator } from "@/components/ui/separator"
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -290,7 +291,7 @@ function TimelineSection({
   )
 }
 
-function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
+function ApprovalStagesSection({ documentDetail }: { documentDetail: DocumentResponse }) {
   if (!documentDetail?.approvalStages) return null
   
   const stages = documentDetail.approvalStages
@@ -298,7 +299,7 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
   return (
     <div className="space-y-3">
       <div className="space-y-3">
-        {stages.map((stage: any, stageIndex: number) => (
+        {stages.map((stage: ApprovalStageResponse, stageIndex: number) => (
           <div 
             key={stage.id || `stage-${stageIndex}`} 
             className={`p-3 rounded-lg transition-all duration-300 ${
@@ -339,12 +340,12 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
               <div className={`text-sm flex-shrink-0 ${
                 !stage.isCompleted && stageIndex === 0 ? "text-blue-700 font-medium" : "text-gray-500"
               }`}>
-                {stage.approvalTargets?.filter((t: any) => t.isApproved).length || 0}/{stage.approvalTargets?.length || 0} 승인
+                {stage.approvalTargets?.filter((t: ApprovalTargetResponse) => t.approvalStatus === ApprovalStatus.APPROVED).length || 0}/{stage.approvalTargets?.length || 0} 승인
               </div>
             </div>
 
             <div className="space-y-1">
-              {stage.approvalTargets?.map((target: any, targetIndex: number) => (
+              {stage.approvalTargets?.map((target: ApprovalTargetResponse, targetIndex: number) => (
                 <div key={target.id || `target-${stageIndex}-${targetIndex}`} className="flex items-center justify-between p-2">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="w-8 h-8 flex-shrink-0">
@@ -360,16 +361,16 @@ function ApprovalStagesSection({ documentDetail }: { documentDetail: any }) {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="flex items-center gap-1 justify-end mb-1">
-                      {target.isApproved ? (
+                      {target.approvalStatus === ApprovalStatus.APPROVED ? (
                         <CheckCircle className="w-3 h-3 text-green-600" />
-                      ) : target.isRejected ? (
+                      ) : target.approvalStatus === ApprovalStatus.REJECTED ? (
                         <XCircle className="w-3 h-3 text-red-600" />
                       ) : (
                         <Clock className="w-3 h-3 text-yellow-600" />
                       )}
                       <p className="text-xs text-gray-500">
-                        {target.isApproved ? "승인됨" :
-                          target.isRejected ? "반려됨" : "대기중"}
+                        {target.approvalStatus === ApprovalStatus.APPROVED ? "승인됨" :
+                          target.approvalStatus === ApprovalStatus.REJECTED ? "반려됨" : "대기중"}
                       </p>
                     </div>
                   </div>

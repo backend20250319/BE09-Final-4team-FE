@@ -17,6 +17,12 @@ export enum DocumentStatus {
   REJECTED = 'REJECTED'
 }
 
+export enum ApprovalStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
 export enum TargetType {
   USER = 'USER',
   ORGANIZATION = 'ORGANIZATION',
@@ -102,9 +108,9 @@ export interface ApprovalTargetResponse {
   organizationId?: number
   managerLevel?: number
   isReference: boolean
-  isApproved?: boolean
-  approver?: UserProfile
-  approvedAt?: string
+  approvalStatus?: ApprovalStatus
+  processor?: UserProfile
+  processedAt?: string
 }
 
 export interface ApprovalTargetRequest {
