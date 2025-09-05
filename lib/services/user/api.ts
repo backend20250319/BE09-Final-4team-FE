@@ -87,8 +87,8 @@ export const userApi = {
         return response.data;
     },
 
-    getMainProfile: async (userId: number): Promise<any> => {
-        const response = await apiClient.get(`/api/users/${userId}/profile`);
+    getMainProfile: async (userId: number): Promise<UserResponseDto> => {
+        const response = await apiClient.get(`/api/users/${userId}`);
         return response.data;
     },
 

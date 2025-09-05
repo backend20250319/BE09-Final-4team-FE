@@ -100,24 +100,76 @@ export default function ProfileModal({
   }, [currentEmployee]);
 
   const handleModalOpen = async () => {
-    if (employee?.id && canViewDetails) {
+    if (employee?.id) {
       try {
-        const response = await userApi.getDetailProfile(employee.id);
-        if (response.data) {
-          setDetailInfo({
-            address: response.data.address,
-            joinDate: response.data.joinDate
-          });
+        // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
+        const mainResponse = await userApi.getMainProfile(employee.id);
+        
+        if (mainResponse && mainResponse.data) {
+          // workPolicies 배열 설정 (workPolicyId가 있는 경우)
+          const workPolicies = mainResponse.data.workPolicyId ? [mainResponse.data.workPolicyId.toString()] : [];
+          
+          setCurrentEmployee(prev => ({
+            ...prev,
+            workPolicy: mainResponse.data.workPolicy,
+            workPolicies: workPolicies
+          }));
+        }
+
+        // 상세 정보 조회 (본인 또는 관리자만)
+        if (canViewDetails) {
+          const detailResponse = await userApi.getDetailProfile(employee.id);
+          if (detailResponse.data) {
+            setDetailInfo({
+              address: detailResponse.data.address,
+              joinDate: detailResponse.data.joinDate
+            });
+          }
         }
       } catch (error) {
-        console.error('상세 정보 조회 실패:', error);
+        console.error('프로필 정보 조회 실패:', error);
       }
     }
   };
 
-  if (isOpen && !detailInfo) {
-    handleModalOpen();
-  }
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (employee?.id) {
+        try {
+          // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
+          const mainResponse = await userApi.getMainProfile(employee.id);
+          
+          if (mainResponse && mainResponse.data) {
+            // workPolicies 배열 설정 (workPolicyId가 있는 경우)
+            const workPolicies = mainResponse.data.workPolicyId ? [mainResponse.data.workPolicyId.toString()] : [];
+            
+            setCurrentEmployee(prev => ({
+              ...prev,
+              workPolicy: mainResponse.data.workPolicy,
+              workPolicies: workPolicies
+            }));
+          }
+
+          // 상세 정보 조회 (본인 또는 관리자만)
+          if (canViewDetails) {
+            const detailResponse = await userApi.getDetailProfile(employee.id);
+            if (detailResponse.data) {
+              setDetailInfo({
+                address: detailResponse.data.address,
+                joinDate: detailResponse.data.joinDate
+              });
+            }
+          }
+        } catch (error) {
+          console.error('프로필 정보 조회 실패:', error);
+        }
+      }
+    };
+
+    if (isOpen && !detailInfo && employee?.id) {
+      fetchProfileData();
+    }
+  }, [isOpen, detailInfo, employee?.id, canViewDetails]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

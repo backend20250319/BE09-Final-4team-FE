@@ -35,6 +35,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { apiClient } from '@/lib/services/common/api-client'
 import { organizationApi } from '@/lib/services/organization/api'; // 추가
+import { userApi } from '@/lib/services/user/api';
 
 interface Employee {
   id: string
@@ -141,6 +142,30 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     }
   }, [employee])
 
+  // 상세정보를 가져오는 useEffect 추가
+  useEffect(() => {
+    const fetchDetailInfo = async () => {
+      if (employee?.id && canEdit) {
+        try {
+          const detailResponse = await userApi.getDetailProfile(employee.id);
+          if (detailResponse.data) {
+            setEditedEmployee(prev => ({
+              ...prev,
+              address: detailResponse.data.address || prev?.address || '',
+              joinDate: detailResponse.data.joinDate || prev?.joinDate || ''
+            }));
+          }
+        } catch (error) {
+          console.error('상세정보 조회 실패:', error);
+        }
+      }
+    };
+
+    if (isOpen && employee?.id) {
+      fetchDetailInfo();
+    }
+  }, [isOpen, employee?.id, canEdit]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element
@@ -207,29 +232,18 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         rank: editedEmployee.rank ? { id: 0, name: editedEmployee.rank, sortOrder: 0 } : null,
       }
 
-      console.log('전송할 데이터:', updateData)
-
       const response = await apiClient.patch(`/api/users/${editedEmployee.id}`, updateData)
       const result = response.data
 
-      console.log('서버 응답:', result)
-
       if (result.status === 'SUCCESS') {
         const updatedEmployeeData = result.data;
-        console.log('업데이트된 사용자 데이터:', updatedEmployeeData)
-        
-        console.log('editedEmployee.organizations 확인:', editedEmployee.organizations); // 🔥 추가
 
         if (editedEmployee.organizations && editedEmployee.organizations.length > 0) {
-          console.log('조직 할당 시작:', editedEmployee.organizations);
-          
           try {
             const allOrganizations = await organizationApi.getAllOrganizations();
-            console.log('전체 조직 목록:', allOrganizations);
             
             for (let i = 0; i < editedEmployee.organizations.length; i++) {
               const orgName = editedEmployee.organizations[i];
-              console.log(`처리 중인 조직: ${orgName}`); // 🔥 추가
               
               const organization = allOrganizations.find(org => org.name === orgName);
               
@@ -238,27 +252,20 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                 continue;
               }
               
-              console.log(`조직 할당: ${orgName} (ID: ${organization.organizationId})`);
-              
               try {
-                const assignmentResult = await organizationApi.createAssignment({
+                await organizationApi.createAssignment({
                   employeeId: parseInt(editedEmployee.id),
                   organizationId: organization.organizationId,
                   isPrimary: i === 0,
                   isLeader: false
                 });
-                
-                console.log(`조직 할당 성공: ${orgName}`, assignmentResult); // 🔥 추가
               } catch (assignmentError) {
-                console.error(`조직 할당 실패: ${orgName}`, assignmentError); // 🔥 추가
+                console.error(`조직 할당 실패: ${orgName}`, assignmentError);
               }
             }
-            console.log('조직 할당 완료');
           } catch (orgError) {
             console.error('조직 할당 실패:', orgError);
           }
-        } else {
-          console.log('조직 할당 건너뜀: organizations가 비어있음'); // 🔥 추가
         }
         
         const updatedEmployee: Employee = {
@@ -278,8 +285,6 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
           profileImage: updatedEmployeeData.profileImageUrl,
           workPolicies: updatedEmployeeData.workPolicyId ? [updatedEmployeeData.workPolicyId.toString()] : [],
         };
-
-        console.log('변환된 Employee 데이터:', updatedEmployee)
 
         onUpdate?.(updatedEmployee)
         window.dispatchEvent(new CustomEvent('employeeUpdated', { 
