@@ -35,6 +35,7 @@ export enum ScheduleType {
   BUSINESS_TRIP = "BUSINESS_TRIP",
   OUT_OF_OFFICE = "OUT_OF_OFFICE",
   OVERTIME = "OVERTIME",
+  RESTTIME = "RESTTIME",
 }
 
 // 근무 정책 타입 열거형
@@ -134,8 +135,8 @@ export interface CreateScheduleRequestDto {
   description?: string;
   startDate: string;
   endDate: string;
-  startTime?: LocalTime;
-  endTime?: LocalTime;
+  startTime?: string; // HH:mm:ss
+  endTime?: string; // HH:mm:ss
   scheduleType: ScheduleType;
   color?: string;
   isAllDay: boolean;
@@ -157,8 +158,8 @@ export interface UpdateScheduleRequestDto {
   description?: string;
   startDate: string;
   endDate: string;
-  startTime?: LocalTime;
-  endTime?: LocalTime;
+  startTime?: string; // HH:mm:ss
+  endTime?: string; // HH:mm:ss
   scheduleType: ScheduleType;
   color?: string;
   isAllDay: boolean;
@@ -419,4 +420,3 @@ export interface ApiResult<T> {
   message: string;
   data: T;
 }
-
