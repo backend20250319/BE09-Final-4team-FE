@@ -65,21 +65,16 @@ export enum AttachmentUsageType {
 export interface CategoryResponse {
   id: number
   name: string
-  description?: string
   sortOrder: number
-  createdAt: string
-  updatedAt: string
 }
 
 export interface CreateCategoryRequest {
   name: string
-  description?: string
   sortOrder: number
 }
 
 export interface UpdateCategoryRequest {
   name: string
-  description?: string
   sortOrder: number
 }
 
@@ -318,5 +313,38 @@ export interface GetDocumentsParams {
 
 export interface GetTemplatesParams {
   categoryId?: number
+}
+
+// 벌크 카테고리 관련 타입
+export enum BulkCategoryOperationType {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE'
+}
+
+export interface BulkCategoryOperation {
+  type: BulkCategoryOperationType
+  id?: number
+  createRequest?: CreateCategoryRequest
+  updateRequest?: UpdateCategoryRequest
+}
+
+export interface BulkCategoryRequest {
+  operations: BulkCategoryOperation[]
+}
+
+export interface CategoryOperationResult {
+  operationType: string
+  categoryId?: number
+  category?: CategoryResponse
+  success: boolean
+  errorMessage?: string
+}
+
+export interface BulkCategoryResponse {
+  totalOperations: number
+  successfulOperations: number
+  failedOperations: number
+  results: CategoryOperationResult[]
 }
 
