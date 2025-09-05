@@ -147,14 +147,6 @@ export interface LoginResponse {
   role: string;
 }
 
-export interface MainProfileResponseDto {
-  id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  profileImageUrl?: string;
-}
-
 export interface DetailProfileResponseDto {
   id: number;
   name: string;
