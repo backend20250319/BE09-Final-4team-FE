@@ -244,6 +244,7 @@ export interface DocumentResponse {
   status: DocumentStatus
   author: UserProfile
   currentStage?: number
+  userRole: UserRole
   template: TemplateResponse
   fieldValues: DocumentFieldValueResponse[]
   approvalStages: ApprovalStageResponse[]

@@ -60,7 +60,8 @@ export default function ApprovalsPage() {
     approved: false,
     rejected: false,
   })
-  const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null)
+  const [selectedDocumentSummary, setSelectedDocumentSummary] = useState<DocumentSummaryResponse | null>(null)
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // 결재 신청 관련 상태
@@ -164,11 +165,10 @@ export default function ApprovalsPage() {
     }))
   }
 
-  const handleApprovalClick = (approval: Approval) => {
-    // 모달 기능 임시 비활성화 (나중에 DocumentResponse로 수정 예정)
-    console.log('문서 모달 오픈 대신 로그 출력:', approval)
-    // setSelectedApproval(approval)
-    // setIsModalOpen(true)
+  const handleDocumentClick = (document: DocumentSummaryResponse) => {
+    setSelectedDocumentSummary(document)
+    setSelectedDocumentId(document.id)
+    setIsModalOpen(true)
   }
 
   const handleApprove = async (approvalId: number, comment?: string) => {
@@ -256,10 +256,7 @@ export default function ApprovalsPage() {
       <GlassCard
         key={document.id}
         className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden relative"
-        onClick={() => {
-          // 모달 임시 비활성화 (나중에 수정 예정)
-          console.log('문서 클릭:', document.id)
-        }}
+        onClick={() => handleDocumentClick(document)}
       >
         <div className="flex items-center gap-4 h-full">
           <div
@@ -449,8 +446,13 @@ export default function ApprovalsPage() {
       {/* 결재 문서 모달 */}
       <ApprovalModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        approval={selectedApproval as any}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedDocumentSummary(null)
+          setSelectedDocumentId(null)
+        }}
+        documentSummary={selectedDocumentSummary}
+        documentId={selectedDocumentId}
         onApprove={handleApprove}
         onReject={handleReject}
         onAddComment={handleAddComment}
