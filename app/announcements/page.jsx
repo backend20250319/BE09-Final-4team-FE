@@ -7,6 +7,7 @@ import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
 import { colors, typography } from "@/lib/design-tokens"
 import { Search, Plus, Megaphone, Calendar, User, Eye, MessageSquare } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect } from "react"
 import { useRouter, useSearchParams } from 'next/navigation'
 import StyledPaging from "@/components/paging/styled-paging"
@@ -198,7 +199,7 @@ export default function AnnouncementsPage() {
       <MainLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <Spinner size="xl" className="mx-auto mb-4" />
             <p className="text-gray-600">로딩 중...</p>
           </div>
         </div>
@@ -265,7 +266,12 @@ export default function AnnouncementsPage() {
       {/* Announcements List */}
       <div className="space-y-4 min-h-[400px]">
         {loading ? (
-          <div className="text-center text-gray-500 py-12">불러오는 중...</div>
+          <div className="flex justify-center items-center py-12">
+            <div className="flex items-center gap-3">
+              <Spinner size="lg" />
+              <span className="text-gray-500">공지사항을 불러오는 중...</span>
+            </div>
+          </div>
         ) : error ? (
           <div className="text-center text-red-500 py-12">{error}</div>
         ) : announcements.length === 0 ? (

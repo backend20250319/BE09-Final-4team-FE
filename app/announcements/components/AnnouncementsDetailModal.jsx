@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send, MoreHorizontal } from "lucide-react";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
+import { UserAvatar } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -253,19 +254,13 @@ export default function AnnouncementsDetailModal({
           <div className="space-y-4">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 relative">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0">
-                  {comment.userInfo?.profileImageUrl ? (
-                    <img 
-                      src={comment.userInfo.profileImageUrl} 
-                      alt={comment.userInfo.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-400" />
-                    </div>
-                  )}
-                </div>
+                <UserAvatar 
+                  src={comment.userInfo?.profileImageUrl}
+                  alt={comment.userInfo?.name || '사용자'}
+                  fallback={comment.userInfo?.name?.charAt(0)}
+                  size="lg"
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
