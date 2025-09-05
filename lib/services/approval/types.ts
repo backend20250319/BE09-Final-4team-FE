@@ -50,6 +50,12 @@ export enum ActivityType {
   COMMENT = 'COMMENT'
 }
 
+export enum AttachmentUsageType {
+  DISABLED = 'DISABLED',
+  OPTIONAL = 'OPTIONAL',
+  REQUIRED = 'REQUIRED'
+}
+
 // 카테고리 관련 타입
 export interface CategoryResponse {
   id: number
@@ -139,7 +145,7 @@ export interface TemplateResponse {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
   referenceFiles: AttachmentInfoResponse[]
@@ -157,7 +163,7 @@ export interface TemplateSummaryResponse {
   icon?: string
   description?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
   category: CategoryResponse
@@ -177,7 +183,7 @@ export interface CreateTemplateRequest {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
   categoryId: number
@@ -192,7 +198,7 @@ export interface UpdateTemplateRequest {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
   categoryId: number
