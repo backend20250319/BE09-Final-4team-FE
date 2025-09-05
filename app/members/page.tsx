@@ -365,7 +365,7 @@ export default function MembersPage() {
       const newUserData: UserCreateDto = {
         name: memberData.name,
         email: memberData.email,
-        password: "temporaryPassword123!",
+        password: memberData.tempPassword || "temporaryPassword123!",
         phone: memberData.phone || "",
         address: memberData.address || "",
         joinDate: memberData.joinDate,
@@ -375,6 +375,7 @@ export default function MembersPage() {
         job: memberData.job ? { id: 0, name: memberData.job, sortOrder: 0 } : undefined,
         rank: memberData.rank ? { id: 0, name: memberData.rank, sortOrder: 0 } : undefined,
         workPolicyId: memberData.workPolicies?.[0] ? parseInt(memberData.workPolicies[0]) : undefined,
+        needsPasswordReset: Boolean(memberData.tempPassword),
       };
 
       const result = await userApi.createUser(newUserData);

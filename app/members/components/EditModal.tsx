@@ -250,6 +250,8 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         position: editedEmployee.position ? { id: 0, name: editedEmployee.position, sortOrder: 0 } : null,
         job: editedEmployee.job ? { id: 0, name: editedEmployee.job, sortOrder: 0 } : null,
         rank: editedEmployee.rank ? { id: 0, name: editedEmployee.rank, sortOrder: 0 } : null,
+        // 임시 비밀번호가 생성된 경우에만 포함
+        ...(tempPassword && { password: tempPassword, needsPasswordReset: true }),
       }
 
       const response = await apiClient.patch(`/api/users/${editedEmployee.id}`, updateData)
@@ -311,7 +313,14 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
           detail: updatedEmployee
         }))
         onClose()
-        toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
+        
+        // 비밀번호가 업데이트된 경우 별도 메시지 표시
+        if (tempPassword) {
+          toast.success('구성원 정보와 임시 비밀번호가 성공적으로 업데이트되었습니다.')
+          setTempPassword('') // 성공 후 임시 비밀번호 초기화
+        } else {
+          toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
+        }
       } else {
         throw new Error(result.message)
       }
