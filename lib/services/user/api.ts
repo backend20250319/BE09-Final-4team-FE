@@ -5,7 +5,6 @@ import {
     UserResponseDto,
     LoginRequestDto,
     LoginResponse,
-    MainProfileResponseDto,
     DetailProfileResponseDto,
     ColleagueSearchRequestDto,
     ColleagueResponseDto,
@@ -88,7 +87,7 @@ export const userApi = {
         return response.data;
     },
 
-    getMainProfile: async (userId: number): Promise<MainProfileResponseDto> => {
+    getMainProfile: async (userId: number): Promise<any> => {
         const response = await apiClient.get(`/api/users/${userId}/profile`);
         return response.data;
     },

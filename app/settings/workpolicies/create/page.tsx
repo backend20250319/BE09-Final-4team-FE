@@ -142,6 +142,7 @@ export default function CreateWorkPolicyPage(): JSX.Element {
         end: string;
       }>) || [{ start: "12:00", end: "13:00" }];
       const breakStartTime = toTimeString(breakTimes[0]?.start);
+      const breakEndTime = toTimeString(breakTimes[0]?.end);
 
       const totalRequiredMinutes = workHours * 60 + workMinutes;
 
@@ -149,7 +150,9 @@ export default function CreateWorkPolicyPage(): JSX.Element {
         name,
         type,
         workCycle: undefined as WorkCycle | undefined,
-        startDayOfWeek: toEnumDay(String(policyData.cycleStartDay || "monday")) as DayOfWeek, 
+        startDayOfWeek: toEnumDay(
+          String(policyData.cycleStartDay || "monday")
+        ) as DayOfWeek,
         workCycleStartDay: undefined as number | undefined,
         workDays,
         weeklyWorkingDays,
@@ -160,6 +163,7 @@ export default function CreateWorkPolicyPage(): JSX.Element {
         coreTimeStart: undefined,
         coreTimeEnd: undefined,
         breakStartTime, // string "HH:mm:ss"
+        breakEndTime, // string "HH:mm:ss"
         avgWorkTime: undefined,
         totalRequiredMinutes,
         annualLeaves: undefined,

@@ -38,6 +38,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { attendanceApi, workMonitorApi } from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
+import { formatKstTime } from "@/lib/utils/datetime";
 
 interface Employee {
   id: string;
@@ -197,11 +198,7 @@ export default function DashboardPage() {
       }
 
       const now = new Date();
-      const checkInDisplay = now.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+      const checkInDisplay = formatKstTime(now);
 
       const res = await attendanceApi.checkIn({
         userId: Number(user.id),
@@ -235,11 +232,7 @@ export default function DashboardPage() {
       }
 
       const now = new Date();
-      const checkOutDisplay = now.toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+      const checkOutDisplay = formatKstTime(now);
 
       const res = await attendanceApi.checkOut({
         userId: Number(user.id),
