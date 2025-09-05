@@ -283,8 +283,8 @@ export default function ApprovalsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.title}</h4>
-              <p className="text-gray-600 flex-1 truncate">{document.content || document.templateTitle}</p>
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.templateTitle}</h4>
+              <p className="text-gray-600 flex-1 truncate">{document.content}</p>
               {/* 승인 진행률 표시 */}
               {document.totalStages > 0 && (
                 <div className="flex items-center gap-2 text-sm text-gray-500 flex-shrink-0">

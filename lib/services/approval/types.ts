@@ -240,7 +240,6 @@ export interface DocumentCommentResponse {
 
 export interface DocumentResponse {
   id: number
-  title: string
   content?: string
   status: DocumentStatus
   author: UserProfile
@@ -260,7 +259,6 @@ export interface DocumentResponse {
 
 export interface DocumentSummaryResponse {
   id: number
-  title: string
   content?: string
   status: DocumentStatus
   author: UserProfile
@@ -275,7 +273,6 @@ export interface DocumentSummaryResponse {
 
 export interface CreateDocumentRequest {
   templateId: number
-  title: string
   content?: string
   fieldValues?: DocumentFieldValueRequest[]
   approvalStages?: ApprovalStageRequest[]
@@ -284,7 +281,6 @@ export interface CreateDocumentRequest {
 }
 
 export interface UpdateDocumentRequest {
-  title: string
   content?: string
   fieldValues?: DocumentFieldValueRequest[]
   approvalStages?: ApprovalStageRequest[]
