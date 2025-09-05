@@ -258,7 +258,7 @@ export default function AnnouncementsDetailModal({
                   src={comment.userInfo?.profileImageUrl}
                   alt={comment.userInfo?.name || '사용자'}
                   fallback={comment.userInfo?.name?.charAt(0)}
-                  size="lg"
+                  size="md"
                   className="flex-shrink-0"
                 />
                 <div className="flex-1">

@@ -16,6 +16,16 @@ import { communicationApi } from "@/lib/services/communication"
 import { useAuth } from "@/hooks/use-auth"
 import { formatDateTime } from "@/lib/utils/date-format"
 import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // 공지사항 목록 조회 함수
 async function fetchAnnouncements({ page, search }) {
@@ -62,6 +72,9 @@ export default function AnnouncementsPage() {
   // 모달 상태 추가
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // 삭제 확인 다이얼로그 상태
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // 데이터 요청 함수
   const loadData = async (page, search) => {
@@ -171,23 +184,28 @@ export default function AnnouncementsPage() {
   };
 
   // 삭제 핸들러
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    if (!selectedAnnouncement) return;
+    setDeleteDialogOpen(true);
+  };
+
+  // 삭제 확인
+  const handleDeleteConfirm = async () => {
     if (!selectedAnnouncement) return;
     
-    if (window.confirm('정말 삭제하시겠습니까?')) {
-      try {
-        // 삭제 API 호출
-        await communicationApi.announcements.deleteAnnouncement(selectedAnnouncement.id);
-        
-        toast.success('삭제가 완료되었습니다.');
-        handleCloseModal();
-        
-        // 목록 새로고침
-        loadData(page, searchTerm);
-      } catch (error) {
-        console.error('공지사항 삭제 실패:', error);
-        toast.error('삭제에 실패했습니다.');
-      }
+    try {
+      // 삭제 API 호출
+      await communicationApi.announcements.deleteAnnouncement(selectedAnnouncement.id);
+      
+      toast.success('삭제가 완료되었습니다.');
+      setDeleteDialogOpen(false);
+      handleCloseModal();
+      
+      // 목록 새로고침
+      loadData(page, searchTerm);
+    } catch (error) {
+      console.error('공지사항 삭제 실패:', error);
+      toast.error('삭제에 실패했습니다.');
     }
   };
 
@@ -343,6 +361,32 @@ export default function AnnouncementsPage() {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 text-red-600" />
+              공지사항 삭제
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="font-medium text-gray-900">"{selectedAnnouncement?.title}"</span> 공지사항을 삭제하시겠습니까?
+              <br />
+              <span className="text-red-600 font-medium">삭제된 공지사항은 복구할 수 없습니다.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 } 
