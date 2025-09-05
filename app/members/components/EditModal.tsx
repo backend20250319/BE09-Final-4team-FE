@@ -129,10 +129,18 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const canResetPassword = isAdmin
 
   useEffect(() => {
+    console.log('EditModal - employee 변경됨:', employee?.id, employee?.name);
     if (employee) {
-      setEditedEmployee({
-        ...employee,
-        workPolicies: employee.workPolicies || []
+      setEditedEmployee(prev => {
+        console.log('EditModal - setEditedEmployee 호출 전:', prev?.address, prev?.joinDate);
+        const newEmployee = {
+          ...employee,
+          workPolicies: employee.workPolicies || [],
+          address: prev?.address || employee.address || '',
+          joinDate: prev?.joinDate || employee.joinDate || ''
+        };
+        console.log('EditModal - setEditedEmployee 호출 후:', newEmployee.address, newEmployee.joinDate);
+        return newEmployee;
       })
       const initialOrgs = (employee.organizations && employee.organizations.length > 0) ? employee.organizations : []
       const main = initialOrgs.length > 0 ? initialOrgs[0] : null
@@ -142,18 +150,26 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     }
   }, [employee])
 
-  // 상세정보를 가져오는 useEffect 추가
+  const [detailInfoLoaded, setDetailInfoLoaded] = useState(false);
+
   useEffect(() => {
     const fetchDetailInfo = async () => {
-      if (employee?.id && canEdit) {
+      if (employee?.id && canEdit && !detailInfoLoaded) {
+        console.log('EditModal - 상세정보 가져오기 시작:', employee.id);
         try {
           const detailResponse = await userApi.getDetailProfile(employee.id);
           if (detailResponse.data) {
-            setEditedEmployee(prev => ({
-              ...prev,
-              address: detailResponse.data.address || prev?.address || '',
-              joinDate: detailResponse.data.joinDate || prev?.joinDate || ''
-            }));
+            console.log('EditModal - 상세정보 응답:', detailResponse.data.address, detailResponse.data.joinDate);
+            setEditedEmployee(prev => {
+              const updated = {
+                ...prev,
+                address: detailResponse.data.address || prev?.address || '',
+                joinDate: detailResponse.data.joinDate || prev?.joinDate || ''
+              };
+              console.log('EditModal - 상세정보 설정 후:', updated.address, updated.joinDate);
+              return updated;
+            });
+            setDetailInfoLoaded(true);
           }
         } catch (error) {
           console.error('상세정보 조회 실패:', error);
@@ -164,7 +180,11 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (isOpen && employee?.id) {
       fetchDetailInfo();
     }
-  }, [isOpen, employee?.id, canEdit]);
+  }, [isOpen, employee?.id, canEdit, detailInfoLoaded]);
+
+  useEffect(() => {
+    setDetailInfoLoaded(false);
+  }, [employee?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
