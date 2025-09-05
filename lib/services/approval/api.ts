@@ -109,11 +109,11 @@ export const documentApi = {
       size: params.pageable.size,
     }
     
-    if (params.pageable.sort) {
-      queryParams.sort = params.pageable.sort
+    if (params.pageable.sort && params.pageable.sort.length > 0) {
+      queryParams.sort = params.pageable.sort.join(',')
     }
     if (params.status && params.status.length > 0) {
-      queryParams.status = params.status
+      queryParams.status = params.status.join(',')
     }
     if (params.search) {
       queryParams.search = params.search
@@ -162,6 +162,11 @@ export const documentApi = {
   // 문서 반려
   rejectDocument: async (id: number, request?: ApprovalActionRequest): Promise<void> => {
     await apiClient.post<void>(`/api/approval/documents/${id}/reject`, request || {})
+  },
+
+  // 문서 삭제
+  deleteDocument: async (id: number): Promise<void> => {
+    await apiClient.delete<void>(`/api/approval/documents/${id}`)
   },
 }
 

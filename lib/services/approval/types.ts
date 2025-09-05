@@ -1,4 +1,13 @@
-import { ApiResult, PageResult, Pageable } from '../common/types'
+import { Pageable } from '../common/types'
+
+// 사용자 프로필 타입
+export interface UserProfile {
+  id: number
+  name: string
+  email: string
+  phone: string
+  profileImageUrl: string
+}
 
 // 승인 서비스 특화 열거형
 export enum DocumentStatus {
@@ -39,6 +48,12 @@ export enum ActivityType {
   REJECT = 'REJECT',
   MODIFY_APPROVAL = 'MODIFY_APPROVAL',
   COMMENT = 'COMMENT'
+}
+
+export enum AttachmentUsageType {
+  DISABLED = 'DISABLED',
+  OPTIONAL = 'OPTIONAL',
+  REQUIRED = 'REQUIRED'
 }
 
 // 카테고리 관련 타입
@@ -84,12 +99,12 @@ export interface TemplateFieldRequest {
 export interface ApprovalTargetResponse {
   id: number
   targetType: TargetType
-  userId?: number
+  user?: UserProfile
   organizationId?: number
   managerLevel?: number
   isReference: boolean
   isApproved?: boolean
-  approvedBy?: number
+  approver?: UserProfile
   approvedAt?: string
 }
 
@@ -130,7 +145,7 @@ export interface TemplateResponse {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
   referenceFiles: AttachmentInfoResponse[]
@@ -148,7 +163,7 @@ export interface TemplateSummaryResponse {
   icon?: string
   description?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
   category: CategoryResponse
@@ -168,7 +183,7 @@ export interface CreateTemplateRequest {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
   categoryId: number
@@ -183,7 +198,7 @@ export interface UpdateTemplateRequest {
   description?: string
   bodyTemplate?: string
   useBody: boolean
-  useAttachment: boolean
+  useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
   categoryId: number
@@ -209,7 +224,7 @@ export interface DocumentFieldValueRequest {
 export interface DocumentActivityResponse {
   id: number
   activityType: ActivityType
-  userId: number
+  user: UserProfile
   description?: string
   reason?: string
   createdAt: string
@@ -218,17 +233,16 @@ export interface DocumentActivityResponse {
 export interface DocumentCommentResponse {
   id: number
   content: string
-  authorId: number
+  author: UserProfile
   createdAt: string
   updatedAt: string
 }
 
 export interface DocumentResponse {
   id: number
-  title: string
   content?: string
   status: DocumentStatus
-  authorId: number
+  author: UserProfile
   currentStage?: number
   template: TemplateResponse
   fieldValues: DocumentFieldValueResponse[]
@@ -245,10 +259,9 @@ export interface DocumentResponse {
 
 export interface DocumentSummaryResponse {
   id: number
-  title: string
   content?: string
   status: DocumentStatus
-  authorId: number
+  author: UserProfile
   templateTitle: string
   currentStage?: number
   totalStages: number
@@ -260,7 +273,6 @@ export interface DocumentSummaryResponse {
 
 export interface CreateDocumentRequest {
   templateId: number
-  title: string
   content?: string
   fieldValues?: DocumentFieldValueRequest[]
   approvalStages?: ApprovalStageRequest[]
@@ -269,7 +281,6 @@ export interface CreateDocumentRequest {
 }
 
 export interface UpdateDocumentRequest {
-  title: string
   content?: string
   fieldValues?: DocumentFieldValueRequest[]
   approvalStages?: ApprovalStageRequest[]
