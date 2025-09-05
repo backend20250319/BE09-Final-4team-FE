@@ -74,7 +74,7 @@ export default function ApprovalsPage() {
 
   // API에서 문서 데이터 가져오기
   const statusFilter = activeTab === "inProgress" 
-    ? [DocumentStatus.PENDING, DocumentStatus.IN_PROGRESS]
+    ? [DocumentStatus.DRAFT, DocumentStatus.PENDING, DocumentStatus.IN_PROGRESS]
     : [DocumentStatus.APPROVED, DocumentStatus.REJECTED]
 
   const { data: documentsData, isLoading, error } = useDocuments({
@@ -88,7 +88,10 @@ export default function ApprovalsPage() {
 
   const documents = documentsData?.content || []
 
-  // 문서를 사용자 역할에 따라 분류
+  // 문서를 상태와 사용자 역할에 따라 분류
+  const draftDocuments = documents.filter((doc: DocumentSummaryResponse) =>
+    doc.status === DocumentStatus.DRAFT
+  )
   const myPendingDocuments = documents.filter((doc: DocumentSummaryResponse) =>
     (doc.status === DocumentStatus.PENDING || doc.status === DocumentStatus.IN_PROGRESS) && 
     doc.userRole === UserRole.APPROVER
@@ -98,7 +101,7 @@ export default function ApprovalsPage() {
     doc.userRole !== UserRole.APPROVER
   )
   // 진행중 및 완료된 문서
-  const inProgressData = [...myPendingDocuments, ...inProgressDocuments]
+  const inProgressData = [...draftDocuments, ...myPendingDocuments, ...inProgressDocuments]
   const completedData = documents.filter((doc: DocumentSummaryResponse) => 
     doc.status === DocumentStatus.APPROVED || doc.status === DocumentStatus.REJECTED
   )
@@ -236,7 +239,7 @@ export default function ApprovalsPage() {
     const getStatusText = (status: DocumentStatus, userRole: UserRole) => {
       switch (status) {
         case DocumentStatus.DRAFT:
-          return "초안"
+          return "작성중"
         case DocumentStatus.PENDING:
         case DocumentStatus.IN_PROGRESS:
           return userRole === UserRole.APPROVER ? "승인 필요" : "진행중"
@@ -360,6 +363,24 @@ export default function ApprovalsPage() {
 
       {!isLoading && !error && activeTab === "inProgress" && (
         <div className="space-y-6">
+          {/* 작성중 섹션 */}
+          {draftDocuments.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-gray-600" />
+                  <h2 className="text-lg font-semibold text-gray-700">작성중</h2>
+                </div>
+                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm font-medium">
+                  {draftDocuments.length}건
+                </span>
+              </div>
+              <div className="space-y-4">
+                {draftDocuments.map(renderDocumentCard)}
+              </div>
+            </div>
+          )}
+
           {/* 내 승인 필요 섹션 */}
           {myPendingDocuments.length > 0 && (
             <div className="space-y-4">
