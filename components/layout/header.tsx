@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { UserAvatar } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/use-auth";
 import { userApi } from "@/lib/services/user/api";
 import ProfileModal from '@/app/members/components/ProfileModal'
@@ -140,37 +141,24 @@ export function Header({
                   variant="ghost"
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
-                      <img
-                        src={employeeData.profileImage}
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">{displayName}</span>
+                  <UserAvatar 
+                    src={employeeData?.profileImage}
+                    alt={displayName}
+                    fallback={displayName?.charAt(0)}
+                    size="xs"
+                    className="shadow-xs"
+                  />
+                  <span className="text-xs font-medium text-gray-700">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
-                      <img
-                        src={employeeData.profileImage}
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                        <User className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
+                  <UserAvatar 
+                    src={employeeData?.profileImage}
+                    alt={displayName}
+                    fallback={displayName?.charAt(0)}
+                    size="md"
+                  />
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
