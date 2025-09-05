@@ -30,10 +30,12 @@ import { userApi } from "@/lib/services/user/api";
 import { ColleagueResponseDto } from "@/lib/services/user/types";
 import { workScheduleApi } from "@/lib/services/attendance/api";
 import {
+  SCHEDULE_TYPE_COLOR,
   toLabelFromEnum,
   toColorFromEnum,
   toTimeString,
 } from "./schedule-utils";
+import "./schedulecalendar.css";
 
 // Type definitions
 interface CoworkerEvent {
@@ -330,7 +332,7 @@ export default function CoworkerComponent(): JSX.Element {
           type: string
         ): { title: string; color: string } => {
           const title = toLabelFromEnum(type, type);
-          const color = toColorFromEnum(type, "#94a3b8");
+          const color = SCHEDULE_TYPE_COLOR[type] || "#94a3b8";
           return { title, color };
         };
 
@@ -449,7 +451,6 @@ export default function CoworkerComponent(): JSX.Element {
       {/* Header with Search and Filters */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-800">동료 근무표</h1>
         </div>
         <div className="flex items-center gap-2">
           <Search className="w-4 h-4 text-gray-400" />
@@ -511,17 +512,17 @@ export default function CoworkerComponent(): JSX.Element {
 
       {/* Calendar */}
       <GlassCard className="p-6">
-        <div className="calendar-container">
+        <div className="calendar-container schedule-calendar-container">
           {isClient && (
             <ScheduleCalendar
               events={events}
-              onEventDrop={() => {}}
-              onEventResize={() => {}}
-              onSelect={() => {}}
-              onEventClick={() => {}}
+              onEventDrop={() => {}} // 드래그 이동 비활성화
+              onEventResize={() => {}} // 크기 조정 비활성화
+              onSelect={() => {}} // 드래그 선택 비활성화
+              onEventClick={() => {}} // 이벤트 클릭 비활성화
               dayCellDidMount={() => {}}
               eventContent={eventContent}
-              editable={false}
+              editable={false} // 편집 비활성화 (드래그, 리사이즈, 선택 모두 비활성화)
             />
           )}
         </div>

@@ -85,8 +85,14 @@ export default function ScheduleCalendar({
         firstDay={0}
         weekends={true}
         nowIndicator={true}
-        selectable={true}
-        selectMirror={true}
+        selectable={editable}
+        selectMirror={editable}
+        selectConstraint={{
+          daysOfWeek: [1, 2, 3, 4, 5, 6], // 월~토만 선택 가능 (일요일 제외)
+        }}
+        eventConstraint={{
+          daysOfWeek: [1, 2, 3, 4, 5, 6], // 월~토만 이벤트 이동 가능 (일요일 제외)
+        }}
         dayMaxEvents={true}
         moreLinkClick="popover"
         eventTimeFormat={{

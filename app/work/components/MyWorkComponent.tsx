@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Users, Clock, TrendingUp } from "lucide-react";
+import { Calendar, Users, Clock, TrendingUp, Trash2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DateNavigation } from "@/components/ui/date-navigation";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -17,6 +17,7 @@ import {
   toLabelFromEnum,
   toColorFromEnum,
 } from "./schedule-utils";
+import "./schedulecalendar.css";
 
 // Type definitions
 interface WorkEvent {
@@ -218,7 +219,7 @@ export default function MyWorkComponent(): JSX.Element {
             s.scheduleType,
             s.title || s.scheduleType
           );
-          const color = s.color || toColorFromEnum(s.scheduleType, "#4FC3F7");
+          const color = SCHEDULE_TYPE_COLOR[s.scheduleType] || "#4FC3F7";
           return {
             id: String(s.id),
             title,
@@ -264,62 +265,7 @@ export default function MyWorkComponent(): JSX.Element {
     return scheduleData;
   };
 
-  // scheduleData → FullCalendar events 변환
-  useEffect(() => {
-    if (!isClient || !currentWeek || Object.keys(weekDates).length === 0)
-      return;
-
-    const scheduleData = generateScheduleData();
-    const convertedEvents: WorkEvent[] = [];
-
-    Object.entries(scheduleData).forEach(([day, events]) => {
-      const dateString = weekDates[parseInt(day)];
-
-      events.forEach((event: ScheduleEvent, index: number) => {
-        let startTime: string, endTime: string, allDay: boolean;
-
-        if (event.startTime && event.endTime) {
-          startTime = `${dateString}T${event.startTime}:00`;
-          endTime = `${dateString}T${event.endTime}:00`;
-          allDay = false;
-        } else if (event.time) {
-          startTime = `${dateString}T${event.time}:00`;
-          const endDate = new Date(`${dateString}T${event.time}:00`);
-          endDate.setMinutes(endDate.getMinutes() + 30);
-          endTime = endDate.toISOString();
-          allDay = false;
-        } else {
-          startTime = `${dateString}T09:00:00`;
-          endTime = `${dateString}T18:00:00`;
-          allDay = true;
-        }
-
-        const eventObj: WorkEvent = {
-          id: `${day}-${index}`,
-          title: event.title,
-          start: startTime,
-          end: endTime,
-          backgroundColor: event.color,
-          borderColor: event.color,
-          textColor: "#ffffff",
-          allDay: allDay,
-          extendedProps: {
-            originalTime: event.time,
-            originalStartTime: event.startTime,
-            originalEndTime: event.endTime,
-            originalTitle: event.title,
-            originalColor: event.color,
-            isAllDayRest: event.isAllDayRest || false,
-            type: event.type || "unknown",
-          },
-        };
-        convertedEvents.push(eventObj);
-      });
-    });
-
-    setEvents(convertedEvents);
-    setOriginalEvents(convertedEvents);
-  }, [isClient, currentWeek, weekDates]);
+  // 이 useEffect는 제거 - 서버에서 가져온 실제 데이터를 사용
 
   // 근무 시간 계산 (근무, 외근, 출장, 재택 모두 포함, 휴가 제외)
   const calculateWorkTime = (events: WorkEvent[]): WorkTimeSummary => {
@@ -363,6 +309,8 @@ export default function MyWorkComponent(): JSX.Element {
   const handleEventDrop = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 이동할 수 없습니다.");
+      // 이벤트를 원래 위치로 되돌리기
+      info.revert();
       return;
     }
     const updated = events.map((event) =>
@@ -382,6 +330,8 @@ export default function MyWorkComponent(): JSX.Element {
   const handleEventResize = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 수정할 수 없습니다.");
+      // 이벤트를 원래 크기로 되돌리기
+      info.revert();
       return;
     }
     const updated = events.map((event) =>
@@ -401,6 +351,8 @@ export default function MyWorkComponent(): JSX.Element {
   const handleSelect = (selectInfo: any): void => {
     if (selectInfo.start.getDay() === 0) {
       alert("일요일에는 일정을 추가할 수 없습니다.");
+      // 선택 영역 해제
+      selectInfo.view.calendar.unselect();
       return;
     }
 
@@ -421,14 +373,15 @@ export default function MyWorkComponent(): JSX.Element {
 
     const calendarApi = selectInfo.view.calendar;
     const tempId = new Date().getTime().toString();
+    const workColor = SCHEDULE_TYPE_COLOR.WORK || "#4FC3F7";
     const newEvent: WorkEvent = {
       id: tempId,
       title: "근무",
       start: selectInfo.startStr,
       end: selectInfo.endStr,
       allDay: selectInfo.allDay,
-      backgroundColor: "#3b82f6",
-      borderColor: "#3b82f6",
+      backgroundColor: workColor,
+      borderColor: workColor,
       textColor: "#ffffff",
       status: "pending",
       isNewEvent: true,
@@ -493,8 +446,7 @@ export default function MyWorkComponent(): JSX.Element {
           created.scheduleType,
           created.title || created.scheduleType
         );
-        const color =
-          created.color || toColorFromEnum(created.scheduleType, "#4FC3F7");
+        const color = SCHEDULE_TYPE_COLOR[created.scheduleType] || "#4FC3F7";
 
         const savedEvent: WorkEvent = {
           id: String(created.id),
@@ -539,20 +491,44 @@ export default function MyWorkComponent(): JSX.Element {
   };
 
   const handleEventClick = (clickInfo: any): void => {
-    if (clickInfo.event.start.getDay() === 0) {
+    // 이벤트 클릭 시에는 아무것도 하지 않음 (삭제는 쓰레기통 아이콘으로만)
+    return;
+  };
+
+  const handleDeleteEvent = (
+    eventId: string,
+    event: React.MouseEvent
+  ): void => {
+    event.stopPropagation(); // 이벤트 버블링 방지
+
+    const targetEvent = events.find((e) => e.id === eventId);
+    if (!targetEvent) return;
+
+    const eventDate = new Date(targetEvent.start);
+    if (eventDate.getDay() === 0) {
       alert("일요일에는 일정을 삭제할 수 없습니다.");
       return;
     }
+
     if (confirm("이 일정을 삭제하시겠습니까?")) {
-      clickInfo.event.remove();
-      setEvents((prev) => prev.filter((e) => e.id !== clickInfo.event.id));
+      // 캘린더에서 이벤트 제거
+      const calendarApi = document
+        .querySelector(".fc")
+        ?.querySelector(".fc-view")?.parentElement;
+      if (calendarApi) {
+        const fcEvent = (calendarApi as any).calendar?.getEventById(eventId);
+        if (fcEvent) fcEvent.remove();
+      }
+
+      // 상태에서 이벤트 제거
+      setEvents((prev) => prev.filter((e) => e.id !== eventId));
       setHasPendingChanges(true);
     }
   };
 
   const dayCellDidMountHandler = (arg: any): void => {
     if (arg.date.getDay() === 0) {
-      arg.el.style.backgroundColor = "#ffe5e5";
+      arg.el.classList.add("sunday-disabled");
     }
   };
 
@@ -683,17 +659,10 @@ export default function MyWorkComponent(): JSX.Element {
     return (
       <div
         ref={ref}
+        className="fixed z-50 bg-white border border-gray-300 rounded-md shadow-lg overflow-hidden whitespace-nowrap"
         style={{
-          position: "fixed",
           left,
           top,
-          zIndex: 1000,
-          backgroundColor: "white",
-          border: "1px solid #d1d5db",
-          borderRadius: "6px",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-          overflow: "hidden",
-          whiteSpace: "nowrap", // 텍스트 줄바꿈 방지
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -701,22 +670,7 @@ export default function MyWorkComponent(): JSX.Element {
           <button
             key={opt.key}
             onClick={() => onSelect(eventId, opt.key)}
-            style={{
-              cursor: "pointer",
-              background: "white",
-              display: "block",
-              width: "100%",
-              textAlign: "left",
-              padding: "4px 8px", // 패딩 줄임
-              fontSize: "13px", // 글씨 크기 약간 줄임
-              borderBottom: "1px solid #f3f4f6",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = "#f9fafb")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = "white")
-            }
+            className="block w-full text-left px-2 py-1 text-sm border-b border-gray-100 bg-white hover:bg-gray-50 cursor-pointer"
           >
             {opt.label}
           </button>
@@ -725,7 +679,7 @@ export default function MyWorkComponent(): JSX.Element {
     );
   };
 
-  // SimpleEvent: 제목 클릭 → 드롭다운을 제목 바로 아래에 표시
+  // SimpleEvent: 제목 클릭 → 드롭다운, 쓰레기통 클릭 → 삭제
   const SimpleEvent = ({ event }: { event: WorkEvent }): JSX.Element => {
     const handleTitleClick = (e: React.MouseEvent): void => {
       e.stopPropagation();
@@ -746,27 +700,63 @@ export default function MyWorkComponent(): JSX.Element {
           position: "relative",
         }}
       >
-        {/* 시간 표시 */}
+        {/* 상단 영역: 시간 + 삭제 버튼 */}
         <div
           style={{
-            fontSize: "10px",
-            color: "rgba(255, 255, 255, 0.9)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
             marginBottom: "2px",
-            fontWeight: "normal",
-            lineHeight: "1",
           }}
         >
-          {new Date(event.start).toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}{" "}
-          -{" "}
-          {new Date(event.end).toLocaleTimeString("ko-KR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}
+          {/* 시간 표시 */}
+          <div
+            style={{
+              fontSize: "10px",
+              color: "rgba(255, 255, 255, 0.9)",
+              fontWeight: "normal",
+              lineHeight: "1",
+              flex: 1,
+            }}
+          >
+            {new Date(event.start).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}{" "}
+            -{" "}
+            {new Date(event.end).toLocaleTimeString("ko-KR", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
+          </div>
+
+          {/* 삭제 버튼 */}
+          <button
+            onClick={(e) => handleDeleteEvent(event.id, e)}
+            style={{
+              background: "rgba(255, 255, 255, 0.2)",
+              border: "none",
+              borderRadius: "3px",
+              padding: "2px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "16px",
+              height: "16px",
+              flexShrink: 0,
+            }}
+            title="일정 삭제"
+          >
+            <Trash2
+              size={10}
+              style={{
+                color: "rgba(255, 255, 255, 0.9)",
+              }}
+            />
+          </button>
         </div>
 
         {/* 제목 (클릭 시 드롭다운) */}
@@ -875,17 +865,6 @@ export default function MyWorkComponent(): JSX.Element {
         <div className="w-80 flex-shrink-0 -mt-6">
           <GlassCard className="p-4 border-2 border-gray-300 shadow-none">
             <div className="flex items-center space-x-3 mb-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-800">
-                  이번주 근무 현황
-                </h3>
-                <p className="text-xs text-gray-600">
-                  근무 시간 및 목표 달성률
-                </p>
-              </div>
             </div>
             <WorkTimeGauge
               percentage={workTimeSummary.percentage}
@@ -898,7 +877,7 @@ export default function MyWorkComponent(): JSX.Element {
 
       {/* FullCalendar Schedule */}
       <GlassCard className="p-6">
-        <div className="calendar-container">
+        <div className="calendar-container schedule-calendar-container">
           {isClient && (
             <ScheduleCalendar
               events={events}
