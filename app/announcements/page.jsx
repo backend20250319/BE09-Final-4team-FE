@@ -140,11 +140,14 @@ export default function AnnouncementsPage() {
     setInputText(e.target.value);
   };
 
-  // 공지사항 클릭 핸들러 - 모달 열기로 변경
+  // 공지사항 클릭 핸들러 - 직접 모달 열기 및 URL 업데이트
   const handleGlassCardClick = (announcement) => {
     console.log('공지사항 클릭됨:', announcement);
-    // URL fragment 추가하여 모달 열기
-    router.push(`/announcements#${announcement.id}`);
+    // 모달 직접 열기
+    setSelectedAnnouncement(announcement);
+    setIsModalOpen(true);
+    // URL fragment도 업데이트 (브라우저 히스토리에 추가하지 않음)
+    window.history.replaceState(null, null, `#${announcement.id}`);
   };
 
   // 모달 닫기 핸들러
@@ -153,9 +156,9 @@ export default function AnnouncementsPage() {
     setIsModalOpen(false);
     setSelectedAnnouncement(null);
     
-    // URL에서 fragment 제거
+    // URL에서 fragment 제거 (브라우저 히스토리에 추가하지 않음)
     if (window.location.hash) {
-      router.push('/announcements');
+      window.history.replaceState(null, null, '/announcements');
     }
   };
 
