@@ -12,7 +12,7 @@ import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
 import { colors, typography } from "@/lib/design-tokens"
 import { useDocuments } from "@/lib/hooks/useApproval"
 import { DocumentSummaryResponse, DocumentStatus, UserRole } from "@/lib/services/approval/types"
-import { FormTemplate } from "@/lib/mock-data/form-templates"
+import { TemplateSummaryResponse } from "@/lib/services/approval/types"
 import {
   Search,
   Plus,
@@ -67,7 +67,7 @@ export default function ApprovalsPage() {
   // 결재 신청 관련 상태
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
-  const [selectedFormTemplate, setSelectedFormTemplate] = useState<FormTemplate | null>(null)
+  const [selectedFormTemplate, setSelectedFormTemplate] = useState<TemplateSummaryResponse | null>(null)
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
   // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
@@ -195,7 +195,7 @@ export default function ApprovalsPage() {
     setIsFormManagementOpen(true)
   }
 
-  const handleFormSelect = (form: FormTemplate) => {
+  const handleFormSelect = (form: TemplateSummaryResponse) => {
     setSelectedFormTemplate(form)
     setIsFormWriterOpen(true)
   }

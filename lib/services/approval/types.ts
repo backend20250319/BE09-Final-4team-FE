@@ -147,6 +147,7 @@ export interface TemplateResponse {
   id: number
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
@@ -166,6 +167,7 @@ export interface TemplateSummaryResponse {
   id: number
   title: string
   icon?: string
+  color?: string
   description?: string
   useBody: boolean
   useAttachment: AttachmentUsageType
@@ -185,6 +187,7 @@ export interface TemplatesByCategoryResponse {
 export interface CreateTemplateRequest {
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
@@ -200,6 +203,7 @@ export interface CreateTemplateRequest {
 export interface UpdateTemplateRequest {
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
