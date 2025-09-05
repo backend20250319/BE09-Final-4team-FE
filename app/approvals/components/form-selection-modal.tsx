@@ -37,17 +37,20 @@ export function FormSelectionModal({
     category.templates
   ) || []
 
-  // 카테고리 목록 생성 ("전체" 포함)
+  // 카테고리 목록 생성 ("전체" 포함, null 카테고리는 제외)
   const categories = [
     { id: "all" as const, name: "전체" },
-    ...(templatesByCategory?.map(cat => ({ id: cat.categoryId, name: cat.categoryName })) || [])
+    ...(templatesByCategory
+      ?.filter(cat => cat.categoryId !== null && cat.categoryName !== null)
+      .map(cat => ({ id: cat.categoryId!, name: cat.categoryName! })) || [])
   ]
 
   // 필터링된 양식 목록
   const filteredForms = allTemplates.filter((form) => {
     const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (form.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-    const matchesCategory = selectedCategory === "all" || form.category.id === selectedCategory
+    const matchesCategory = selectedCategory === "all" || 
+                           (form.category?.id === selectedCategory)
     return matchesSearch && matchesCategory && !form.isHidden // 숨김 처리된 템플릿 제외
   })
 
@@ -115,12 +118,6 @@ export function FormSelectionModal({
                   <FormTemplatesGrid
                     forms={filteredForms}
                     onCardClick={handleFormSelect}
-                    getCategoryName={(categoryId) => {
-                      if (typeof categoryId === 'number') {
-                        return categories.find(cat => cat.id === categoryId)?.name
-                      }
-                      return undefined
-                    }}
                   />
                 ) : (
                   <div className="text-center py-12">

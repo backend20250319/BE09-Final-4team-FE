@@ -155,7 +155,7 @@ export interface TemplateResponse {
   allowTargetChange: boolean
   isHidden: boolean
   referenceFiles: AttachmentInfoResponse[]
-  category: CategoryResponse
+  category?: CategoryResponse
   fields: TemplateFieldResponse[]
   approvalStages: ApprovalStageResponse[]
   referenceTargets: ApprovalTargetResponse[]
@@ -173,14 +173,14 @@ export interface TemplateSummaryResponse {
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
-  category: CategoryResponse
+  category?: CategoryResponse
   createdAt: string
   updatedAt: string
 }
 
 export interface TemplatesByCategoryResponse {
-  categoryId: number
-  categoryName: string
+  categoryId?: number
+  categoryName?: string
   templates: TemplateSummaryResponse[]
 }
 
@@ -194,7 +194,7 @@ export interface CreateTemplateRequest {
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
-  categoryId: number
+  categoryId?: number
   fields?: TemplateFieldRequest[]
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
@@ -210,7 +210,7 @@ export interface UpdateTemplateRequest {
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
-  categoryId: number
+  categoryId?: number
   fields?: TemplateFieldRequest[]
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
