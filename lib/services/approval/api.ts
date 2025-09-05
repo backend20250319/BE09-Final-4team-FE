@@ -109,11 +109,11 @@ export const documentApi = {
       size: params.pageable.size,
     }
     
-    if (params.pageable.sort) {
-      queryParams.sort = params.pageable.sort
+    if (params.pageable.sort && params.pageable.sort.length > 0) {
+      queryParams.sort = params.pageable.sort.join(',')
     }
     if (params.status && params.status.length > 0) {
-      queryParams.status = params.status
+      queryParams.status = params.status.join(',')
     }
     if (params.search) {
       queryParams.search = params.search
