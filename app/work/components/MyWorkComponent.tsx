@@ -11,6 +11,12 @@ import dynamic from "next/dynamic";
 import { workScheduleApi } from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
 import { ScheduleType } from "@/lib/services/attendance";
+import {
+  SCHEDULE_TYPE_LABEL,
+  SCHEDULE_TYPE_COLOR,
+  toLabelFromEnum,
+  toColorFromEnum,
+} from "./schedule-utils";
 
 // Type definitions
 interface WorkEvent {
@@ -93,49 +99,6 @@ const ScheduleCalendar = dynamic(
   }
 );
 
-// 유형 ↔ 색상 매핑 (Backend ScheduleType 기준)
-const TYPE_COLORS: Record<ScheduleType, string> = {
-  [ScheduleType.WORK]: "#4FC3F7",
-  [ScheduleType.SICK_LEAVE]: "#F48FB1",
-  [ScheduleType.VACATION]: "#F48FB1",
-  [ScheduleType.BUSINESS_TRIP]: "#FFB74D",
-  [ScheduleType.OUT_OF_OFFICE]: "#AED581",
-  [ScheduleType.OVERTIME]: "#B39DDB",
-  [ScheduleType.RESTTIME]: "#90CAF9",
-};
-
-// Backend ScheduleType(enum) → 한글 라벨 매핑
-const SCHEDULE_TYPE_LABEL: Record<string, string> = {
-  WORK: "근무",
-  SICK_LEAVE: "병가",
-  VACATION: "휴가",
-  BUSINESS_TRIP: "출장",
-  OUT_OF_OFFICE: "외근",
-  OVERTIME: "초과근무",
-  RESTTIME: "휴게시간",
-};
-
-// Backend ScheduleType(enum) → 색상 매핑 (TYPE_COLORS 재사용)
-const SCHEDULE_TYPE_COLOR: Record<string, string> = {
-  WORK: TYPE_COLORS[ScheduleType.WORK],
-  SICK_LEAVE: TYPE_COLORS[ScheduleType.SICK_LEAVE],
-  VACATION: TYPE_COLORS[ScheduleType.VACATION],
-  BUSINESS_TRIP: TYPE_COLORS[ScheduleType.BUSINESS_TRIP],
-  OUT_OF_OFFICE: TYPE_COLORS[ScheduleType.OUT_OF_OFFICE],
-  OVERTIME: TYPE_COLORS[ScheduleType.OVERTIME],
-  RESTTIME: TYPE_COLORS[ScheduleType.RESTTIME],
-};
-
-const toLabelFromEnum = (scheduleType?: string, fallback?: string): string => {
-  if (!scheduleType) return fallback || "";
-  return SCHEDULE_TYPE_LABEL[scheduleType] || fallback || scheduleType;
-};
-
-const toColorFromEnum = (scheduleType?: string, fallback?: string): string => {
-  if (!scheduleType) return fallback || "#4FC3F7";
-  return SCHEDULE_TYPE_COLOR[scheduleType] || fallback || "#4FC3F7";
-};
-
 export default function MyWorkComponent(): JSX.Element {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<string>("");
@@ -160,34 +123,6 @@ export default function MyWorkComponent(): JSX.Element {
   });
 
   const router = useRouter();
-
-  // 정해진 시간 범위에서 시간 생성 (예시)
-  const timeRanges: TimeRange[] = [
-    { start: "09:00", end: "11:00" },
-    { start: "13:00", end: "15:00" },
-    { start: "15:30", end: "17:00" },
-    { start: "10:00", end: "12:00" },
-    { start: "14:00", end: "16:00" },
-    { start: "16:30", end: "18:00" },
-  ];
-
-  // 요일별 시간 패턴 설정
-  const getTimePatternForDay = (dayOfWeek: number): TimePattern[] => {
-    switch (dayOfWeek) {
-      case 1:
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-        return [
-          { start: "08:00", end: "12:00", title: "근무", type: "work" },
-          { start: "12:00", end: "13:30", title: "휴게", type: "break" },
-          { start: "13:30", end: "18:00", title: "근무", type: "work" },
-        ];
-      default:
-        return [];
-    }
-  };
 
   // 클라이언트 사이드에서만 실행
   useEffect(() => {
@@ -226,9 +161,9 @@ export default function MyWorkComponent(): JSX.Element {
     setWeekDates(weekMapping);
   }, [isClient, baseDate]);
 
-  // 정책을 반영하여 해당 주의 고정 스케줄을 생성하고, 스케줄 불러오기
+  // 스케줄 불러오기 (정책 적용 없이 단순 조회)
   useEffect(() => {
-    const syncSchedulesWithPolicy = async () => {
+    const loadSchedules = async () => {
       try {
         if (!user?.id || !isClient) return;
 
@@ -251,14 +186,7 @@ export default function MyWorkComponent(): JSX.Element {
         const startDate = toStr(monday);
         const endDate = toStr(sunday);
 
-        // Work Policy를 스케줄에 반영 (근무/휴게/코어/시차 등 전체 반영)
-        await workScheduleApi.applyWorkPolicyToSchedule(
-          Number(user.id),
-          startDate,
-          endDate
-        );
-
-        // 기간 스케줄 조회
+        // 기간 스케줄 조회 (정책 적용 없이)
         const schedules = await workScheduleApi.getUserSchedulesByDateRange(
           Number(user.id),
           startDate,
@@ -310,11 +238,11 @@ export default function MyWorkComponent(): JSX.Element {
         setOriginalEvents(mapped);
       } catch (e) {
         // 실패해도 화면은 유지
-        console.error("Failed to sync schedules with policy:", e);
+        console.error("Failed to load schedules:", e);
       }
     };
 
-    syncSchedulesWithPolicy();
+    loadSchedules();
   }, [user?.id, isClient, baseDate]);
 
   // 현재 주 기준으로 scheduleData 생성
@@ -528,16 +456,6 @@ export default function MyWorkComponent(): JSX.Element {
           return `${hh}:${mm}:00`;
         };
 
-        // 임시 디버그: 전송 userId와 로그인 user.id 일치 여부 확인
-        console.debug(
-          "[work] create payload userId=",
-          Number(user.id),
-          "startDate=",
-          startDate,
-          "endDate=",
-          endDate
-        );
-
         const created = await workScheduleApi.createSchedule({
           userId: Number(user.id),
           title: newEvent.title,
@@ -665,8 +583,7 @@ export default function MyWorkComponent(): JSX.Element {
     if (!target) return;
 
     const label = toLabelFromEnum(selectedType, selectedType);
-    const selectedColor =
-      TYPE_COLORS[selectedType as unknown as ScheduleType] || "#4FC3F7";
+    const selectedColor = SCHEDULE_TYPE_COLOR[selectedType] || "#4FC3F7";
 
     // Optimistic update
     const prev = target;

@@ -129,13 +129,51 @@ export default function ScheduleCalendar({
             info.el.style.bottom = "0";
           }
 
-          if (
+          const isBreak =
             info.event.title === "휴게" ||
             info.event.title === "휴게시간" ||
             info.event.extendedProps?.type === "break" ||
-            info.event.extendedProps?.type === "RESTTIME"
-          ) {
+            info.event.extendedProps?.type === "RESTTIME";
+
+          if (isBreak) {
             info.el.style.boxShadow = "0 6px 16px rgba(0,0,0,.18)";
+            // 위치 계산 이후 보정: 다음 프레임에서 DOM 조정
+            requestAnimationFrame(() => {
+              const harness = info.el.closest(".fc-timegrid-event-harness");
+              if (harness) {
+                harness.style.removeProperty("left");
+                harness.style.removeProperty("right");
+                harness.style.removeProperty("width");
+                harness.style.removeProperty("transform");
+                harness.style.removeProperty("margin-left");
+
+                harness.style.setProperty("left", "0", "important");
+                harness.style.setProperty("right", "0", "important");
+                harness.style.setProperty("width", "100%", "important");
+                harness.style.setProperty("transform", "none", "important");
+                harness.style.setProperty("z-index", "60", "important");
+
+                const inset = harness.querySelector(
+                  ".fc-timegrid-event-harness-inset"
+                );
+                if (inset) {
+                  inset.style.removeProperty("left");
+                  inset.style.removeProperty("right");
+                  inset.style.removeProperty("width");
+                  inset.style.removeProperty("transform");
+                  inset.style.removeProperty("margin-left");
+
+                  inset.style.setProperty("left", "0", "important");
+                  inset.style.setProperty("right", "0", "important");
+                  inset.style.setProperty("width", "100%", "important");
+                  inset.style.setProperty("transform", "none", "important");
+                }
+              }
+
+              info.el.style.setProperty("left", "0", "important");
+              info.el.style.setProperty("right", "0", "important");
+              info.el.style.setProperty("width", "100%", "important");
+            });
           }
         }}
         /* 위치 계산이 끝난 직후 최종 보정: 부모 래퍼의 left/width/transform 제거 및 고정 */
