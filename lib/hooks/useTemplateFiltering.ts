@@ -39,7 +39,7 @@ export function useTemplateFiltering(): UseTemplateFilteringReturn {
         form.category?.id === selectedCategory ||
         (selectedCategory === -1 && !form.category)  // -1이면 분류 미지정
       
-      return matchesSearch && matchesCategory && !form.isHidden
+      return matchesSearch && matchesCategory
     })
   }, [allTemplates, searchTerm, selectedCategory])
   

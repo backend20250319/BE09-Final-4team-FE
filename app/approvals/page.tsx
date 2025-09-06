@@ -475,7 +475,7 @@ export default function ApprovalsPage() {
           setIsFormWriterOpen(false)
           setIsFormSelectionOpen(true)
         }}
-        formTemplate={selectedFormTemplate}
+        formTemplate={selectedFormTemplate as any}
         onSubmit={handleFormSubmit}
       />
     </MainLayout>

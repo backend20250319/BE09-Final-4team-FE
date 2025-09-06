@@ -11,8 +11,22 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { colors, typography } from "@/lib/design-tokens"
-import { FormTemplate, FormField, FieldType, ReferenceFile, categories, getIconComponent } from "@/lib/mock-data/form-templates"
+import { 
+  TemplateResponse, 
+  TemplateFieldResponse, 
+  TemplateFieldRequest,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
+  FieldType,
+  AttachmentInfoResponse,
+  CategoryResponse,
+  AttachmentUsageType 
+} from "@/lib/services/approval/types"
+import { useTemplate, useCategories } from "@/lib/hooks/useApproval"
+import { getIconComponent } from "@/lib/mock-data/form-templates"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 import {
   Plus,
@@ -44,6 +58,7 @@ import {
   Star,
   Bookmark
 } from "lucide-react"
+import { isLightColor } from "@/lib/utils/color"
 
 // 사용 가능한 아이콘 목록
 const availableIcons = [
@@ -70,35 +85,113 @@ const availableIcons = [
   { name: "Bookmark", icon: Bookmark, value: "Bookmark" }
 ]
 
-// 사용 가능한 색상 목록
+// 사용 가능한 색상 목록 (8x2 그리드: 진한색/연한색)
 const availableColors = [
-  { name: "파란색", value: "#3b82f6" },
-  { name: "초록색", value: "#10b981" },
-  { name: "빨간색", value: "#ef4444" },
-  { name: "노란색", value: "#f59e0b" },
-  { name: "보라색", value: "#8b5cf6" },
-  { name: "분홍색", value: "#ec4899" },
-  { name: "청록색", value: "#06b6d4" },
-  { name: "주황색", value: "#f97316" },
-  { name: "회색", value: "#6b7280" },
-  { name: "라임", value: "#84cc16" },
-  { name: "인디고", value: "#6366f1" },
-  { name: "에메랄드", value: "#059669" }
+  // 첫 번째 줄 - 진한색
+  { name: "빨강", value: "#b60205" },
+  { name: "주황", value: "#d93f0b" },
+  { name: "노랑", value: "#fbca04" },
+  { name: "초록", value: "#0e8a16" },
+  { name: "청록", value: "#006b75" },
+  { name: "파랑", value: "#1d76db" },
+  { name: "남색", value: "#0052cc" },
+  { name: "보라", value: "#5319e7" },
+  // 두 번째 줄 - 연한색
+  { name: "연빨강", value: "#e99695" },
+  { name: "연주황", value: "#f9d0c4" },
+  { name: "연노랑", value: "#fef2c0" },
+  { name: "연초록", value: "#c2e0c6" },
+  { name: "연청록", value: "#bfdadc" },
+  { name: "연파랑", value: "#c5def5" },
+  { name: "연남색", value: "#bfd4f2" },
+  { name: "연보라", value: "#d4c5f9" }
 ]
+
+// 아이콘과 색상 선택 팔레트 컴포넌트
+interface IconColorPaletteProps {
+  selectedIcon: string
+  selectedColor: string
+  onIconSelect: (icon: string) => void
+  onColorSelect: (color: string) => void
+  children: React.ReactNode
+}
+
+function IconColorPalette({
+  selectedIcon,
+  selectedColor,
+  onIconSelect,
+  onColorSelect,
+  children
+}: IconColorPaletteProps) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        {children}
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" align="start">
+        <div className="space-y-4">
+          {/* 아이콘 팔레트 */}
+          <div className="space-y-2">
+            <div className="grid grid-cols-6 gap-2">
+              {availableIcons.map((iconData) => {
+                const Icon = iconData.icon
+                const isSelected = selectedIcon === iconData.value
+                return (
+                  <button
+                    key={iconData.value}
+                    onClick={() => onIconSelect(iconData.value)}
+                    className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center hover:bg-gray-50 transition-colors ${
+                      isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* 색상 팔레트 */}
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-gray-700">색상</div>
+            <div className="grid grid-cols-8 gap-2">
+              {availableColors.map((colorData) => {
+                const isSelected = selectedColor === colorData.value
+                return (
+                  <button
+                    key={colorData.value}
+                    onClick={() => onColorSelect(colorData.value)}
+                    className={`w-7 h-7 rounded-sm flex items-center justify-center hover:scale-105 transition-transform ${
+                      isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                    }`}
+                    style={{ backgroundColor: colorData.value }}
+                    title={colorData.name}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 interface FormEditorModalProps {
   isOpen: boolean
   onClose: () => void
-  formTemplate?: FormTemplate | null // null이면 새 양식, 있으면 수정
-  onSave: (formTemplate: FormTemplate) => void
+  templateId?: number | null // null이면 새 양식, 있으면 수정
+  onSave: (request: CreateTemplateRequest | UpdateTemplateRequest) => void
 }
 
 // 필드 타입별 기본 설정
-const getFieldDefaults = (type: FieldType): Partial<FormField> => {
+const getFieldDefaults = (type: FieldType): Partial<TemplateFieldRequest> => {
   switch (type) {
-    case 'select':
-    case 'multiselect':
-      return { options: ["옵션 1", "옵션 2", "옵션 3"] }
+    case FieldType.SELECT:
+    case FieldType.MULTISELECT:
+      return { options: JSON.stringify(["옵션 1", "옵션 2", "옵션 3"]) }
     default:
       return {}
   }
@@ -109,17 +202,17 @@ function FieldConfigurationManager({
   fields,
   onFieldsChange
 }: {
-  fields: FormField[]
-  onFieldsChange: (fields: FormField[]) => void
+  fields: TemplateFieldRequest[]
+  onFieldsChange: (fields: TemplateFieldRequest[]) => void
 }) {
   const [expandedField, setExpandedField] = useState<number | null>(null)
 
   const addField = () => {
-    const newField: FormField = {
+    const newField: TemplateFieldRequest = {
       name: `새 필드 ${fields.length + 1}`,
-      type: 'text',
+      fieldType: FieldType.TEXT,
       required: false,
-      placeholder: ""
+      fieldOrder: fields.length + 1
     }
     onFieldsChange([...fields, newField])
     setExpandedField(fields.length) // 새로 추가된 필드를 펼쳐서 보여줌
@@ -132,7 +225,7 @@ function FieldConfigurationManager({
     }
   }
 
-  const updateField = (index: number, updates: Partial<FormField>) => {
+  const updateField = (index: number, updates: Partial<TemplateFieldRequest>) => {
     onFieldsChange(fields.map((field, i) => 
       i === index ? { ...field, ...updates } : field
     ))
@@ -188,7 +281,7 @@ function FieldConfigurationManager({
               <div>
                 <p className="font-medium text-sm">{field.name}</p>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">{field.type}</Badge>
+                  <Badge variant="outline" className="text-xs">{field.fieldType}</Badge>
                   {field.required && <Badge variant="destructive" className="text-xs">필수</Badge>}
                 </div>
               </div>
@@ -231,36 +324,27 @@ function FieldConfigurationManager({
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">필드 타입</Label>
                   <Select
-                    value={field.type}
+                    value={field.fieldType}
                     onValueChange={(value: FieldType) => {
                       const defaults = getFieldDefaults(value)
-                      updateField(index, { type: value, ...defaults })
+                      updateField(index, { fieldType: value, ...defaults })
                     }}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="text">텍스트</SelectItem>
-                      <SelectItem value="number">숫자</SelectItem>
-                      <SelectItem value="money">금액</SelectItem>
-                      <SelectItem value="date">날짜</SelectItem>
-                      <SelectItem value="select">단일 선택</SelectItem>
-                      <SelectItem value="multiselect">다중 선택</SelectItem>
+                      <SelectItem value={FieldType.TEXT}>텍스트</SelectItem>
+                      <SelectItem value={FieldType.NUMBER}>숫자</SelectItem>
+                      <SelectItem value={FieldType.MONEY}>금액</SelectItem>
+                      <SelectItem value={FieldType.DATE}>날짜</SelectItem>
+                      <SelectItem value={FieldType.SELECT}>단일 선택</SelectItem>
+                      <SelectItem value={FieldType.MULTISELECT}>다중 선택</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              {/* 플레이스홀더 */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">플레이스홀더</Label>
-                <Input
-                  value={field.placeholder || ''}
-                  onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                  placeholder="사용자에게 보여줄 안내 문구"
-                />
-              </div>
 
               {/* 필수 여부 */}
               <div className="flex items-center space-x-2">
@@ -275,41 +359,55 @@ function FieldConfigurationManager({
               </div>
 
               {/* 옵션 설정 (select, multiselect인 경우) */}
-              {(field.type === 'select' || field.type === 'multiselect') && (
+              {(field.fieldType === FieldType.SELECT || field.fieldType === FieldType.MULTISELECT) && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">선택 옵션</Label>
                   <div className="space-y-2">
-                    {field.options?.map((option, optionIndex) => (
-                      <div key={optionIndex} className="flex items-center gap-2">
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...(field.options || [])]
-                            newOptions[optionIndex] = e.target.value
-                            updateField(index, { options: newOptions })
-                          }}
-                          placeholder={`옵션 ${optionIndex + 1}`}
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const newOptions = field.options?.filter((_, i) => i !== optionIndex) || []
-                            updateField(index, { options: newOptions })
-                          }}
-                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
+                    {(() => {
+                      let options: string[] = []
+                      try {
+                        options = field.options ? JSON.parse(field.options) : []
+                      } catch {
+                        options = []
+                      }
+                      return options.map((option, optionIndex) => (
+                        <div key={optionIndex} className="flex items-center gap-2">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...options]
+                              newOptions[optionIndex] = e.target.value
+                              updateField(index, { options: JSON.stringify(newOptions) })
+                            }}
+                            placeholder={`옵션 ${optionIndex + 1}`}
+                            className="flex-1"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              const newOptions = options.filter((_, i) => i !== optionIndex)
+                              updateField(index, { options: JSON.stringify(newOptions) })
+                            }}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    })()}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const newOptions = [...(field.options || []), ""]
-                        updateField(index, { options: newOptions })
+                        let options: string[] = []
+                        try {
+                          options = field.options ? JSON.parse(field.options) : []
+                        } catch {
+                          options = []
+                        }
+                        const newOptions = [...options, ""]
+                        updateField(index, { options: JSON.stringify(newOptions) })
                       }}
                       className="w-full"
                     >
@@ -341,28 +439,27 @@ function ReferenceFilesManager({
   referenceFiles,
   onReferenceFilesChange
 }: {
-  referenceFiles: ReferenceFile[]
-  onReferenceFilesChange: (files: ReferenceFile[]) => void
+  referenceFiles: AttachmentInfoResponse[]
+  onReferenceFilesChange: (files: AttachmentInfoResponse[]) => void
 }) {
-  // ReferenceFile을 Attachment 형태로 변환
+  // AttachmentInfoResponse를 Attachment 형태로 변환
   const attachments: Attachment[] = referenceFiles.map(file => ({
-    id: file.id,
-    name: file.name,
-    size: file.size,
-    url: file.url
+    id: file.fileId,
+    name: file.fileName,
+    size: file.fileSize.toString(),
+    url: '' // API에서는 url 필드 없음
   }))
 
-  // Attachment를 ReferenceFile 형태로 변환하여 저장
+  // Attachment를 AttachmentInfoResponse 형태로 변환하여 저장
   const handleAttachmentsChange = (newAttachments: Attachment[]) => {
-    const newReferenceFiles: ReferenceFile[] = newAttachments.map(attachment => {
-      // 기존 참고파일에서 설명 찾기
-      const existingFile = referenceFiles.find(f => f.id === attachment.id)
+    const newReferenceFiles: AttachmentInfoResponse[] = newAttachments.map(attachment => {
+      // 기존 참고파일에서 정보 찾기
+      const existingFile = referenceFiles.find(f => f.fileId === attachment.id)
       return {
-        id: attachment.id,
-        name: attachment.name,
-        url: attachment.url || '',
-        size: attachment.size,
-        description: existingFile?.description || ''
+        fileId: attachment.id,
+        fileName: attachment.name,
+        fileSize: parseInt(attachment.size || '0') || 0,
+        contentType: existingFile?.contentType || 'application/octet-stream'
       }
     })
     onReferenceFilesChange(newReferenceFiles)
@@ -377,27 +474,17 @@ function ReferenceFilesManager({
         maxFileSize={50}
       />
       
-      {/* 참고파일별 설명 입력 */}
+      {/* 참고파일 목록 표시 */}
       {referenceFiles.length > 0 && (
         <div className="space-y-3">
-          <Label className="text-sm font-medium">파일 설명</Label>
+          <Label className="text-sm font-medium">첨부된 참고 파일</Label>
           {referenceFiles.map((file, index) => (
-            <div key={file.id} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700 truncate">{file.name}</span>
-              </div>
-              <Input
-                placeholder="파일에 대한 설명을 입력하세요 (선택사항)"
-                value={file.description || ''}
-                onChange={(e) => {
-                  const updatedFiles = referenceFiles.map((f, i) => 
-                    i === index ? { ...f, description: e.target.value } : f
-                  )
-                  onReferenceFilesChange(updatedFiles)
-                }}
-                className="ml-6"
-              />
+            <div key={file.fileId} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+              <FileText className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700 truncate">{file.fileName}</span>
+              <span className="text-xs text-gray-500 ml-auto">
+                {(file.fileSize / 1024 / 1024).toFixed(2)}MB
+              </span>
             </div>
           ))}
         </div>
@@ -409,52 +496,66 @@ function ReferenceFilesManager({
 export function FormEditorModal({ 
   isOpen, 
   onClose, 
-  formTemplate = null, 
+  templateId = null, 
   onSave 
 }: FormEditorModalProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [category, setCategory] = useState("")
+  const [categoryId, setCategoryId] = useState<number | undefined>(undefined)
   const [selectedIcon, setSelectedIcon] = useState("FileText")
   const [selectedColor, setSelectedColor] = useState("#3b82f6")
-  const [fields, setFields] = useState<FormField[]>([])
-  const [defaultContent, setDefaultContent] = useState("")
-  const [referenceFiles, setReferenceFiles] = useState<ReferenceFile[]>([])
-  const [attachments, setAttachments] = useState<FormTemplate['attachments']>('optional')
-  const [content, setContent] = useState<FormTemplate['content']>('enabled')
+  const [fields, setFields] = useState<TemplateFieldRequest[]>([])
+  const [bodyTemplate, setBodyTemplate] = useState("")
+  const [referenceFiles, setReferenceFiles] = useState<AttachmentInfoResponse[]>([])
+  const [useAttachment, setUseAttachment] = useState<AttachmentUsageType>(AttachmentUsageType.OPTIONAL)
+  const [useBody, setUseBody] = useState(true)
 
-  const isEditing = !!formTemplate
+  const isEditing = !!templateId
+
+  // API 훅 사용
+  const { data: template, isLoading: templateLoading } = useTemplate(templateId)
+  const { data: categories = [] } = useCategories()
 
   // 모달이 열릴 때 기존 양식 데이터로 초기화 또는 기본값 설정
   useEffect(() => {
     if (isOpen) {
-      if (formTemplate) {
-        // 수정 모드: 기존 데이터로 초기화
-        setTitle(formTemplate.title)
-        setDescription(formTemplate.description)
-        setCategory(formTemplate.category)
-        setSelectedIcon(typeof formTemplate.icon === 'string' ? formTemplate.icon : "FileText")
-        setSelectedColor(formTemplate.color)
-        setFields(formTemplate.fields || [])
-        setDefaultContent(formTemplate.defaultContent || "")
-        setReferenceFiles(formTemplate.referenceFiles || [])
-        setAttachments(formTemplate.attachments)
-        setContent(formTemplate.content)
-      } else {
+      if (template && templateId) {
+        // 수정 모드: API 데이터로 초기화
+        setTitle(template.title)
+        setDescription(template.description || "")
+        setCategoryId(template.category?.id)
+        setSelectedIcon(template.icon || "FileText")
+        setSelectedColor(template.color || "#3b82f6")
+        
+        // 필드 데이터 변환 (TemplateFieldResponse → TemplateFieldRequest)
+        const convertedFields: TemplateFieldRequest[] = template.fields.map(field => ({
+          name: field.name,
+          fieldType: field.fieldType,
+          required: field.required,
+          fieldOrder: field.fieldOrder,
+          options: field.options
+        }))
+        setFields(convertedFields)
+        
+        setBodyTemplate(template.bodyTemplate || "")
+        setReferenceFiles(template.referenceFiles || [])
+        setUseAttachment(template.useAttachment)
+        setUseBody(template.useBody)
+      } else if (!templateId) {
         // 새 양식 모드: 기본값으로 초기화
         setTitle("")
         setDescription("")
-        setCategory("business")
+        setCategoryId(undefined)
         setSelectedIcon("FileText")
         setSelectedColor("#3b82f6")
         setFields([])
-        setDefaultContent("")
+        setBodyTemplate("")
         setReferenceFiles([])
-        setAttachments('optional')
-        setContent('enabled')
+        setUseAttachment(AttachmentUsageType.OPTIONAL)
+        setUseBody(true)
       }
     }
-  }, [isOpen, formTemplate])
+  }, [isOpen, template, templateId])
 
   const handleSave = () => {
     if (!title.trim()) {
@@ -472,21 +573,31 @@ export function FormEditorModal({
       return
     }
 
-    const newFormTemplate: FormTemplate = {
-      id: formTemplate?.id || `form-${Date.now()}`,
+    // 필드 데이터에 fieldOrder 업데이트
+    const fieldsWithOrder = fields.map((field, index) => ({
+      ...field,
+      fieldOrder: index + 1
+    }))
+
+    const requestData = {
       title: title.trim(),
       description: description.trim(),
-      category,
-      icon: selectedIcon, // 문자열로 저장
+      icon: selectedIcon,
       color: selectedColor,
-      fields,
-      defaultContent,
-      referenceFiles: referenceFiles.filter(file => file.id && file.name && file.url),
-      attachments,
-      content
+      bodyTemplate: bodyTemplate,
+      useBody: useBody,
+      useAttachment: useAttachment,
+      allowTargetChange: true, // 기본값
+      categoryId: categoryId,
+      fields: fieldsWithOrder,
+      referenceFiles: referenceFiles.map(file => file.fileId)
     }
 
-    onSave(newFormTemplate)
+    if (isEditing) {
+      onSave(requestData as UpdateTemplateRequest)
+    } else {
+      onSave(requestData as CreateTemplateRequest)
+    }
     onClose()
   }
 
@@ -509,12 +620,22 @@ export function FormEditorModal({
               
               {/* 양식 미리보기 */}
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <div 
-                  className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: selectedColor }}
+                <IconColorPalette
+                  selectedIcon={selectedIcon}
+                  selectedColor={selectedColor}
+                  onIconSelect={setSelectedIcon}
+                  onColorSelect={setSelectedColor}
                 >
-                  <IconComponent className="w-6 h-6 text-white" />
-                </div>
+                  <button 
+                    className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                    style={{ backgroundColor: selectedColor }}
+                    type="button"
+                  >
+                    <IconComponent className={`w-6 h-6 group-hover:scale-110 transition-transform ${
+                      isLightColor(selectedColor) ? 'text-gray-800' : 'text-white'
+                    }`} />
+                  </button>
+                </IconColorPalette>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 truncate">
                     {title || "양식 제목"}
@@ -537,13 +658,17 @@ export function FormEditorModal({
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">카테고리</Label>
-                  <Select value={category} onValueChange={setCategory}>
+                  <Select 
+                    value={categoryId?.toString() || "none"} 
+                    onValueChange={(value) => setCategoryId(value === "none" ? undefined : parseInt(value))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="카테고리 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.filter(cat => cat.id !== "all").map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
+                      <SelectItem value="none">카테고리 없음</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>
                       ))}
@@ -555,16 +680,17 @@ export function FormEditorModal({
                   <Label className="text-sm font-medium">아이콘</Label>
                   <Select value={selectedIcon} onValueChange={setSelectedIcon}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <div className="flex items-center justify-center">
+                        <IconComponent className="w-5 h-5" />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       {availableIcons.map((iconData) => {
                         const Icon = iconData.icon
                         return (
                           <SelectItem key={iconData.value} value={iconData.value}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="w-4 h-4" />
-                              {iconData.name}
+                            <div className="flex items-center justify-center">
+                              <Icon className="w-5 h-5" />
                             </div>
                           </SelectItem>
                         )
@@ -577,17 +703,21 @@ export function FormEditorModal({
                   <Label className="text-sm font-medium">색상</Label>
                   <Select value={selectedColor} onValueChange={setSelectedColor}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <div className="flex items-center justify-center">
+                        <div 
+                          className="w-6 h-6 rounded border border-gray-300"
+                          style={{ backgroundColor: selectedColor }}
+                        />
+                      </div>
                     </SelectTrigger>
                     <SelectContent>
                       {availableColors.map((colorData) => (
                         <SelectItem key={colorData.value} value={colorData.value}>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center">
                             <div 
-                              className="w-4 h-4 rounded border border-gray-300"
+                              className="w-6 h-6 rounded border border-gray-300"
                               style={{ backgroundColor: colorData.value }}
                             />
-                            {colorData.name}
                           </div>
                         </SelectItem>
                       ))}
@@ -621,14 +751,14 @@ export function FormEditorModal({
             <Separator />
 
             {/* 기본 콘텐츠 - 내용 작성란이 활성화된 경우에만 표시 */}
-            {content === 'enabled' && (
+            {useBody && (
               <div className="space-y-4">
                 <h3 className={`${typography.h3} text-gray-800`}>내용</h3>
                 <div className="space-y-2">
                   <Textarea
                     placeholder="양식 작성 시 기본으로 표시될 내용을 입력하세요"
-                    value={defaultContent}
-                    onChange={(e) => setDefaultContent(e.target.value)}
+                    value={bodyTemplate}
+                    onChange={(e) => setBodyTemplate(e.target.value)}
                     className="min-h-[120px]"
                   />
                   <p className="text-xs text-gray-500">
@@ -647,29 +777,33 @@ export function FormEditorModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">첨부파일 설정</Label>
-                  <Select value={attachments} onValueChange={(value: FormTemplate['attachments']) => setAttachments(value)}>
+                  <Select 
+                    value={useAttachment} 
+                    onValueChange={(value: AttachmentUsageType) => setUseAttachment(value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="disabled">사용 안함</SelectItem>
-                      <SelectItem value="optional">사용</SelectItem>
-                      <SelectItem value="required">필수</SelectItem>
+                      <SelectItem value={AttachmentUsageType.DISABLED}>사용 안함</SelectItem>
+                      <SelectItem value={AttachmentUsageType.OPTIONAL}>사용</SelectItem>
+                      <SelectItem value={AttachmentUsageType.REQUIRED}>필수</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">내용 작성란</Label>
-                  <Select value={content} onValueChange={(value: FormTemplate['content']) => setContent(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="disabled">사용 안함</SelectItem>
-                      <SelectItem value="enabled">사용</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="use-body"
+                      checked={useBody}
+                      onCheckedChange={setUseBody}
+                    />
+                    <Label htmlFor="use-body" className="text-sm">
+                      {useBody ? "사용" : "사용 안함"}
+                    </Label>
+                  </div>
                 </div>
               </div>
             </div>

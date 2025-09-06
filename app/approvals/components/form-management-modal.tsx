@@ -201,17 +201,25 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
     setIsFormEditorOpen(true)
   }
 
-  const handleEditForm = (form: FormTemplate) => {
+  const handleEditForm = (form: TemplateSummaryResponse) => {
     setEditingForm(form)
     setIsFormEditorOpen(true)
   }
 
-  // 임시로 FormEditorModal 지원을 위한 함수 (나중에 제거)
-  const handleFormSave = (savedForm: any) => {
-    // FormEditorModal이 API 연동될 때까지 임시로 빈 함수
-    console.warn('FormEditorModal API 연동 필요')
-    setIsFormEditorOpen(false)
-    setEditingForm(null)
+  const handleFormSave = async (request: CreateTemplateRequest | UpdateTemplateRequest) => {
+    try {
+      if (editingForm) {
+        // 수정 모드
+        await updateTemplateMutation.mutateAsync({ id: editingForm.id, request: request as UpdateTemplateRequest })
+      } else {
+        // 생성 모드
+        await createTemplateMutation.mutateAsync(request as CreateTemplateRequest)
+      }
+      setIsFormEditorOpen(false)
+      setEditingForm(null)
+    } catch (error) {
+      console.error('Template save failed:', error)
+    }
   }
 
   const handleDuplicate = async (form: TemplateSummaryResponse) => {
@@ -511,7 +519,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
       <FormEditorModal
         isOpen={isFormEditorOpen}
         onClose={() => setIsFormEditorOpen(false)}
-        formTemplate={editingForm}
+        templateId={editingForm?.id || null}
         onSave={handleFormSave}
       />
 

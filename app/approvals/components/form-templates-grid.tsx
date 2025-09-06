@@ -7,6 +7,7 @@ import { TemplateSummaryResponse } from "@/lib/services/approval/types"
 import { getIconComponent } from "@/lib/mock-data/form-templates"
 import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
+import { isLightColor } from "@/lib/utils/color"
 
 export interface FormTemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
   forms: T[]
@@ -39,7 +40,9 @@ export function FormTemplatesGrid<T extends TemplateSummaryResponse = TemplateSu
                 className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0"
                 style={{ backgroundColor: form.color || '#6b7280' }}
               >
-                <IconComponent className="w-6 h-6 text-white" />
+                <IconComponent className={`w-6 h-6 ${
+                  isLightColor(form.color || '#6b7280') ? 'text-gray-800' : 'text-white'
+                }`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">

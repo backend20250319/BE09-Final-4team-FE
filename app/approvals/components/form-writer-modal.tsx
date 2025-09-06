@@ -56,6 +56,7 @@ interface Reference {
 }
 
 import { FormTemplate, FormField, ReferenceFile, getIconComponent } from "@/lib/mock-data/form-templates"
+import { isLightColor } from "@/lib/utils/color"
 
 interface FormWriterModalProps {
   isOpen: boolean
@@ -683,7 +684,9 @@ export function FormWriterModal({
               </Button>
               <div className="flex items-center gap-4 flex-1">
                 <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
-                  <IconComponent className="w-6 h-6 text-white" />
+                  <IconComponent className={`w-6 h-6 ${
+                    isLightColor(formTemplate.color) ? 'text-gray-800' : 'text-white'
+                  }`} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className={`${typography.h3} text-gray-800 truncate`}>{formTemplate.title}</h2>
