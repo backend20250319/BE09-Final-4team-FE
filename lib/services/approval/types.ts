@@ -283,6 +283,7 @@ export interface CreateDocumentRequest {
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
   attachments?: string[]
+  submitImmediately?: boolean
 }
 
 export interface UpdateDocumentRequest {

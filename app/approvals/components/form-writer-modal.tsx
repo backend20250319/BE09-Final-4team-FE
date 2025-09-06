@@ -31,45 +31,44 @@ import {
 } from "lucide-react"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 
-// 타입 정의
-interface User {
+// 로컬 타입 정의 (API 타입과 UI 적응을 위한 헬퍼 타입들)
+interface LocalApprovalStage {
   id: string
   name: string
-  avatar?: string
-  position?: string
-  department?: string
+  approvers: UserResponseDto[]
 }
 
-
-
-interface ApprovalStage {
-  id: string
-  name: string
-  approvers: User[]
-}
-
-interface Reference {
+interface LocalReference {
   id: string
   name: string
   avatar?: string
   position: string
 }
 
-import { FormTemplate, FormField, ReferenceFile } from "@/lib/mock-data/form-templates"
+import { 
+  TemplateResponse, 
+  TemplateFieldResponse, 
+  FieldType, 
+  AttachmentInfoResponse,
+  AttachmentUsageType,
+  ApprovalStageResponse,
+  ApprovalStageRequest,
+  ApprovalTargetRequest,
+  TargetType,
+  UserProfile,
+  CreateDocumentRequest,
+  DocumentFieldValueRequest
+} from "@/lib/services/approval/types"
+import { UserResponseDto } from "@/lib/services/user/types"
+import { userApi } from "@/lib/services/user/api"
+import { useCreateDocument } from "@/lib/hooks/useApproval"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
 interface FormWriterModalProps {
   isOpen: boolean
   onClose: () => void
   onBack: () => void
-  formTemplate: FormTemplate | null
-  onSubmit: (data: {
-    content: string
-    attachments: Attachment[]
-    approvalStages: ApprovalStage[]
-    references: Reference[]
-    formFields: Record<string, any>
-  }) => Promise<void>
+  formTemplate: TemplateResponse | null
 }
 
 // 모바일용 접을 수 있는 섹션 컴포넌트
@@ -112,14 +111,14 @@ function ApprovalStagesManager({
   onStagesChange,
   availableUsers
 }: {
-  stages: ApprovalStage[]
-  onStagesChange: (stages: ApprovalStage[]) => void
-  availableUsers: User[]
+  stages: LocalApprovalStage[]
+  onStagesChange: (stages: LocalApprovalStage[]) => void
+  availableUsers: UserResponseDto[]
 }) {
   const [selectedApprover, setSelectedApprover] = useState<{ [stageId: string]: string }>({});
   const addStage = () => {
     if (stages.length >= 5) return
-    const newStage: ApprovalStage = {
+    const newStage: LocalApprovalStage = {
       id: `stage-${Date.now()}`,
       name: `${stages.length + 1}단계`,
       approvers: []
@@ -137,7 +136,7 @@ function ApprovalStagesManager({
     onStagesChange(reorderedStages)
   }
 
-  const addApprover = (stageId: string, user: User) => {
+  const addApprover = (stageId: string, user: UserResponseDto) => {
     onStagesChange(stages.map(stage =>
       stage.id === stageId
         ? { ...stage, approvers: [...stage.approvers, user] }
@@ -145,7 +144,7 @@ function ApprovalStagesManager({
     ))
   }
 
-  const removeApprover = (stageId: string, userId: string) => {
+  const removeApprover = (stageId: string, userId: number) => {
     onStagesChange(stages.map(stage =>
       stage.id === stageId
         ? { ...stage, approvers: stage.approvers.filter(approver => approver.id !== userId) }
@@ -177,14 +176,14 @@ function ApprovalStagesManager({
               <div key={approver.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                 <div className="flex items-center gap-3">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={approver.avatar} alt={approver.name} />
+                    <AvatarImage src={approver.profileImageUrl} alt={approver.name} />
                     <AvatarFallback className="text-xs">
                       {approver.name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="text-sm font-medium text-gray-800">{approver.name}</p>
-                    <p className="text-xs text-gray-500">{approver.position}</p>
+                    <p className="text-xs text-gray-500">{approver.position?.name || ""}</p>
                   </div>
                 </div>
                 <Button
@@ -209,7 +208,7 @@ function ApprovalStagesManager({
               <Select
                 value={selectedApprover[stage.id] || ""}
                 onValueChange={(userId) => {
-                  const user = availableUsers.find(u => u.id === userId)
+                  const user = availableUsers.find(u => u.id === Number(userId))
                   if (user) {
                     addApprover(stage.id, user)
                     setSelectedApprover(prev => ({ ...prev, [stage.id]: "" }))
@@ -221,17 +220,17 @@ function ApprovalStagesManager({
                 </SelectTrigger>
                 <SelectContent>
                   {availableApprovers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
+                    <SelectItem key={user.id} value={user.id.toString()}>
                       <div className="flex items-center gap-2">
                         <Avatar className="w-6 h-6">
-                          <AvatarImage src={user.avatar} alt={user.name} />
+                          <AvatarImage src={user.profileImageUrl} alt={user.name} />
                           <AvatarFallback className="text-xs">
                             {user.name?.charAt(0) || "U"}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-gray-500">{user.position}</p>
+                          <p className="text-xs text-gray-500">{user.position?.name || ""}</p>
                         </div>
                       </div>
                     </SelectItem>
@@ -267,17 +266,17 @@ function ReferencesManager({
   onReferencesChange,
   availableUsers
 }: {
-  references: Reference[]
-  onReferencesChange: (references: Reference[]) => void
-  availableUsers: User[]
+  references: LocalReference[]
+  onReferencesChange: (references: LocalReference[]) => void
+  availableUsers: UserResponseDto[]
 }) {
   const [selectedReference, setSelectedReference] = useState("");
-  const addReference = (user: User) => {
-    const reference: Reference = {
-      id: user.id,
+  const addReference = (user: UserResponseDto) => {
+    const reference: LocalReference = {
+      id: user.id.toString(),
       name: user.name,
-      avatar: user.avatar,
-      position: user.position || ""
+      avatar: user.profileImageUrl,
+      position: user.position?.name || ""
     }
     onReferencesChange([...references, reference])
   }
@@ -319,14 +318,14 @@ function ReferencesManager({
       {/* 참조자 추가 */}
       {(() => {
         const availableReferences = availableUsers.filter(user =>
-          !references.some(ref => ref.id === user.id)
+          !references.some(ref => ref.id === user.id.toString())
         );
 
         return availableReferences.length > 0 ? (
           <Select
             value={selectedReference}
             onValueChange={(userId) => {
-              const user = availableUsers.find(u => u.id === userId)
+              const user = availableUsers.find(u => u.id === Number(userId))
               if (user) {
                 addReference(user)
                 setSelectedReference("")
@@ -338,17 +337,17 @@ function ReferencesManager({
             </SelectTrigger>
             <SelectContent>
               {availableReferences.map((user) => (
-                <SelectItem key={user.id} value={user.id}>
+                <SelectItem key={user.id} value={user.id.toString()}>
                   <div className="flex items-center gap-2">
                     <Avatar className="w-6 h-6">
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src={user.profileImageUrl} alt={user.name} />
                       <AvatarFallback className="text-xs">
                         {user.name?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.position}</p>
+                      <p className="text-xs text-gray-500">{user.position?.name || ""}</p>
                     </div>
                   </div>
                 </SelectItem>
@@ -369,26 +368,14 @@ function ReferencesManager({
 function ReferenceFilesManager({
   referenceFiles
 }: {
-  referenceFiles: ReferenceFile[]
+  referenceFiles: AttachmentInfoResponse[]
 }) {
-  const handleDownload = (file: ReferenceFile) => {
+  const handleDownload = (file: AttachmentInfoResponse) => {
     // 실제로는 파일 다운로드 로직 구현
-    console.log("다운로드:", file.name, file.url)
-    // 임시로 새 탭에서 열기
-    window.open(file.url, '_blank')
-  }
-
-  // URL에서 실제 파일 이름 추출
-  const getFileNameFromUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url)
-      const pathname = urlObj.pathname
-      const fileName = pathname.split('/').pop() || url
-      return decodeURIComponent(fileName)
-    } catch {
-      // URL이 유효하지 않은 경우 마지막 슬래시 이후 부분 반환
-      return url.split('/').pop() || url
-    }
+    console.log("다운로드:", file.fileName, file.fileId)
+    // 파일 다운로드를 위한 API 호출이 필요 (예: /api/files/${file.fileId}/download)
+    const downloadUrl = `/api/files/${file.fileId}/download`
+    window.open(downloadUrl, '_blank')
   }
 
   if (!referenceFiles || referenceFiles.length === 0) {
@@ -399,12 +386,10 @@ function ReferenceFilesManager({
     <TooltipProvider>
       <div className="space-y-3">
         {referenceFiles.map((file) => (
-          <div key={file.id || file.name} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div key={file.fileId} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-blue-900 truncate">{file.name}</p>
-              {file.description && (
-                <p className="text-xs text-blue-700 mt-1">{file.description}</p>
-              )}
+              <p className="text-sm font-medium text-blue-900 truncate">{file.fileName}</p>
+              <p className="text-xs text-blue-700 mt-1">{(file.fileSize / 1024).toFixed(1)}KB • {file.contentType}</p>
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -418,7 +403,7 @@ function ReferenceFilesManager({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{getFileNameFromUrl(file.url)}</p>
+                <p>{file.fileName}</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -434,7 +419,7 @@ function FormFieldRenderer({
   value,
   onChange
 }: {
-  field: FormField
+  field: TemplateFieldResponse
   value: any
   onChange: (value: any) => void
 }) {
@@ -457,35 +442,47 @@ function FormFieldRenderer({
     onChange(formatted)
   }
 
-  switch (field.type) {
-    case 'text':
+  // 옵션 파싱 (API에서는 string으로 저장됨)
+  const parseOptions = (optionsString?: string): string[] => {
+    if (!optionsString) return []
+    try {
+      return JSON.parse(optionsString)
+    } catch {
+      return optionsString.split(',').map(opt => opt.trim()).filter(opt => opt.length > 0)
+    }
+  }
+
+  const options = parseOptions(field.options)
+
+  switch (field.fieldType) {
+    case FieldType.TEXT:
       return (
         <Input
           type="text"
-          placeholder={field.placeholder}
+          placeholder={`${field.name}를 입력하세요`}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           className="w-full"
         />
       )
 
-    case 'number':
+    case FieldType.NUMBER:
       return (
         <Input
           type="number"
-          placeholder={field.placeholder}
+          placeholder={`${field.name}를 입력하세요`}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           className="w-full"
         />
       )
 
-    case 'money':
+    case FieldType.MONEY:
       return (
         <div className="relative">
           <Input
             type="text"
-            placeholder={field.placeholder}
+            placeholder={`${field.name}를 입력하세요`}
             value={value || ''}
             onChange={handleMoneyChange}
             className="w-full pr-10"
@@ -496,7 +493,7 @@ function FormFieldRenderer({
         </div>
       )
 
-    case 'date':
+    case FieldType.DATE:
       return (
         <div className="relative">
           <Input
@@ -509,14 +506,14 @@ function FormFieldRenderer({
         </div>
       )
 
-    case 'select':
+    case FieldType.SELECT:
       return (
         <Select value={value || ''} onValueChange={onChange}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="옵션을 선택하세요" />
           </SelectTrigger>
           <SelectContent>
-            {field.options?.map((option) => (
+            {options.map((option) => (
               <SelectItem key={option} value={option}>
                 {option}
               </SelectItem>
@@ -525,11 +522,11 @@ function FormFieldRenderer({
         </Select>
       )
 
-    case 'multiselect':
+    case FieldType.MULTISELECT:
       const selectedValues = Array.isArray(value) ? value : []
       return (
         <div className="space-y-2">
-          {field.options?.map((option) => (
+          {options.map((option) => (
             <div key={option} className="flex items-center space-x-2">
               <Checkbox
                 id={`${field.name}-${option}`}
@@ -557,21 +554,26 @@ export function FormWriterModal({
   isOpen,
   onClose,
   onBack,
-  formTemplate,
-  onSubmit
+  formTemplate
 }: FormWriterModalProps) {
   const [content, setContent] = useState("")
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [approvalStages, setApprovalStages] = useState<ApprovalStage[]>([
+  const [approvalStages, setApprovalStages] = useState<LocalApprovalStage[]>([
     {
       id: "stage-1",
       name: "1단계",
       approvers: []
     }
   ])
-  const [references, setReferences] = useState<Reference[]>([])
+  const [references, setReferences] = useState<LocalReference[]>([])
   const [formFieldValues, setFormFieldValues] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableUsers, setAvailableUsers] = useState<UserResponseDto[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // useCreateDocument 훅 사용
+  const createDocument = useCreateDocument()
 
   // 모달이 열릴 때 기본 콘텐츠 설정, 닫힐 때 상태 초기화
   useEffect(() => {
@@ -604,19 +606,32 @@ export function FormWriterModal({
     }
   }, [isOpen, formTemplate])
 
-  // 사용 가능한 사용자 목록 (실제로는 API에서 가져옴)
-  const availableUsers: User[] = [
-    { id: "1", name: "김철수", position: "팀장", department: "개발팀" },
-    { id: "2", name: "이영희", position: "과장", department: "마케팅팀" },
-    { id: "3", name: "박민수", position: "대리", department: "영업팀" },
-    { id: "4", name: "정수진", position: "사원", department: "인사팀" },
-    { id: "5", name: "최동욱", position: "부장", department: "기획팀" },
-  ]
+  // 사용 가능한 사용자 목록 로드
+  useEffect(() => {
+    const loadUsers = async () => {
+      setUsersLoading(true)
+      setError(null)
+      try {
+        const users = await userApi.getAllUsers()
+        setAvailableUsers(users)
+      } catch (error) {
+        console.error("사용자 목록 로드 실패:", error)
+        setError("사용자 목록을 불러오는데 실패했습니다.")
+        setAvailableUsers([])
+      } finally {
+        setUsersLoading(false)
+      }
+    }
+
+    if (isOpen) {
+      loadUsers()
+    }
+  }, [isOpen])
 
   const handleSubmit = async () => {
     if (!formTemplate) return
 
-    if (formTemplate.content === 'enabled' && !content.trim()) {
+    if (formTemplate.useBody && !content.trim()) {
       alert("내용을 입력해주세요.")
       return
     }
@@ -641,23 +656,60 @@ export function FormWriterModal({
     }
 
     // 첨부파일 필수 검증
-    if (formTemplate.attachments === 'required' && attachments.length === 0) {
+    if (formTemplate.useAttachment === AttachmentUsageType.REQUIRED && attachments.length === 0) {
       alert("첨부파일을 업로드해주세요.")
       return
     }
 
     setIsSubmitting(true)
+    setError(null)
+    
     try {
-      await onSubmit({
-        content,
-        attachments,
-        approvalStages,
-        references,
-        formFields: formFieldValues
+      // CreateDocumentRequest 형식으로 데이터 변환
+      const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues).map(([fieldName, fieldValue]) => {
+        const templateField = formTemplate.fields?.find(f => f.name === fieldName)
+        return {
+          fieldName,
+          fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
+          templateFieldId: templateField?.id
+        }
       })
+
+      const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
+        stageOrder: index + 1,
+        stageName: stage.name,
+        approvalTargets: stage.approvers.map(approver => ({
+          targetType: TargetType.USER,
+          userId: approver.id,
+          isReference: false
+        }))
+      }))
+
+      const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
+        targetType: TargetType.USER,
+        userId: Number(reference.id),
+        isReference: true
+      }))
+
+      // 첨부파일 ID 배열 (실제로는 Attachment에서 fileId 추출 필요)
+      const attachmentIds = attachments.map(attachment => attachment.id || '')
+
+      const createDocumentRequest: CreateDocumentRequest = {
+        templateId: formTemplate.id,
+        content: formTemplate.useBody ? content : undefined,
+        fieldValues,
+        approvalStages: approvalStageRequests,
+        referenceTargets: referenceTargetRequests,
+        attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
+        submitImmediately: true
+      }
+
+      await createDocument.mutateAsync(createDocumentRequest)
       onClose()
     } catch (error) {
       console.error("문서 제출 중 오류:", error)
+      const errorMessage = error instanceof Error ? error.message : "문서 제출 중 오류가 발생했습니다."
+      setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
@@ -694,6 +746,13 @@ export function FormWriterModal({
             </div>
           </DialogHeader>
 
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="mx-6 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
           {/* 데스크톱 레이아웃 */}
           <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
@@ -726,7 +785,7 @@ export function FormWriterModal({
               )}
 
               {/* 본문 작성 */}
-              {formTemplate.content === 'enabled' && (
+              {formTemplate.useBody && (
                 <div className="space-y-2 flex-1 flex flex-col min-h-0">
                   <Textarea
                     placeholder="내용을 입력하세요"
@@ -738,13 +797,13 @@ export function FormWriterModal({
               )}
 
               {/* 첨부파일 */}
-              {formTemplate.attachments !== 'disabled' && (
+              {formTemplate.useAttachment !== AttachmentUsageType.DISABLED && (
                 <div className="space-y-2 flex-shrink-0 mt-4">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-medium text-gray-700">
                       첨부파일{attachments.length > 0 && ` (${attachments.length}개)`}
                     </h3>
-                    {formTemplate.attachments === 'required' && (
+                    {formTemplate.useAttachment === AttachmentUsageType.REQUIRED && (
                       <Badge variant="destructive" className="text-xs">필수</Badge>
                     )}
                   </div>
@@ -773,11 +832,20 @@ export function FormWriterModal({
                 {/* 승인 단계 */}
                 <div className="space-y-3">
                   <h3 className={`${typography.h4} text-gray-800`}>승인 단계</h3>
-                  <ApprovalStagesManager
-                    stages={approvalStages}
-                    onStagesChange={setApprovalStages}
-                    availableUsers={availableUsers}
-                  />
+                  {usersLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-600">사용자 목록 로드 중...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <ApprovalStagesManager
+                      stages={approvalStages}
+                      onStagesChange={setApprovalStages}
+                      availableUsers={availableUsers}
+                    />
+                  )}
                 </div>
 
                 <Separator />
@@ -785,11 +853,20 @@ export function FormWriterModal({
                 {/* 참조자 */}
                 <div className="space-y-3">
                   <h3 className={`${typography.h4} text-gray-800`}>참조자</h3>
-                  <ReferencesManager
-                    references={references}
-                    onReferencesChange={setReferences}
-                    availableUsers={availableUsers}
-                  />
+                  {usersLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-600">로드 중...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <ReferencesManager
+                      references={references}
+                      onReferencesChange={setReferences}
+                      availableUsers={availableUsers}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -798,10 +875,10 @@ export function FormWriterModal({
                 <GradientButton
                   variant="primary"
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || createDocument.isPending}
                   className="w-full flex items-center justify-center gap-2 h-12"
                 >
-                  {isSubmitting ? (
+                  {(isSubmitting || createDocument.isPending) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
@@ -850,7 +927,7 @@ export function FormWriterModal({
               )}
 
               {/* 본문 작성 */}
-              {formTemplate.content === 'enabled' && (
+              {formTemplate.useBody && (
                 <CollapsibleSection title="내용 작성" defaultOpen={true}>
                   <div className="space-y-2">
                     <Textarea
@@ -865,34 +942,52 @@ export function FormWriterModal({
 
               {/* 승인 단계 */}
               <CollapsibleSection title="승인 단계" defaultOpen={true}>
-                <ApprovalStagesManager
-                  stages={approvalStages}
-                  onStagesChange={setApprovalStages}
-                  availableUsers={availableUsers}
-                />
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm text-gray-600">사용자 목록 로드 중...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <ApprovalStagesManager
+                    stages={approvalStages}
+                    onStagesChange={setApprovalStages}
+                    availableUsers={availableUsers}
+                  />
+                )}
               </CollapsibleSection>
 
               {/* 참조자 */}
               <CollapsibleSection title="참조자">
-                <ReferencesManager
-                  references={references}
-                  onReferencesChange={setReferences}
-                  availableUsers={availableUsers}
-                />
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-sm text-gray-600">로드 중...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <ReferencesManager
+                    references={references}
+                    onReferencesChange={setReferences}
+                    availableUsers={availableUsers}
+                  />
+                )}
               </CollapsibleSection>
 
               {/* 첨부파일 */}
-              {formTemplate.attachments !== 'disabled' && (
+              {formTemplate.useAttachment !== AttachmentUsageType.DISABLED && (
                 <CollapsibleSection
                   title={
                     <div className="flex items-center gap-2">
                       <span>첨부파일</span>
-                      {formTemplate.attachments === 'required' && (
+                      {formTemplate.useAttachment === AttachmentUsageType.REQUIRED && (
                         <Badge variant="destructive" className="text-xs">필수</Badge>
                       )}
                     </div>
                   }
-                  defaultOpen={formTemplate.attachments === 'required'}
+                  defaultOpen={formTemplate.useAttachment === AttachmentUsageType.REQUIRED}
                 >
                   <div className="max-h-64 overflow-y-auto">
                     <AttachmentsManager
@@ -908,10 +1003,10 @@ export function FormWriterModal({
                 <GradientButton
                   variant="primary"
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || createDocument.isPending}
                   className="w-full flex items-center justify-center gap-2 h-12"
                 >
-                  {isSubmitting ? (
+                  {(isSubmitting || createDocument.isPending) ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
