@@ -299,8 +299,8 @@ export interface CreateLeaveRequestDto {
 
 // 근무 모니터링 타입
 export interface WorkMonitorDto {
-  id: number;
-  date: string;
+  id?: number;
+  date: string; // LocalDate is serialized as string
   totalEmployees: number;
   attendanceCount: number;
   lateCount: number;

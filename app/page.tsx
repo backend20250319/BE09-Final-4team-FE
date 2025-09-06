@@ -159,18 +159,90 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadWorkMonitor = async () => {
       try {
+        console.log("Loading work monitor data...");
         const data = await workMonitorApi.getTodayWorkMonitor();
+        console.log("Work monitor data loaded:", data);
+
         setWorkMonitor({
-          attendanceCount: data.attendanceCount,
-          lateCount: data.lateCount,
-          vacationCount: data.vacationCount,
+          attendanceCount: data.attendanceCount || 0,
+          lateCount: data.lateCount || 0,
+          vacationCount: data.vacationCount || 0,
         });
       } catch (error: any) {
         console.error("workMonitor load error:", error);
+        // 에러 발생 시 기본값 설정
+        setWorkMonitor({
+          attendanceCount: 0,
+          lateCount: 0,
+          vacationCount: 0,
+        });
       }
     };
+
     loadWorkMonitor();
+
+    // 자동 갱신: 매 30초마다 데이터 새로고침
+    const interval = setInterval(loadWorkMonitor, 30000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // 날짜가 바뀌면 workMonitor 데이터 리셋 및 새로 로드
+  useEffect(() => {
+    const checkDateChange = () => {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem("lastWorkMonitorDate");
+
+      if (lastDate !== today) {
+        console.log("Date changed, refreshing work monitor data...");
+        localStorage.setItem("lastWorkMonitorDate", today);
+
+        // 새로운 날짜의 데이터 로드
+        const loadWorkMonitor = async () => {
+          try {
+            const data = await workMonitorApi.getTodayWorkMonitor();
+            setWorkMonitor({
+              attendanceCount: data.attendanceCount || 0,
+              lateCount: data.lateCount || 0,
+              vacationCount: data.vacationCount || 0,
+            });
+          } catch (error: any) {
+            console.error("workMonitor reload error:", error);
+            setWorkMonitor({
+              attendanceCount: 0,
+              lateCount: 0,
+              vacationCount: 0,
+            });
+          }
+        };
+
+        loadWorkMonitor();
+      }
+    };
+
+    // 컴포넌트 마운트 시 한 번 체크
+    checkDateChange();
+
+    // 매 분마다 날짜 변경 체크
+    const dateCheckInterval = setInterval(checkDateChange, 60000);
+
+    return () => clearInterval(dateCheckInterval);
+  }, []);
+
+  // 출근/퇴근 후 work monitor 데이터 갱신하는 함수
+  const refreshWorkMonitor = async () => {
+    try {
+      console.log("Refreshing work monitor data after attendance action...");
+      const data = await workMonitorApi.updateTodayWorkMonitorData();
+      setWorkMonitor({
+        attendanceCount: data.attendanceCount || 0,
+        lateCount: data.lateCount || 0,
+        vacationCount: data.vacationCount || 0,
+      });
+    } catch (error: any) {
+      console.error("workMonitor refresh error:", error);
+    }
+  };
 
   useEffect(() => {
     const loadNews = async () => {
@@ -212,7 +284,16 @@ export default function DashboardPage() {
         isCheckedIn: true,
         lastCheckInDate: now.toDateString(),
       }));
-      toast.success("출근이 기록되었습니다!");
+
+      // 출근 성공 후 work monitor 데이터 갱신
+      await refreshWorkMonitor();
+
+      // 출근 상태에 따른 메시지 표시
+      if (res.attendanceStatus === "LATE") {
+        toast.warning("지각으로 출근이 기록되었습니다.");
+      } else {
+        toast.success("출근이 기록되었습니다!");
+      }
     } catch (error: any) {
       console.error("checkIn error:", {
         message: error?.message,
@@ -245,6 +326,10 @@ export default function DashboardPage() {
         checkOutTime: checkOutDisplay,
         isCheckedOut: true,
       }));
+
+      // 퇴근 후 work monitor 데이터 갱신 (조퇴 등의 상태 반영)
+      await refreshWorkMonitor();
+
       toast.success("퇴근이 기록되었습니다!");
     } catch (error: any) {
       console.error("checkOut error:", {
