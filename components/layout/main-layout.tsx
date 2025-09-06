@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import GlobalAIChat from '@/app/aichat/GlobalAIChat';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -12,21 +13,30 @@ interface MainLayoutProps {
   requireAdmin?: boolean;
 }
 
-export function MainLayout({ children, requireAuth = false, requireAdmin = false }: MainLayoutProps) {
+export function MainLayout({ children, requireAuth = true, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
-  const { user, isLoggedIn, isAdmin } = useAuth();
+  const pathname = usePathname();
+  const { isLoggedIn, isAdmin } = useAuth();
+
+  const needsLogin = (requireAuth || requireAdmin) && !isLoggedIn;
+  const needsAdminAccess = requireAdmin && !isAdmin;
 
   useEffect(() => {
-    if (requireAuth && !isLoggedIn) {
-      router.push('/login');
+    if (needsLogin) {
+      const redirectUrl = encodeURIComponent(pathname);
+      router.push(`/login?redirect=${redirectUrl}`);
       return;
     }
 
-    if (requireAdmin && (!isLoggedIn || !isAdmin)) {
+    if (needsAdminAccess) {
       router.push('/');
       return;
     }
-  }, [isLoggedIn, user, isAdmin, requireAuth, requireAdmin, router]);
+  }, [needsLogin, needsAdminAccess, pathname]);
+
+  if (needsLogin || needsAdminAccess) {
+    return null;
+  }
 
   return (
     <>
@@ -38,6 +48,9 @@ export function MainLayout({ children, requireAuth = false, requireAdmin = false
             {children}
           </main>
         </div>
+      </div>
+      <div>
+        <GlobalAIChat />
       </div>
     </>
   );
