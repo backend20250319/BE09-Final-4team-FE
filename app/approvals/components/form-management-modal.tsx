@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,25 @@ import { Switch } from "@/components/ui/switch"
 import { FormTemplatesGrid } from "./form-templates-grid"
 import { FormEditorModal } from "./form-editor-modal"
 import { colors, typography } from "@/lib/design-tokens"
-import { FormTemplate, formTemplates as initialTemplates, categories as defaultCategories } from "@/lib/mock-data/form-templates"
+import { 
+  TemplateSummaryResponse, 
+  CategoryResponse,
+  CreateTemplateRequest,
+  UpdateTemplateRequest,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  BulkCategoryRequest,
+  BulkCategoryOperationType
+} from "@/lib/services/approval/types"
+import {
+  useTemplatesByCategory,
+  useCreateTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
+  useUpdateTemplateVisibility,
+  useCategories,
+  useBulkProcessCategories
+} from "@/lib/hooks/useApproval"
 import { MoreVertical, Search, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X, GripVertical } from "lucide-react"
 import {
   DndContext,
@@ -32,19 +50,18 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
-type Category = { id: string; name: string }
 
 interface FormManagementModalProps {
   isOpen: boolean
   onClose: () => void
-  onOpenFormEditor?: (form: FormTemplate | null) => void // null: 새 양식
+  onOpenFormEditor?: (form: TemplateSummaryResponse | null) => void // null: 새 양식
 }
 
 // 드래그 가능한 카테고리 아이템 컴포넌트
 interface SortableCategoryItemProps {
-  category: Category
-  onRename: (categoryId: string, newName: string) => void
-  onRemove: (categoryId: string) => void
+  category: CategoryResponse
+  onRename: (categoryId: number, newName: string) => void
+  onRemove: (categoryId: number) => void
 }
 
 function SortableCategoryItem({ category, onRename, onRemove }: SortableCategoryItemProps) {
@@ -55,7 +72,7 @@ function SortableCategoryItem({ category, onRename, onRemove }: SortableCategory
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: category.id, disabled: category.id === "all" })
+  } = useSortable({ id: category.id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -74,45 +91,69 @@ function SortableCategoryItem({ category, onRename, onRemove }: SortableCategory
           : 'hover:bg-gray-100 border border-transparent'
       }`}
     >
-      {category.id === "all" ? (
-        <span className="text-sm text-gray-600 px-2">{category.name}</span>
-      ) : (
-        <>
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab hover:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
-          >
-            <GripVertical className="w-3 h-3 text-gray-400" />
-          </div>
-          <Input
-            className="text-sm w-20 h-7 px-2 bg-white"
-            value={category.name}
-            onChange={(e) => onRename(category.id, e.target.value)}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-            onClick={() => onRemove(category.id)}
-          >
-            <X className="w-3 h-3" />
-          </Button>
-        </>
-      )}
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab hover:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
+      >
+        <GripVertical className="w-3 h-3 text-gray-400" />
+      </div>
+      <Input
+        className="text-sm w-20 h-7 px-2 bg-white"
+        value={category.name}
+        onChange={(e) => onRename(category.id, e.target.value)}
+      />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="w-6 h-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+        onClick={() => onRemove(category.id)}
+      >
+        <X className="w-3 h-3" />
+      </Button>
     </div>
   )
 }
 
 export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormManagementModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [categories, setCategories] = useState<Category[]>(defaultCategories)
-  const [templates, setTemplates] = useState<(FormTemplate & { hidden?: boolean })[]>(() => initialTemplates)
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [isEditingCategories, setIsEditingCategories] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [isFormEditorOpen, setIsFormEditorOpen] = useState(false)
-  const [editingForm, setEditingForm] = useState<FormTemplate | null>(null)
+  const [editingForm, setEditingForm] = useState<TemplateSummaryResponse | null>(null)
+  
+  // API 데이터 가져오기
+  const { data: templatesByCategory = [], isLoading: templatesLoading } = useTemplatesByCategory()
+  const { data: categoriesData = [], isLoading: categoriesLoading } = useCategories()
+  
+  // 카테고리 편집 상태 관리
+  const [localCategories, setLocalCategories] = useState<CategoryResponse[]>([])
+  const [categoryOperations, setCategoryOperations] = useState<any[]>([])
+  
+  // 카테고리 벌크 작업 mutation
+  const bulkProcessMutation = useBulkProcessCategories()
+  
+  // 템플릿 관련 mutations
+  const createTemplateMutation = useCreateTemplate()
+  const updateTemplateMutation = useUpdateTemplate()
+  const deleteTemplateMutation = useDeleteTemplate()
+  const updateVisibilityMutation = useUpdateTemplateVisibility()
+  
+  // 모든 템플릿을 평평한 배열로 변환
+  const allTemplates: TemplateSummaryResponse[] = templatesByCategory.flatMap(category => 
+    category.templates
+  )
+  
+  // 카테고리 목록 (순수 API 데이터만)
+  const categories = isEditingCategories ? localCategories : categoriesData
+  
+  // 로컬 카테고리 상태 초기화 (카테고리 편집 모드 진입 시)
+  useEffect(() => {
+    if (isEditingCategories && localCategories.length === 0) {
+      setLocalCategories([...categoriesData])
+    }
+  }, [isEditingCategories, categoriesData, localCategories.length])
 
   // 드래그 앤 드롭 센서 설정
   const sensors = useSensors(
@@ -126,12 +167,10 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
 
-    // '전체' 카테고리는 재정렬 대상에서 제외
     if (!over) return
-    if (active.id === "all" || over.id === "all") return
 
     if (active.id !== over.id) {
-      setCategories((items) => {
+      setLocalCategories((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id)
         const newIndex = items.findIndex((item) => item.id === over.id)
 
@@ -140,22 +179,27 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
     }
   }
 
-  // 드래그 완료 핸들러 (실제로는 handleDragOver에서 이미 처리되므로 빈 함수)
+  // 드래그 완료 핸들러
   const handleDragEnd = (event: DragEndEvent) => {
-    // 실시간 업데이트는 handleDragOver에서 처리되므로 여기서는 별도 작업 없음
-    // 필요하다면 최종 상태 저장 등의 로직을 추가할 수 있음
+    // 드래그가 완료되면 sortOrder 업데이트
+    setLocalCategories(prev => 
+      prev.map((cat, index) => ({ ...cat, sortOrder: index + 1 }))
+    )
   }
 
   const filteredForms = useMemo(() => {
-    return templates.filter((form) => {
+    return allTemplates.filter((form) => {
       const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        form.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = selectedCategory === "all" || 
-        form.category === selectedCategory ||
-        (selectedCategory === "" && !form.category)
-      return matchesSearch && matchesCategory
+        (form.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesCategory = 
+        selectedCategory === null ||  // null이면 전체 선택
+        form.category?.id === selectedCategory ||
+        (selectedCategory === -1 && !form.category)  // -1이면 분류 미지정
+      
+      return matchesSearch && matchesCategory && !form.isHidden
     })
-  }, [templates, searchTerm, selectedCategory])
+  }, [allTemplates, searchTerm, selectedCategory])
 
   const handleNewForm = () => {
     setEditingForm(null)
@@ -167,68 +211,145 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
     setIsFormEditorOpen(true)
   }
 
-  const handleFormSave = (savedForm: FormTemplate) => {
-    if (editingForm) {
-      // 기존 양식 수정
-      setTemplates((prev) => prev.map((t) => 
-        t.id === editingForm.id ? { ...savedForm, hidden: (t as any).hidden } : t
-      ))
-    } else {
-      // 새 양식 추가
-      setTemplates((prev) => [savedForm, ...prev])
-    }
+  // 임시로 FormEditorModal 지원을 위한 함수 (나중에 제거)
+  const handleFormSave = (savedForm: any) => {
+    // FormEditorModal이 API 연동될 때까지 임시로 빈 함수
+    console.warn('FormEditorModal API 연동 필요')
     setIsFormEditorOpen(false)
     setEditingForm(null)
   }
 
-  const handleDuplicate = (form: FormTemplate) => {
-    const copy: FormTemplate = {
-      ...form,
-      id: `${form.id}-copy-${Math.random().toString(36).slice(2, 6)}`,
-      title: `${form.title} (복제)`
+  const handleDuplicate = async (form: TemplateSummaryResponse) => {
+    try {
+      const duplicateRequest: CreateTemplateRequest = {
+        title: `${form.title} (복제)`,
+        icon: form.icon,
+        color: form.color,
+        description: form.description,
+        useBody: form.useBody,
+        useAttachment: form.useAttachment,
+        allowTargetChange: form.allowTargetChange,
+        categoryId: form.category?.id
+      }
+      await createTemplateMutation.mutateAsync(duplicateRequest)
+    } catch (error) {
+      console.error('템플릿 복제 실패:', error)
     }
-    setTemplates((prev) => [copy, ...prev])
   }
 
-  const handleDelete = (form: FormTemplate) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== form.id))
+  const handleDelete = async (form: TemplateSummaryResponse) => {
+    try {
+      await deleteTemplateMutation.mutateAsync(form.id)
+    } catch (error) {
+      console.error('템플릿 삭제 실패:', error)
+    }
   }
 
-  const handleToggleHidden = (form: FormTemplate & { hidden?: boolean }, hidden: boolean) => {
-    setTemplates((prev) => prev.map((t) => (t.id === form.id ? { ...t, hidden } : t)))
+  const handleToggleHidden = async (form: TemplateSummaryResponse, hidden: boolean) => {
+    try {
+      await updateVisibilityMutation.mutateAsync({ id: form.id, isHidden: hidden })
+    } catch (error) {
+      console.error('템플릿 공개 설정 실패:', error)
+    }
   }
 
-  const handleChangeCategory = (form: FormTemplate, categoryId: string) => {
-    setTemplates((prev) => prev.map((t) => (t.id === form.id ? { ...t, category: categoryId } : t)))
+  const handleChangeCategory = async (form: TemplateSummaryResponse, categoryId: number) => {
+    try {
+      const updateRequest: UpdateTemplateRequest = {
+        title: form.title,
+        icon: form.icon,
+        color: form.color,
+        description: form.description,
+        useBody: form.useBody,
+        useAttachment: form.useAttachment,
+        allowTargetChange: form.allowTargetChange,
+        categoryId
+      }
+      await updateTemplateMutation.mutateAsync({ id: form.id, request: updateRequest })
+    } catch (error) {
+      console.error('템플릿 카테고리 변경 실패:', error)
+    }
   }
 
   const handleAddCategory = () => {
     const name = newCategoryName.trim()
     if (!name) return
-    const id = name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "")
-    if (!categories.find((c) => c.id === id)) {
-      setCategories((prev) => [...prev, { id, name }])
-      setNewCategoryName("")
+    
+    // 임시 ID 생성 (음수로 새로운 카테고리 구분)
+    const tempId = -(Date.now())
+    const newCategory = {
+      id: tempId,
+      name,
+      sortOrder: localCategories.length + 1
     }
+    
+    setLocalCategories(prev => [...prev, newCategory])
+    setNewCategoryName("")
   }
 
-  const handleRemoveCategory = (categoryId: string) => {
-    if (categoryId === "all") return
-    // 해당 카테고리를 사용하는 양식들은 분류 미지정 상태로 변경
-    setTemplates((prev) => prev.map((t) => 
-      t.category === categoryId ? { ...t, category: "" } : t
-    ))
-    setCategories((prev) => prev.filter((c) => c.id !== categoryId))
+  const handleRemoveCategory = (categoryId: number) => {
+    setLocalCategories(prev => prev.filter(c => c.id !== categoryId))
+    
     if (selectedCategory === categoryId) {
-      setSelectedCategory("all")
+      setSelectedCategory(null)
     }
   }
 
-  const handleRenameCategoryInline = (categoryId: string, newName: string) => {
-    setCategories((prev) => prev.map((c) => (c.id === categoryId ? { ...c, name: newName } : c)))
+  const handleRenameCategoryInline = (categoryId: number, newName: string) => {
+    setLocalCategories(prev => 
+      prev.map(c => c.id === categoryId ? { ...c, name: newName } : c)
+    )
+  }
+  
+  // 카테고리 편집 완료 처리
+  const handleFinishCategoryEditing = async () => {
+    const operations: any[] = []
+    
+    // 기존 카테고리와 비교하여 작업 생성
+    localCategories.forEach((localCat, index) => {
+      const originalCat = categoriesData.find(c => c.id === localCat.id)
+      
+      if (typeof localCat.id === 'number' && localCat.id < 0) {
+        // 새로운 카테고리 (CREATE)
+        operations.push({
+          type: BulkCategoryOperationType.CREATE,
+          createRequest: {
+            name: localCat.name,
+            sortOrder: index + 1
+          }
+        })
+      } else if (originalCat) {
+        // 기존 카테고리 (UPDATE)
+        operations.push({
+          type: BulkCategoryOperationType.UPDATE,
+          id: originalCat.id,
+          updateRequest: {
+            name: localCat.name,
+            sortOrder: index + 1
+          }
+        })
+      }
+    })
+    
+    // 삭제된 카테고리 처리 (DELETE)
+    categoriesData.forEach(originalCat => {
+      const exists = localCategories.find(c => c.id === originalCat.id)
+      if (!exists) {
+        operations.push({
+          type: BulkCategoryOperationType.DELETE,
+          id: originalCat.id
+        })
+      }
+    })
+    
+    // 벌크 작업 실행
+    if (operations.length > 0) {
+      await bulkProcessMutation.mutateAsync({ operations })
+    }
+    
+    // 편집 모드 종료
+    setIsEditingCategories(false)
+    setLocalCategories([])
   }
 
   return (
@@ -250,7 +371,11 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
               />
             </div>
 
-            <Button variant="outline" onClick={() => setIsEditingCategories(!isEditingCategories)} className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={isEditingCategories ? handleFinishCategoryEditing : () => setIsEditingCategories(true)} 
+              className="flex items-center gap-2"
+            >
               <Settings className="w-4 h-4" /> {isEditingCategories ? "편집 완료" : "분류 수정"}
             </Button>
 
@@ -301,6 +426,17 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
               </div>
             ) : (
               <div className="flex flex-wrap gap-2 pb-2">
+                {/* 전체 버튼 별도 렌더링 */}
+                <Button
+                  variant={selectedCategory === null ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(null)}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  전체
+                </Button>
+                
+                {/* 실제 카테고리 버튼들 */}
                 {categories.map((category) => (
                   <Button
                     key={category.id}
@@ -312,12 +448,13 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                     {category.name}
                   </Button>
                 ))}
+                
                 {/* 분류 미지정 양식이 있는 경우에만 표시 */}
-                {templates.some(t => !t.category) && (
+                {allTemplates.some(t => !t.category) && (
                   <Button
-                    variant={selectedCategory === "" ? "default" : "outline"}
+                    variant={selectedCategory === -1 ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory("")}
+                    onClick={() => setSelectedCategory(-1)}
                     className="flex items-center gap-2 whitespace-nowrap text-gray-500"
                   >
                     분류 미지정
@@ -331,7 +468,10 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
             <FormTemplatesGrid
               forms={filteredForms}
               onCardClick={handleEditForm}
-              getCategoryName={(id) => categories.find(cat => cat.id === id)?.name || ""}
+              getCategoryName={(id) => {
+                const category = categoriesData.find(cat => cat.id === id)
+                return category ? category.name : ""
+              }}
               renderOverlay={(form) => (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -346,7 +486,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>양식 분류 변경</DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
-                        {categories.filter(c => c.id !== "all").map((c) => (
+                        {categoriesData.map((c) => (
                           <DropdownMenuItem key={c.id} onClick={() => handleChangeCategory(form, c.id)}>
                             {c.name}
                           </DropdownMenuItem>
@@ -357,8 +497,8 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
                       숨기기
                       <Switch
                         className="ml-auto"
-                        checked={(form as any).hidden === true}
-                        onCheckedChange={(v) => handleToggleHidden(form as any, !!v)}
+                        checked={form.isHidden}
+                        onCheckedChange={(v) => handleToggleHidden(form, v)}
                       />
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleDuplicate(form)}>
