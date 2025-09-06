@@ -37,6 +37,7 @@ export default function ApprovalsPage() {
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
   const [selectedFormTemplate, setSelectedFormTemplate] = useState<TemplateSummaryResponse | null>(null)
+  const [selectedDraftDocument, setSelectedDraftDocument] = useState<DocumentSummaryResponse | null>(null)
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
   // API에서 문서 데이터 가져오기
@@ -135,6 +136,13 @@ export default function ApprovalsPage() {
 
   const handleFormSelect = (form: TemplateSummaryResponse) => {
     setSelectedFormTemplate(form)
+    setSelectedDraftDocument(null) // 새 문서 작성 시 DRAFT 초기화
+    setIsFormWriterOpen(true)
+  }
+
+  const handleDraftDocumentSelect = (document: DocumentSummaryResponse) => {
+    setSelectedDraftDocument(document)
+    setSelectedFormTemplate(document.template)
     setIsFormWriterOpen(true)
   }
 
@@ -358,6 +366,7 @@ export default function ApprovalsPage() {
         isOpen={isFormSelectionOpen}
         onClose={() => setIsFormSelectionOpen(false)}
         onSelectForm={handleFormSelect}
+        onSelectDraftDocument={handleDraftDocumentSelect}
       />
 
       {/* 문서 양식 관리 모달 */}
@@ -369,12 +378,19 @@ export default function ApprovalsPage() {
       {/* 문서 작성 모달 */}
       <DocumentWriterModal
         isOpen={isFormWriterOpen}
-        onClose={() => setIsFormWriterOpen(false)}
+        onClose={() => {
+          setIsFormWriterOpen(false)
+          setSelectedDraftDocument(null)
+          setSelectedFormTemplate(null)
+        }}
         onBack={() => {
           setIsFormWriterOpen(false)
           setIsFormSelectionOpen(true)
+          setSelectedDraftDocument(null)
+          setSelectedFormTemplate(null)
         }}
         formTemplate={selectedFormTemplate as any}
+        draftDocumentId={selectedDraftDocument?.id}
       />
     </MainLayout>
   )

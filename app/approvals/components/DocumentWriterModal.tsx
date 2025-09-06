@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { colors, typography } from "@/lib/design-tokens"
+import { typography } from "@/lib/design-tokens"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -18,14 +18,12 @@ import {
   X,
   Plus,
   Trash2,
-  Users,
-  UserPlus,
-  UserMinus,
   Loader2,
   ChevronDown,
   ChevronUp,
   ArrowLeft,
   Send,
+  Save,
   CalendarDays,
   Download,
 } from "lucide-react"
@@ -39,7 +37,7 @@ interface LocalApprovalStage {
 }
 
 interface LocalReference {
-  id: string
+  id: number
   name: string
   avatar?: string
   position: string
@@ -51,17 +49,17 @@ import {
   FieldType, 
   AttachmentInfoResponse,
   AttachmentUsageType,
-  ApprovalStageResponse,
   ApprovalStageRequest,
   ApprovalTargetRequest,
   TargetType,
-  UserProfile,
   CreateDocumentRequest,
-  DocumentFieldValueRequest
+  DocumentFieldValueRequest,
+  UpdateDocumentRequest,
+  DocumentStatus
 } from "@/lib/services/approval/types"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { userApi } from "@/lib/services/user/api"
-import { useCreateDocument } from "@/lib/hooks/useApproval"
+import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument } from "@/lib/hooks/useApproval"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
 interface DocumentWriterModalProps {
@@ -69,6 +67,7 @@ interface DocumentWriterModalProps {
   onClose: () => void
   onBack: () => void
   formTemplate: TemplateResponse | null
+  draftDocumentId?: number
 }
 
 // 모바일용 접을 수 있는 섹션 컴포넌트
@@ -272,8 +271,13 @@ function ReferencesManager({
 }) {
   const [selectedReference, setSelectedReference] = useState("");
   const addReference = (user: UserResponseDto) => {
+    // 이미 존재하는 참조자인지 확인
+    if (references.some(ref => ref.id === user.id)) {
+      return
+    }
+    
     const reference: LocalReference = {
-      id: user.id.toString(),
+      id: user.id,
       name: user.name,
       avatar: user.profileImageUrl,
       position: user.position?.name || ""
@@ -281,7 +285,7 @@ function ReferencesManager({
     onReferencesChange([...references, reference])
   }
 
-  const removeReference = (referenceId: string) => {
+  const removeReference = (referenceId: number) => {
     onReferencesChange(references.filter(ref => ref.id !== referenceId))
   }
 
@@ -318,7 +322,7 @@ function ReferencesManager({
       {/* 참조자 추가 */}
       {(() => {
         const availableReferences = availableUsers.filter(user =>
-          !references.some(ref => ref.id === user.id.toString())
+          !references.some(ref => ref.id === user.id)
         );
 
         return availableReferences.length > 0 ? (
@@ -554,7 +558,8 @@ export function DocumentWriterModal({
   isOpen,
   onClose,
   onBack,
-  formTemplate
+  formTemplate,
+  draftDocumentId
 }: DocumentWriterModalProps) {
   const [content, setContent] = useState("")
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -571,14 +576,19 @@ export function DocumentWriterModal({
   const [availableUsers, setAvailableUsers] = useState<UserResponseDto[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentDraftId, setCurrentDraftId] = useState<number | null>(draftDocumentId || null)
+  const [isDraft, setIsDraft] = useState<boolean>(!!draftDocumentId)
   
-  // useCreateDocument 훅 사용
+  // Approval 훅들 사용
   const createDocument = useCreateDocument()
+  const updateDocument = useUpdateDocument()
+  const submitDocument = useSubmitDocument()
+  const { data: draftDocument, isLoading: draftLoading } = useDocument(currentDraftId)
 
   // 모달이 열릴 때 기본 콘텐츠 설정, 닫힐 때 상태 초기화
   useEffect(() => {
-    if (isOpen && formTemplate) {
-      // 모달이 열릴 때 템플릿의 기본 콘텐츠로 초기화
+    if (isOpen && formTemplate && !draftDocument) {
+      // 모달이 열릴 때 템플릿의 기본 콘텐츠로 초기화 (DRAFT 문서가 없을 때)
       setContent(formTemplate.defaultContent || "")
       setAttachments([])
       setApprovalStages([
@@ -590,6 +600,8 @@ export function DocumentWriterModal({
       ])
       setReferences([])
       setFormFieldValues({})
+      setCurrentDraftId(draftDocumentId || null)
+      setIsDraft(!!draftDocumentId)
     } else if (!isOpen) {
       // 모달이 닫힐 때 상태 초기화
       setContent("")
@@ -603,8 +615,80 @@ export function DocumentWriterModal({
       ])
       setReferences([])
       setFormFieldValues({})
+      setCurrentDraftId(null)
+      setIsDraft(false)
+      setError(null)
     }
-  }, [isOpen, formTemplate])
+  }, [isOpen, formTemplate, draftDocument, draftDocumentId])
+
+  // DRAFT 문서 로드 시 필드 초기화
+  useEffect(() => {
+    if (draftDocument && draftDocument.status === DocumentStatus.DRAFT) {
+      // 문서 내용 설정
+      setContent(draftDocument.content || "")
+      
+      // 양식 필드 값 설정
+      const fieldValues: Record<string, any> = {}
+      draftDocument.fieldValues.forEach(fieldValue => {
+        try {
+          // 배열인지 확인하고 JSON 파싱 시도
+          const value = fieldValue.fieldValue.startsWith('[') && fieldValue.fieldValue.endsWith(']') 
+            ? JSON.parse(fieldValue.fieldValue)
+            : fieldValue.fieldValue
+          fieldValues[fieldValue.fieldName] = value
+        } catch {
+          fieldValues[fieldValue.fieldName] = fieldValue.fieldValue
+        }
+      })
+      setFormFieldValues(fieldValues)
+      
+      // 승인 단계 설정
+      const stages: LocalApprovalStage[] = draftDocument.approvalStages.map((stage, index) => ({
+        id: `stage-${stage.stageOrder}`,
+        name: stage.stageName,
+        approvers: stage.approvalTargets.filter(target => !target.isReference).map((target, targetIndex) => ({
+          id: target.user?.id || (Date.now() + index * 1000 + targetIndex),
+          name: target.user?.name || '',
+          profileImageUrl: target.user?.profileImageUrl,
+          position: target.user?.position
+        } as UserResponseDto))
+      }))
+      
+      if (stages.length === 0) {
+        stages.push({
+          id: "stage-1",
+          name: "1단계",
+          approvers: []
+        })
+      }
+      setApprovalStages(stages)
+      
+      // 참조자 설정
+      const referenceTargets = draftDocument.referenceTargets.map((target, index) => ({
+        id: target.user?.id || Date.now() + index,
+        name: target.user?.name || '',
+        avatar: target.user?.profileImageUrl,
+        position: target.user?.position?.name || ''
+      }))
+      
+      // 중복 ID 제거
+      const uniqueReferences = referenceTargets.filter((reference, index, self) => 
+        self.findIndex(r => r.id === reference.id) === index
+      )
+      setReferences(uniqueReferences)
+      
+      // 첨부파일 설정 (기존 첨부파일을 Attachment 형태로 변환)
+      const attachmentList: Attachment[] = draftDocument.attachments.map(attachment => ({
+        id: attachment.fileId,
+        file: null, // 기존 첨부파일은 File 객체가 없음
+        name: attachment.fileName,
+        size: attachment.fileSize,
+        type: attachment.contentType,
+        uploaded: true
+      }))
+      setAttachments(attachmentList)
+    }
+  }, [draftDocument])
 
   // 사용 가능한 사용자 목록 로드
   useEffect(() => {
@@ -627,6 +711,78 @@ export function DocumentWriterModal({
       loadUsers()
     }
   }, [isOpen])
+
+  const handleSaveDraft = async () => {
+    if (!formTemplate) return
+
+    setIsSubmitting(true)
+    setError(null)
+    
+    try {
+      // FormFieldValueRequest 형식으로 데이터 변환
+      const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues).map(([fieldName, fieldValue]) => {
+        const templateField = formTemplate.fields?.find(f => f.name === fieldName)
+        return {
+          fieldName,
+          fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
+          templateFieldId: templateField?.id
+        }
+      })
+
+      const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
+        stageOrder: index + 1,
+        stageName: stage.name,
+        approvalTargets: stage.approvers.map(approver => ({
+          targetType: TargetType.USER,
+          userId: approver.id,
+          isReference: false
+        }))
+      }))
+
+      const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
+        targetType: TargetType.USER,
+        userId: reference.id,
+        isReference: true
+      }))
+
+      // 첨부파일 ID 배열
+      const attachmentIds = attachments.map(attachment => attachment.id || '')
+
+      if (currentDraftId) {
+        // 기존 DRAFT 문서 수정
+        const updateRequest: UpdateDocumentRequest = {
+          content: formTemplate.useBody ? content : undefined,
+          fieldValues,
+          approvalStages: approvalStageRequests,
+          referenceTargets: referenceTargetRequests,
+          attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
+        }
+
+        await updateDocument.mutateAsync({ id: currentDraftId, request: updateRequest })
+      } else {
+        // 새로운 DRAFT 문서 생성
+        const createRequest: CreateDocumentRequest = {
+          templateId: formTemplate.id,
+          content: formTemplate.useBody ? content : undefined,
+          fieldValues,
+          approvalStages: approvalStageRequests,
+          referenceTargets: referenceTargetRequests,
+          attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
+          submitImmediately: false
+        }
+
+        const result = await createDocument.mutateAsync(createRequest)
+        setCurrentDraftId(result.id)
+        setIsDraft(true)
+      }
+    } catch (error) {
+      console.error("문서 임시저장 중 오류:", error)
+      const errorMessage = error instanceof Error ? error.message : "문서 임시저장 중 오류가 발생했습니다."
+      setError(errorMessage)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!formTemplate) return
@@ -665,47 +821,53 @@ export function DocumentWriterModal({
     setError(null)
     
     try {
-      // CreateDocumentRequest 형식으로 데이터 변환
-      const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues).map(([fieldName, fieldValue]) => {
-        const templateField = formTemplate.fields?.find(f => f.name === fieldName)
-        return {
-          fieldName,
-          fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
-          templateFieldId: templateField?.id
-        }
-      })
+      if (currentDraftId) {
+        // DRAFT 문서가 있으면 제출하기만 하면 됨
+        await submitDocument.mutateAsync(currentDraftId)
+        onClose()
+      } else {
+        // DRAFT 문서가 없으면 새로 생성하고 바로 제출
+        const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues).map(([fieldName, fieldValue]) => {
+          const templateField = formTemplate.fields?.find(f => f.name === fieldName)
+          return {
+            fieldName,
+            fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
+            templateFieldId: templateField?.id
+          }
+        })
 
-      const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
-        stageOrder: index + 1,
-        stageName: stage.name,
-        approvalTargets: stage.approvers.map(approver => ({
-          targetType: TargetType.USER,
-          userId: approver.id,
-          isReference: false
+        const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
+          stageOrder: index + 1,
+          stageName: stage.name,
+          approvalTargets: stage.approvers.map(approver => ({
+            targetType: TargetType.USER,
+            userId: approver.id,
+            isReference: false
+          }))
         }))
-      }))
 
-      const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
-        targetType: TargetType.USER,
-        userId: Number(reference.id),
-        isReference: true
-      }))
+        const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
+          targetType: TargetType.USER,
+          userId: reference.id,
+          isReference: true
+        }))
 
-      // 첨부파일 ID 배열 (실제로는 Attachment에서 fileId 추출 필요)
-      const attachmentIds = attachments.map(attachment => attachment.id || '')
+        // 첨부파일 ID 배열
+        const attachmentIds = attachments.map(attachment => attachment.id || '')
 
-      const createDocumentRequest: CreateDocumentRequest = {
-        templateId: formTemplate.id,
-        content: formTemplate.useBody ? content : undefined,
-        fieldValues,
-        approvalStages: approvalStageRequests,
-        referenceTargets: referenceTargetRequests,
-        attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
-        submitImmediately: true
+        const createDocumentRequest: CreateDocumentRequest = {
+          templateId: formTemplate.id,
+          content: formTemplate.useBody ? content : undefined,
+          fieldValues,
+          approvalStages: approvalStageRequests,
+          referenceTargets: referenceTargetRequests,
+          attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
+          submitImmediately: true
+        }
+
+        await createDocument.mutateAsync(createDocumentRequest)
+        onClose()
       }
-
-      await createDocument.mutateAsync(createDocumentRequest)
-      onClose()
     } catch (error) {
       console.error("문서 제출 중 오류:", error)
       const errorMessage = error instanceof Error ? error.message : "문서 제출 중 오류가 발생했습니다."
@@ -870,15 +1032,31 @@ export function DocumentWriterModal({
                 </div>
               </div>
 
-              {/* 결재 요청 버튼 */}
-              <div className="mt-4 flex-shrink-0">
+              {/* 임시저장 및 결재 요청 버튼 */}
+              <div className="mt-4 flex-shrink-0 flex gap-3">
+                {/* 임시저장 버튼 */}
+                <Button
+                  variant="outline"
+                  onClick={handleSaveDraft}
+                  disabled={isSubmitting || createDocument.isPending || updateDocument.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 h-12"
+                >
+                  {(isSubmitting && !currentDraftId) || updateDocument.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {currentDraftId ? "저장하기" : "임시저장"}
+                </Button>
+                
+                {/* 결재 요청 버튼 */}
                 <GradientButton
                   variant="primary"
                   onClick={handleSubmit}
-                  disabled={isSubmitting || createDocument.isPending}
-                  className="w-full flex items-center justify-center gap-2 h-12"
+                  disabled={isSubmitting || createDocument.isPending || submitDocument.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 h-12"
                 >
-                  {(isSubmitting || createDocument.isPending) ? (
+                  {(isSubmitting && currentDraftId) || createDocument.isPending || submitDocument.isPending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
@@ -998,21 +1176,39 @@ export function DocumentWriterModal({
                 </CollapsibleSection>
               )}
 
-              {/* 결재 요청 버튼 - 모바일에서는 하단 고정 */}
+              {/* 임시저장 및 결재 요청 버튼 - 모바일에서는 하단 고정 */}
               <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-4 mt-4">
-                <GradientButton
-                  variant="primary"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || createDocument.isPending}
-                  className="w-full flex items-center justify-center gap-2 h-12"
-                >
-                  {(isSubmitting || createDocument.isPending) ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  결재 요청하기
-                </GradientButton>
+                <div className="flex gap-3">
+                  {/* 임시저장 버튼 */}
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting || createDocument.isPending || updateDocument.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 h-12"
+                  >
+                    {(isSubmitting && !currentDraftId) || updateDocument.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {currentDraftId ? "저장" : "임시저장"}
+                  </Button>
+                  
+                  {/* 결재 요청 버튼 */}
+                  <GradientButton
+                    variant="primary"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || createDocument.isPending || submitDocument.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 h-12"
+                  >
+                    {(isSubmitting && currentDraftId) || createDocument.isPending || submitDocument.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    결재 요청하기
+                  </GradientButton>
+                </div>
               </div>
             </div>
           </div>

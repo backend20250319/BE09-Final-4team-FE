@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { typography } from "@/lib/design-tokens"
-import { FileText, ChevronLeft, Search } from "lucide-react"
+import { FileText } from "lucide-react"
 import { TemplateSummaryResponse, DocumentSummaryResponse, DocumentStatus } from "@/lib/services/approval/types"
 import { TemplatesGrid } from "./common/TemplatesGrid"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
@@ -12,21 +12,23 @@ import { useDocuments } from "@/lib/hooks/useApproval"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Clock } from "lucide-react"
 import { getRelativeTime } from "@/lib/utils/datetime"
+import { TemplateIcon } from "@/components/ui/template-icon"
 
 interface TemplateSelectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectForm: (form: TemplateSummaryResponse) => void
+  onSelectDraftDocument: (document: DocumentSummaryResponse) => void
 }
 
 export function TemplateSelectionModal({
   isOpen,
   onClose,
   onSelectForm,
+  onSelectDraftDocument,
 }: TemplateSelectionModalProps) {
   const router = useRouter()
   
@@ -56,7 +58,7 @@ export function TemplateSelectionModal({
   }
 
   const handleDraftDocumentClick = (document: DocumentSummaryResponse) => {
-    router.push(`/approvals/edit/${document.id}`)
+    onSelectDraftDocument(document)
     onClose()
   }
 
@@ -99,17 +101,25 @@ export function TemplateSelectionModal({
                           className="p-3 hover:shadow-lg transition-all cursor-pointer border border-gray-200 hover:border-blue-300"
                           onClick={() => handleDraftDocumentClick(document)}
                         >
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
-                              <h4 className="text-sm font-medium text-gray-800 truncate flex-1">
-                                {document.template.title}
-                              </h4>
-                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                                임시저장
-                              </Badge>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {getRelativeTime(document.updatedAt)}
+                          <div className="flex items-start gap-3">
+                            <TemplateIcon
+                              icon={document.template.icon}
+                              color={document.template.color}
+                              className="w-10 h-10"
+                              iconSize="w-5 h-5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-medium text-gray-800 truncate flex-1">
+                                  {document.template.title}
+                                </h4>
+                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                                  임시저장
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {getRelativeTime(document.updatedAt)}
+                              </div>
                             </div>
                           </div>
                         </GlassCard>

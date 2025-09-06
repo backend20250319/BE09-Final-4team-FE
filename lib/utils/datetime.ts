@@ -60,7 +60,13 @@ export function getRelativeTime(dateString: string): string {
     return `${diffInHours}시간 전`
   } else if (diffInDays < 7) {
     return `${diffInDays}일 전`
-  } else {
-    return date.toLocaleDateString()
   }
+
+  const currentYear = now.getFullYear()
+  const dateYear = date.getFullYear()
+  if (currentYear === dateYear) {
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`
+  }
+  
+  return date.toLocaleDateString()
 }

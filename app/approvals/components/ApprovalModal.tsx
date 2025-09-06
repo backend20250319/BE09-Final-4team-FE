@@ -30,6 +30,7 @@ import { AttachmentsSection } from "@/components/ui/attachments-section"
 import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus } from "@/lib/services/approval/types"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "@/lib/hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
+import { getRelativeTime } from "@/lib/utils/datetime"
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -187,11 +188,6 @@ function TimelineSection({
   isSubmitting: boolean
   canComment: boolean
 }) {
-  const formatSimpleDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return `${date.getMonth() + 1}월 ${date.getDate()}일`
-  }
-
   const getHistoryText = (action: string) => {
     switch (action) {
       case "created": return "문서를 생성"
@@ -222,10 +218,10 @@ function TimelineSection({
                 )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="text-xs text-gray-500 cursor-help ml-2">{formatSimpleDate(item.date)}</span>
+                    <span className="text-xs text-gray-500 cursor-help ml-2">{getRelativeTime(item.date)}</span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{item.date}</p>
+                    <p>{new Date(item.date).toLocaleString()}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
