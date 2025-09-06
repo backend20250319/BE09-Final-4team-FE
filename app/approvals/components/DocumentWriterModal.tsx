@@ -64,7 +64,7 @@ import { userApi } from "@/lib/services/user/api"
 import { useCreateDocument } from "@/lib/hooks/useApproval"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
-interface FormWriterModalProps {
+interface DocumentWriterModalProps {
   isOpen: boolean
   onClose: () => void
   onBack: () => void
@@ -550,12 +550,12 @@ function FormFieldRenderer({
   }
 }
 
-export function FormWriterModal({
+export function DocumentWriterModal({
   isOpen,
   onClose,
   onBack,
   formTemplate
-}: FormWriterModalProps) {
+}: DocumentWriterModalProps) {
   const [content, setContent] = useState("")
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [approvalStages, setApprovalStages] = useState<LocalApprovalStage[]>([

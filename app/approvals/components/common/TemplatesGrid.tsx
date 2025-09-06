@@ -8,17 +8,17 @@ import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
-export interface FormTemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
+export interface TemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
   forms: T[]
   onCardClick?: (form: T) => void
   renderOverlay?: (form: T) => ReactNode
 }
 
-export function FormTemplatesGrid<T extends TemplateSummaryResponse = TemplateSummaryResponse>({
+export function TemplatesGrid<T extends TemplateSummaryResponse = TemplateSummaryResponse>({
   forms,
   onCardClick,
   renderOverlay,
-}: FormTemplatesGridProps<T>) {
+}: TemplatesGridProps<T>) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {forms.map((form) => {

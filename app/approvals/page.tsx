@@ -5,10 +5,10 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
-import { ApprovalModal } from "@/app/approvals/components/approval-modal"
-import { FormSelectionModal } from "@/app/approvals/components/form-selection-modal"
-import { FormManagementModal } from "@/app/approvals/components/form-management-modal"
-import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
+import { ApprovalModal } from "@/app/approvals/components/ApprovalModal"
+import { TemplateSelectionModal } from "@/app/approvals/components/TemplateSelectionModal"
+import { TemplateManagementModal } from "@/app/approvals/components/TemplateManagementModal"
+import { DocumentWriterModal } from "@/app/approvals/components/DocumentWriterModal"
 import { colors, typography } from "@/lib/design-tokens"
 import { useDocuments } from "@/lib/hooks/useApproval"
 import { DocumentSummaryResponse, DocumentStatus, UserRole } from "@/lib/services/approval/types"
@@ -17,17 +17,12 @@ import { TemplateIcon } from "@/components/ui/template-icon"
 import {
   Search,
   Plus,
-  ClipboardList,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
-  User,
   Calendar,
   FileText,
-  ArrowRight,
-  ChevronDown,
-  ChevronRight,
   Settings,
 } from "lucide-react"
 
@@ -454,20 +449,20 @@ export default function ApprovalsPage() {
       />
 
       {/* 문서 양식 선택 모달 */}
-      <FormSelectionModal
+      <TemplateSelectionModal
         isOpen={isFormSelectionOpen}
         onClose={() => setIsFormSelectionOpen(false)}
         onSelectForm={handleFormSelect}
       />
 
       {/* 문서 양식 관리 모달 */}
-      <FormManagementModal
+      <TemplateManagementModal
         isOpen={isFormManagementOpen}
         onClose={() => setIsFormManagementOpen(false)}
       />
 
       {/* 문서 작성 모달 */}
-      <FormWriterModal
+      <DocumentWriterModal
         isOpen={isFormWriterOpen}
         onClose={() => setIsFormWriterOpen(false)}
         onBack={() => {

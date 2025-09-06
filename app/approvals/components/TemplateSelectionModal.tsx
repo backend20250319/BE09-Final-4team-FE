@@ -4,22 +4,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { colors, typography } from "@/lib/design-tokens"
 import { FileText } from "lucide-react"
 import { TemplateSummaryResponse } from "@/lib/services/approval/types"
-import { FormTemplatesGrid } from "./form-templates-grid"
+import { TemplatesGrid } from "./common/TemplatesGrid"
 import { TemplateSearchBar } from "./common/TemplateSearchBar"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
 import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
 
-interface FormSelectionModalProps {
+interface TemplateSelectionModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectForm: (form: TemplateSummaryResponse) => void
 }
 
-export function FormSelectionModal({
+export function TemplateSelectionModal({
   isOpen,
   onClose,
   onSelectForm,
-}: FormSelectionModalProps) {
+}: TemplateSelectionModalProps) {
   // 커스텀 훅 사용
   const {
     searchTerm,
@@ -84,7 +84,7 @@ export function FormSelectionModal({
               {/* 양식 목록 */}
               <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
                 {filteredForms.length > 0 ? (
-                  <FormTemplatesGrid
+                  <TemplatesGrid
                     forms={filteredForms}
                     onCardClick={handleFormSelect}
                   />

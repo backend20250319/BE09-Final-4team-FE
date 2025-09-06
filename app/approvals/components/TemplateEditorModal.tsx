@@ -12,17 +12,13 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { colors, typography } from "@/lib/design-tokens"
+import { typography } from "@/lib/design-tokens"
 import { 
-  TemplateResponse, 
-  TemplateFieldResponse, 
   TemplateFieldRequest,
   CreateTemplateRequest,
   UpdateTemplateRequest,
   FieldType,
   AttachmentInfoResponse,
-  CategoryResponse,
   AttachmentUsageType 
 } from "@/lib/services/approval/types"
 import { useTemplate, useCategories } from "@/lib/hooks/useApproval"
@@ -178,7 +174,7 @@ function IconColorPalette({
   )
 }
 
-interface FormEditorModalProps {
+interface TemplateEditorModalProps {
   isOpen: boolean
   onClose: () => void
   templateId?: number | null // null이면 새 양식, 있으면 수정
@@ -492,12 +488,12 @@ function ReferenceFilesManager({
   )
 }
 
-export function FormEditorModal({ 
+export function TemplateEditorModal({ 
   isOpen, 
   onClose, 
   templateId = null, 
   onSave 
-}: FormEditorModalProps) {
+}: TemplateEditorModalProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [categoryId, setCategoryId] = useState<number | undefined>(undefined)

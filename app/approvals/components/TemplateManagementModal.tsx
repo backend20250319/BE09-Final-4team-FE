@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
-import { FormTemplatesGrid } from "./form-templates-grid"
-import { FormEditorModal } from "./form-editor-modal"
+import { TemplatesGrid } from "./common/TemplatesGrid"
+import { TemplateEditorModal } from "./TemplateEditorModal"
 import { TemplateSearchBar } from "./common/TemplateSearchBar"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
 import { colors, typography } from "@/lib/design-tokens"
@@ -53,7 +53,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 
 
-interface FormManagementModalProps {
+interface TemplateManagementModalProps {
   isOpen: boolean
   onClose: () => void
   onOpenFormEditor?: (form: TemplateSummaryResponse | null) => void // null: 새 양식
@@ -117,7 +117,7 @@ function SortableCategoryItem({ category, onRename, onRemove }: SortableCategory
   )
 }
 
-export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormManagementModalProps) {
+export function TemplateManagementModal({ isOpen, onClose, onOpenFormEditor }: TemplateManagementModalProps) {
   // 공통 필터링 로직 사용
   const {
     searchTerm,
@@ -468,7 +468,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
-            <FormTemplatesGrid
+            <TemplatesGrid
               forms={filteredForms}
               onCardClick={handleEditForm}
               renderOverlay={(form) => (
@@ -516,7 +516,7 @@ export function FormManagementModal({ isOpen, onClose, onOpenFormEditor }: FormM
       </DialogContent>
 
       {/* 양식 편집기 모달 */}
-      <FormEditorModal
+      <TemplateEditorModal
         isOpen={isFormEditorOpen}
         onClose={() => setIsFormEditorOpen(false)}
         templateId={editingForm?.id || null}
