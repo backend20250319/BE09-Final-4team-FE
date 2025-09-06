@@ -1,13 +1,21 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { colors, typography } from "@/lib/design-tokens"
-import { FileText } from "lucide-react"
-import { TemplateSummaryResponse } from "@/lib/services/approval/types"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { typography } from "@/lib/design-tokens"
+import { FileText, ChevronLeft, Search } from "lucide-react"
+import { TemplateSummaryResponse, DocumentSummaryResponse, DocumentStatus } from "@/lib/services/approval/types"
 import { TemplatesGrid } from "./common/TemplatesGrid"
-import { TemplateSearchBar } from "./common/TemplateSearchBar"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
 import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
+import { useDocuments } from "@/lib/hooks/useApproval"
+import { useRouter } from "next/navigation"
+import { Badge } from "@/components/ui/badge"
+import { GlassCard } from "@/components/ui/glass-card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Clock } from "lucide-react"
+import { getRelativeTime } from "@/lib/utils/datetime"
 
 interface TemplateSelectionModalProps {
   isOpen: boolean
@@ -20,34 +28,45 @@ export function TemplateSelectionModal({
   onClose,
   onSelectForm,
 }: TemplateSelectionModalProps) {
+  const router = useRouter()
+  
   // 커스텀 훅 사용
   const {
     searchTerm,
     setSearchTerm,
     selectedCategory,
     setSelectedCategory,
-    allTemplates,
     filteredTemplates: filteredForms,
     categoriesData,
     isLoading,
     error
   } = useTemplateFiltering()
 
+  // 작성중인 문서 데이터 가져오기
+  const { data: draftDocumentsResponse } = useDocuments({
+    status: [DocumentStatus.DRAFT],
+    pageable: { page: 0, size: 5 }
+  })
+
+  const draftDocuments = draftDocumentsResponse?.content || []
+
   const handleFormSelect = (form: TemplateSummaryResponse) => {
     onSelectForm(form)
+    onClose()
+  }
+
+  const handleDraftDocumentClick = (document: DocumentSummaryResponse) => {
+    router.push(`/approvals/edit/${document.id}`)
     onClose()
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!max-w-4xl !w-[95vw] h-[80vh] flex flex-col p-0">
-        <DialogHeader className="pb-4 px-6 pt-6 flex-shrink-0">
-          <DialogTitle className={`${typography.h2} text-gray-800`}>
-            문서 양식 선택
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+        <VisuallyHidden>
+          <DialogTitle>문서 양식 선택</DialogTitle>
+        </VisuallyHidden>
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0 pt-6">
           {/* 로딩 및 에러 처리 */}
           {isLoading && (
             <div className="flex-1 flex items-center justify-center">
@@ -63,16 +82,59 @@ export function TemplateSelectionModal({
 
           {!isLoading && !error && (
             <>
-              {/* 검색 및 필터 */}
-              <div className="px-6 pb-4 flex-shrink-0">
-                {/* 검색바 */}
-                <TemplateSearchBar
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  className="mb-4"
-                />
+              {/* 작성중인 문서 */}
+              {draftDocuments.length > 0 && (
+                <div className="px-6 pb-6 flex-shrink-0">
+                  <h3 className={`${typography.h4} text-gray-700 mb-2 flex items-center gap-2`}>
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    이어서 작성하기
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {draftDocuments.map((document) => (
+                      <div
+                        key={document.id}
+                        className="min-w-0 flex-shrink-0 w-64"
+                      >
+                        <GlassCard
+                          className="p-3 hover:shadow-lg transition-all cursor-pointer border border-gray-200 hover:border-blue-300"
+                          onClick={() => handleDraftDocumentClick(document)}
+                        >
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-medium text-gray-800 truncate flex-1">
+                                {document.template.title}
+                              </h4>
+                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                                임시저장
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {getRelativeTime(document.updatedAt)}
+                            </div>
+                          </div>
+                        </GlassCard>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                {/* 카테고리 필터 버튼 */}
+              {/* 검색바 */}
+              <div className="px-6 pb-4 flex-shrink-0">
+                <h3 className={`${typography.h4} text-gray-700 mb-2 flex items-center gap-2`}>
+                  <FileText className="w-4 h-4 text-gray-500" />
+                  문서 양식 선택
+                </h3>
+                <Input
+                  placeholder="검색어 입력"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-5 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
+                />
+              </div>
+
+              {/* 카테고리 필터 */}
+              <div className="px-6 pb-4 flex-shrink-0">
                 <CategoryFilterButtons
                   categories={categoriesData}
                   selectedCategory={selectedCategory}

@@ -36,9 +36,6 @@ interface ApprovalModalProps {
   onClose: () => void
   documentSummary: DocumentSummaryResponse | null
   documentId: number | null
-  onApprove?: (approvalId: number, comment?: string) => Promise<void>
-  onReject?: (approvalId: number, comment?: string) => Promise<void>
-  onAddComment?: (approvalId: number, comment: string) => Promise<void>
 }
 
 // 서브 컴포넌트들
@@ -516,9 +513,6 @@ export function ApprovalModal({
   onClose,
   documentSummary,
   documentId,
-  onApprove,
-  onReject,
-  onAddComment
 }: ApprovalModalProps) {
   const [newComment, setNewComment] = useState("")
 

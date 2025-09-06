@@ -9,7 +9,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Switch } from "@/components/ui/switch"
 import { TemplatesGrid } from "./common/TemplatesGrid"
 import { TemplateEditorModal } from "./TemplateEditorModal"
-import { TemplateSearchBar } from "./common/TemplateSearchBar"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
 import { colors, typography } from "@/lib/design-tokens"
 import { 
@@ -30,7 +29,7 @@ import {
   useBulkProcessCategories
 } from "@/lib/hooks/useApproval"
 import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
-import { MoreVertical, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X, GripVertical } from "lucide-react"
+import { MoreVertical, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X, GripVertical, Search } from "lucide-react"
 import {
   DndContext,
   closestCenter,
@@ -405,10 +404,11 @@ export function TemplateManagementModal({ isOpen, onClose, onOpenFormEditor }: T
 
         <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           <div className="px-6 pb-4 flex-shrink-0 flex items-center gap-2">
-            <TemplateSearchBar
+            <Input
+              placeholder="검색어 입력"
               value={searchTerm}
-              onChange={setSearchTerm}
-              className="flex-1"
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-5 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
             />
 
             <Button 

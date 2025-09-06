@@ -272,6 +272,7 @@ export interface DocumentSummaryResponse {
   totalStages: number
   userRole: UserRole
   createdAt: string
+  updatedAt: string
   submittedAt?: string
   approvedAt?: string
 }

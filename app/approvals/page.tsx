@@ -26,36 +26,9 @@ import {
   Settings,
 } from "lucide-react"
 
-// 타입 정의
-/**
- * @deprecated 목 데이터 타입. 삭제 예정
- */
-interface Approval {
-  id: number
-  formTemplateId: string
-  requester: string
-  department: string
-  date: string
-  status: string
-  priority: string
-  content: string
-  isMyApproval: boolean
-  approvalStages: any[]
-  references: any[]
-  history: any[]
-  comments: any[]
-  formFields?: Record<string, any>
-}
-
 export default function ApprovalsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<"inProgress" | "completed">("inProgress")
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    myPending: false,
-    inProgress: false,
-    approved: false,
-    rejected: false,
-  })
   const [selectedDocumentSummary, setSelectedDocumentSummary] = useState<DocumentSummaryResponse | null>(null)
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -66,12 +39,9 @@ export default function ApprovalsPage() {
   const [selectedFormTemplate, setSelectedFormTemplate] = useState<TemplateSummaryResponse | null>(null)
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
-  // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
-  const currentUser = "김철수"
-
   // API에서 문서 데이터 가져오기
   const statusFilter = activeTab === "inProgress" 
-    ? [DocumentStatus.DRAFT, DocumentStatus.IN_PROGRESS]
+    ? [DocumentStatus.IN_PROGRESS]
     : [DocumentStatus.APPROVED, DocumentStatus.REJECTED]
 
   const { data: documentsData, isLoading, error } = useDocuments({
@@ -86,9 +56,6 @@ export default function ApprovalsPage() {
   const documents = documentsData?.content || []
 
   // 문서를 상태와 사용자 역할에 따라 분류
-  const draftDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    doc.status === DocumentStatus.DRAFT
-  )
   const myPendingDocuments = documents.filter((doc: DocumentSummaryResponse) =>
     doc.status === DocumentStatus.IN_PROGRESS && 
     doc.userRole === UserRole.APPROVER
@@ -98,7 +65,7 @@ export default function ApprovalsPage() {
     doc.userRole !== UserRole.APPROVER
   )
   // 진행중 및 완료된 문서
-  const inProgressData = [...draftDocuments, ...myPendingDocuments, ...inProgressDocuments]
+  const inProgressData = [...myPendingDocuments, ...inProgressDocuments]
   const completedData = documents.filter((doc: DocumentSummaryResponse) => 
     doc.status === DocumentStatus.APPROVED || doc.status === DocumentStatus.REJECTED
   )
@@ -151,35 +118,10 @@ export default function ApprovalsPage() {
     }
   }
 
-  const toggleSection = (section: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
   const handleDocumentClick = (document: DocumentSummaryResponse) => {
     setSelectedDocumentSummary(document)
     setSelectedDocumentId(document.id)
     setIsModalOpen(true)
-  }
-
-  const handleApprove = async (approvalId: number, comment?: string) => {
-    // 실제로는 API 호출을 통해 승인 처리
-    console.log("승인 처리:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
-  }
-
-  const handleReject = async (approvalId: number, comment?: string) => {
-    // 실제로는 API 호출을 통해 반려 처리
-    console.log("반려 처리:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
-  }
-
-  const handleAddComment = async (approvalId: number, comment: string) => {
-    // 실제로는 API 호출을 통해 댓글 추가
-    console.log("댓글 추가:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
   }
 
   // 결재 신청 관련 핸들러
@@ -194,22 +136,6 @@ export default function ApprovalsPage() {
   const handleFormSelect = (form: TemplateSummaryResponse) => {
     setSelectedFormTemplate(form)
     setIsFormWriterOpen(true)
-  }
-
-  const handleFormSubmit = async (data: {
-    content: string
-    attachments: any[]
-    approvalStages: any[]
-    references: any[]
-    formFields: Record<string, any>
-  }) => {
-    // 실제로는 API 호출을 통해 결재 신청
-    console.log("결재 신청:", {
-      title: selectedFormTemplate?.title || "문서",
-      ...data
-    })
-    // 여기서 상태 업데이트 로직 추가
-    alert("결재가 성공적으로 요청되었습니다.")
   }
 
 
@@ -232,7 +158,7 @@ export default function ApprovalsPage() {
     const getStatusText = (status: DocumentStatus, userRole: UserRole) => {
       switch (status) {
         case DocumentStatus.DRAFT:
-          return "작성중"
+          return "임시저장"
         case DocumentStatus.IN_PROGRESS:
           return userRole === UserRole.APPROVER ? "승인 필요" : "진행중"
         case DocumentStatus.APPROVED:
@@ -350,24 +276,6 @@ export default function ApprovalsPage() {
 
       {!isLoading && !error && activeTab === "inProgress" && (
         <div className="space-y-6">
-          {/* 작성중 섹션 */}
-          {draftDocuments.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-600" />
-                  <h2 className="text-lg font-semibold text-gray-700">작성중</h2>
-                </div>
-                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm font-medium">
-                  {draftDocuments.length}건
-                </span>
-              </div>
-              <div className="space-y-4">
-                {draftDocuments.map(renderDocumentCard)}
-              </div>
-            </div>
-          )}
-
           {/* 내 승인 필요 섹션 */}
           {myPendingDocuments.length > 0 && (
             <div className="space-y-4">
@@ -443,9 +351,6 @@ export default function ApprovalsPage() {
         }}
         documentSummary={selectedDocumentSummary}
         documentId={selectedDocumentId}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onAddComment={handleAddComment}
       />
 
       {/* 문서 양식 선택 모달 */}
@@ -470,7 +375,6 @@ export default function ApprovalsPage() {
           setIsFormSelectionOpen(true)
         }}
         formTemplate={selectedFormTemplate as any}
-        onSubmit={handleFormSubmit}
       />
     </MainLayout>
   )
