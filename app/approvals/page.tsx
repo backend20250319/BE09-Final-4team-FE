@@ -13,6 +13,7 @@ import { colors, typography } from "@/lib/design-tokens"
 import { useDocuments } from "@/lib/hooks/useApproval"
 import { DocumentSummaryResponse, DocumentStatus, UserRole } from "@/lib/services/approval/types"
 import { TemplateSummaryResponse } from "@/lib/services/approval/types"
+import { TemplateIcon } from "@/components/ui/template-icon"
 import {
   Search,
   Plus,
@@ -255,12 +256,10 @@ export default function ApprovalsPage() {
         onClick={() => handleDocumentClick(document)}
       >
         <div className="flex items-center gap-4 h-full">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
-            style={{ backgroundColor: '#6b7280' }} // 임시 색상 (템플릿 정보 없음)
-          >
-            <FileText className="w-6 h-6 text-white" />
-          </div>
+          <TemplateIcon
+            icon={document.template.icon}
+            color={document.template.color}
+          />
           <div className="flex-1 flex flex-col justify-center h-full">
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <h3 className={`${typography.h3} text-gray-800 truncate flex-shrink-0`}>{document.author.name}</h3>
@@ -276,7 +275,7 @@ export default function ApprovalsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.templateTitle}</h4>
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.template.title}</h4>
               <p className="text-gray-600 flex-1 truncate">{document.content}</p>
               {/* 승인 진행률 표시 */}
               {document.totalStages > 0 && (

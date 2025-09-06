@@ -267,7 +267,7 @@ export interface DocumentSummaryResponse {
   content?: string
   status: DocumentStatus
   author: UserProfile
-  templateTitle: string
+  template: TemplateSummaryResponse
   currentStage?: number
   totalStages: number
   userRole: UserRole

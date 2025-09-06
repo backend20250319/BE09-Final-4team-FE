@@ -218,6 +218,7 @@ export const useUpdateTemplate = () => {
       queryClient.invalidateQueries({ queryKey: ['template', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['templates'] })
       queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
       toast.success('템플릿이 성공적으로 수정되었습니다.')
     },
     onError: () => {

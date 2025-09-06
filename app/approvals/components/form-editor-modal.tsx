@@ -26,7 +26,7 @@ import {
   AttachmentUsageType 
 } from "@/lib/services/approval/types"
 import { useTemplate, useCategories } from "@/lib/hooks/useApproval"
-import { getIconComponent } from "@/lib/mock-data/form-templates"
+import { TemplateIcon } from "@/components/ui/template-icon"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 import {
   Plus,
@@ -58,7 +58,6 @@ import {
   Star,
   Bookmark
 } from "lucide-react"
-import { isLightColor } from "@/lib/utils/color"
 
 // 사용 가능한 아이콘 목록
 const availableIcons = [
@@ -601,7 +600,6 @@ export function FormEditorModal({
     onClose()
   }
 
-  const IconComponent = getIconComponent(selectedIcon)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -626,15 +624,16 @@ export function FormEditorModal({
                   onIconSelect={setSelectedIcon}
                   onColorSelect={setSelectedColor}
                 >
-                  <button 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
-                    style={{ backgroundColor: selectedColor }}
-                    type="button"
-                  >
-                    <IconComponent className={`w-6 h-6 group-hover:scale-110 transition-transform ${
-                      isLightColor(selectedColor) ? 'text-gray-800' : 'text-white'
-                    }`} />
-                  </button>
+                  <div className="border border-gray-200 rounded-lg p-2 hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-2">
+                      <TemplateIcon
+                        icon={selectedIcon}
+                        color={selectedColor}
+                        className="group-hover:shadow-md transition-shadow"
+                        iconSize="w-6 h-6 group-hover:scale-110 transition-transform"
+                      />
+                    </div>
+                  </div>
                 </IconColorPalette>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 truncate">
@@ -670,55 +669,6 @@ export function FormEditorModal({
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">아이콘</Label>
-                  <Select value={selectedIcon} onValueChange={setSelectedIcon}>
-                    <SelectTrigger>
-                      <div className="flex items-center justify-center">
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableIcons.map((iconData) => {
-                        const Icon = iconData.icon
-                        return (
-                          <SelectItem key={iconData.value} value={iconData.value}>
-                            <div className="flex items-center justify-center">
-                              <Icon className="w-5 h-5" />
-                            </div>
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">색상</Label>
-                  <Select value={selectedColor} onValueChange={setSelectedColor}>
-                    <SelectTrigger>
-                      <div className="flex items-center justify-center">
-                        <div 
-                          className="w-6 h-6 rounded border border-gray-300"
-                          style={{ backgroundColor: selectedColor }}
-                        />
-                      </div>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableColors.map((colorData) => (
-                        <SelectItem key={colorData.value} value={colorData.value}>
-                          <div className="flex items-center justify-center">
-                            <div 
-                              className="w-6 h-6 rounded border border-gray-300"
-                              style={{ backgroundColor: colorData.value }}
-                            />
-                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

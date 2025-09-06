@@ -4,10 +4,9 @@ import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import { typography } from "@/lib/design-tokens"
 import { TemplateSummaryResponse } from "@/lib/services/approval/types"
-import { getIconComponent } from "@/lib/mock-data/form-templates"
 import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
-import { isLightColor } from "@/lib/utils/color"
+import { TemplateIcon } from "@/components/ui/template-icon"
 
 export interface FormTemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
   forms: T[]
@@ -23,7 +22,6 @@ export function FormTemplatesGrid<T extends TemplateSummaryResponse = TemplateSu
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {forms.map((form) => {
-        const IconComponent = form.icon ? getIconComponent(form.icon) : getIconComponent('FileText')
         return (
           <GlassCard
             key={form.id}
@@ -36,14 +34,10 @@ export function FormTemplatesGrid<T extends TemplateSummaryResponse = TemplateSu
               </div>
             ) : null}
             <div className="flex items-start gap-4">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0"
-                style={{ backgroundColor: form.color || '#6b7280' }}
-              >
-                <IconComponent className={`w-6 h-6 ${
-                  isLightColor(form.color || '#6b7280') ? 'text-gray-800' : 'text-white'
-                }`} />
-              </div>
+              <TemplateIcon
+                icon={form.icon}
+                color={form.color}
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className={`${typography.h4} text-gray-800 truncate`}>{form.title}</h3>
