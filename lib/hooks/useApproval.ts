@@ -337,6 +337,7 @@ export const useBulkProcessCategories = () => {
     mutationFn: (request: BulkCategoryRequest) => approvalApi.category.bulkProcessCategories(request),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
       console.log(`총 ${data.totalOperations}개 작업 중 ${data.successfulOperations}개 성공, ${data.failedOperations}개 실패`)
       
       if (data.failedOperations > 0) {

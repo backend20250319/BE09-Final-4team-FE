@@ -1,19 +1,13 @@
 "use client"
 
-import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { GlassCard } from "@/components/ui/glass-card"
 import { colors, typography } from "@/lib/design-tokens"
-import {
-  Search,
-  FileText,
-} from "lucide-react"
-import { TemplateSummaryResponse, TemplatesByCategoryResponse } from "@/lib/services/approval/types"
+import { FileText } from "lucide-react"
+import { TemplateSummaryResponse } from "@/lib/services/approval/types"
 import { FormTemplatesGrid } from "./form-templates-grid"
-import { useTemplatesByCategory } from "@/lib/hooks/useApproval"
+import { TemplateSearchBar } from "./common/TemplateSearchBar"
+import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
+import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
 
 interface FormSelectionModalProps {
   isOpen: boolean
@@ -26,33 +20,18 @@ export function FormSelectionModal({
   onClose,
   onSelectForm,
 }: FormSelectionModalProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<number | "all">("all")
-
-  // API에서 카테고리별 템플릿 데이터 가져오기
-  const { data: templatesByCategory, isLoading, error } = useTemplatesByCategory()
-
-  // 모든 템플릿을 평평한 배열로 변환
-  const allTemplates: TemplateSummaryResponse[] = templatesByCategory?.flatMap(category => 
-    category.templates
-  ) || []
-
-  // 카테고리 목록 생성 ("전체" 포함, null 카테고리는 제외)
-  const categories = [
-    { id: "all" as const, name: "전체" },
-    ...(templatesByCategory
-      ?.filter(cat => cat.categoryId !== null && cat.categoryName !== null)
-      .map(cat => ({ id: cat.categoryId!, name: cat.categoryName! })) || [])
-  ]
-
-  // 필터링된 양식 목록
-  const filteredForms = allTemplates.filter((form) => {
-    const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (form.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-    const matchesCategory = selectedCategory === "all" || 
-                           (form.category?.id === selectedCategory)
-    return matchesSearch && matchesCategory && !form.isHidden // 숨김 처리된 템플릿 제외
-  })
+  // 커스텀 훅 사용
+  const {
+    searchTerm,
+    setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
+    allTemplates,
+    filteredTemplates: filteredForms,
+    categoriesData,
+    isLoading,
+    error
+  } = useTemplateFiltering()
 
   const handleFormSelect = (form: TemplateSummaryResponse) => {
     onSelectForm(form)
@@ -86,30 +65,20 @@ export function FormSelectionModal({
             <>
               {/* 검색 및 필터 */}
               <div className="px-6 pb-4 flex-shrink-0">
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="양식명 또는 설명으로 검색"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/60 backdrop-blur-sm border-gray-200/50 rounded-xl"
-              />
-            </div>
+                {/* 검색바 */}
+                <TemplateSearchBar
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  className="mb-4"
+                />
 
-                {/* 카테고리 필터 */}
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {categories.map((category) => (
-                    <Button
-                      key={category.id}
-                      variant={selectedCategory === category.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedCategory(category.id)}
-                      className="whitespace-nowrap flex-shrink-0"
-                    >
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
+                {/* 카테고리 필터 버튼 */}
+                <CategoryFilterButtons
+                  categories={categoriesData}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  className="overflow-x-auto pb-2"
+                />
               </div>
 
               {/* 양식 목록 */}
@@ -123,7 +92,7 @@ export function FormSelectionModal({
                   <div className="text-center py-12">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500">
-                      {searchTerm || selectedCategory !== "all" 
+                      {searchTerm || selectedCategory !== null 
                         ? "검색 조건에 맞는 양식이 없습니다." 
                         : "사용 가능한 양식이 없습니다."}
                     </p>
