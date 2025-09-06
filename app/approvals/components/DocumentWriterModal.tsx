@@ -15,6 +15,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   X,
   Plus,
   Trash2,
@@ -59,7 +70,7 @@ import {
 } from "@/lib/services/approval/types"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { userApi } from "@/lib/services/user/api"
-import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument } from "@/lib/hooks/useApproval"
+import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "@/lib/hooks/useApproval"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
 interface DocumentWriterModalProps {
@@ -578,11 +589,14 @@ export function DocumentWriterModal({
   const [error, setError] = useState<string | null>(null)
   const [currentDraftId, setCurrentDraftId] = useState<number | null>(draftDocumentId || null)
   const [isDraft, setIsDraft] = useState<boolean>(!!draftDocumentId)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   // Approval 훅들 사용
   const createDocument = useCreateDocument()
   const updateDocument = useUpdateDocument()
   const submitDocument = useSubmitDocument()
+  const deleteDocument = useDeleteDocument()
   const { data: draftDocument, isLoading: draftLoading } = useDocument(currentDraftId)
 
   // 모달이 열릴 때 기본 콘텐츠 설정, 닫힐 때 상태 초기화
@@ -781,6 +795,25 @@ export function DocumentWriterModal({
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!currentDraftId) return
+
+    setIsDeleting(true)
+    setError(null)
+    
+    try {
+      await deleteDocument.mutateAsync(currentDraftId)
+      onClose() // 삭제 성공 시 모달 닫기
+    } catch (error) {
+      console.error("문서 삭제 중 오류:", error)
+      const errorMessage = error instanceof Error ? error.message : "문서 삭제 중 오류가 발생했습니다."
+      setError(errorMessage)
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -1033,36 +1066,57 @@ export function DocumentWriterModal({
               </div>
 
               {/* 임시저장 및 결재 요청 버튼 */}
-              <div className="mt-4 flex-shrink-0 flex gap-3">
-                {/* 임시저장 버튼 */}
-                <Button
-                  variant="outline"
-                  onClick={handleSaveDraft}
-                  disabled={isSubmitting || createDocument.isPending || updateDocument.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 h-12"
-                >
-                  {(isSubmitting && !currentDraftId) || updateDocument.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4" />
-                  )}
-                  {currentDraftId ? "저장하기" : "임시저장"}
-                </Button>
-                
-                {/* 결재 요청 버튼 */}
-                <GradientButton
-                  variant="primary"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || createDocument.isPending || submitDocument.isPending}
-                  className="flex-1 flex items-center justify-center gap-2 h-12"
-                >
-                  {(isSubmitting && currentDraftId) || createDocument.isPending || submitDocument.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                  결재 요청하기
-                </GradientButton>
+              <div className="mt-4 flex-shrink-0">
+                <div className="flex gap-3">
+                  {/* 임시저장 버튼 */}
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting || createDocument.isPending || updateDocument.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 h-12"
+                  >
+                    {(isSubmitting && !currentDraftId) || updateDocument.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    {currentDraftId ? "저장하기" : "임시저장"}
+                  </Button>
+                  
+                  {/* 결재 요청 버튼 */}
+                  <GradientButton
+                    variant="primary"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || createDocument.isPending || submitDocument.isPending}
+                    className="flex-1 flex items-center justify-center gap-2 h-12"
+                  >
+                    {(isSubmitting && currentDraftId) || createDocument.isPending || submitDocument.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                    결재 요청하기
+                  </GradientButton>
+                </div>
+
+                {/* 삭제 버튼 - DRAFT 문서일 때만 표시 */}
+                {currentDraftId && (
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isDeleting || deleteDocument.isPending}
+                      className="w-full flex items-center justify-center gap-2 h-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      {isDeleting || deleteDocument.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      임시저장 문서 삭제
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1209,10 +1263,65 @@ export function DocumentWriterModal({
                     결재 요청하기
                   </GradientButton>
                 </div>
+
+                {/* 삭제 버튼 - DRAFT 문서일 때만 표시 */}
+                {currentDraftId && (
+                  <div className="mt-3">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isDeleting || deleteDocument.isPending}
+                      className="w-full flex items-center justify-center gap-2 h-10 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      {isDeleting || deleteDocument.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      임시저장 문서 삭제
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </DialogContent>
+
+        {/* 삭제 확인 다이얼로그 */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>문서 삭제 확인</AlertDialogTitle>
+              <AlertDialogDescription>
+                이 임시저장된 문서를 완전히 삭제하시겠습니까?
+                <br />
+                삭제된 문서는 복구할 수 없습니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting || deleteDocument.isPending}>
+                취소
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting || deleteDocument.isPending}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                {isDeleting || deleteDocument.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    삭제 중...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    삭제하기
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Dialog>
     </TooltipProvider>
   )
