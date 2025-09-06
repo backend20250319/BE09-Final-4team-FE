@@ -324,6 +324,40 @@ try {
 }
 ```
 
+## Employee Leave Balance API
+
+직원 연차 잔액 관리 관련 API들입니다.
+
+### 사용 예시
+
+```typescript
+import { employeeLeaveBalanceApi, LeaveType } from '@/lib/services/attendance'
+
+// 연차 자동 부여
+const grantedLeaves = await employeeLeaveBalanceApi.grantAnnualLeave(123, '2024-01-01')
+
+// 특정 타입 잔여 연차 조회
+const remainingDays = await employeeLeaveBalanceApi.getRemainingLeave(123, LeaveType.BASIC_ANNUAL)
+
+// 전체 잔여 연차 조회
+const totalRemaining = await employeeLeaveBalanceApi.getTotalRemainingLeave(123)
+
+// 연차 잔액 상세 조회
+const leaveBalances = await employeeLeaveBalanceApi.getLeaveBalances(123)
+
+// 연차 잔액 요약 조회
+const summary = await employeeLeaveBalanceApi.getLeaveBalanceSummary(123)
+
+// 연차 초기화 및 재부여
+const resetLeaves = await employeeLeaveBalanceApi.resetAndGrantAnnualLeave(123, '2024-01-01')
+
+// 연차 복구
+const restoreResult = await employeeLeaveBalanceApi.restoreLeave(123, LeaveType.BASIC_ANNUAL, 3)
+
+// 전체 직원 연차 초기화 (관리자 전용)
+const resetAllResult = await employeeLeaveBalanceApi.resetAllEmployeesAnnualLeave('2024-01-01')
+```
+
 ## 타입 안전성
 
 모든 API 함수는 TypeScript 타입을 제공하여 컴파일 타임에 타입 안전성을 보장합니다. IDE에서 자동완성과 타입 체크를 활용할 수 있습니다.

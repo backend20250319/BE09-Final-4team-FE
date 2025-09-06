@@ -414,6 +414,34 @@ export interface WeeklyWorkDetail {
   dailySummaries: DailyWorkSummary[];
 }
 
+// 직원 연차 잔액 응답 타입
+export interface EmployeeLeaveBalanceResponseDto {
+  id: number;
+  employeeId: number;
+  leaveType: LeaveType;
+  leaveTypeName: string;
+  totalLeaveDays: number;
+  usedLeaveDays: number;
+  remainingDays: number;
+  workYears: number;
+  usageRate: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 직원 연차 잔액 요약 타입
+export interface EmployeeLeaveBalanceSummaryDto {
+  employeeId: number;
+  totalRemainingDays: number;
+  totalUsedDays: number;
+  totalGrantedDays: number;
+  leaveBalances: EmployeeLeaveBalanceResponseDto[];
+  basicAnnualRemaining: number;
+  compensationAnnualRemaining: number;
+  specialAnnualRemaining: number;
+  overallUsageRate: number;
+}
+
 // API 응답 래퍼 타입들
 export interface ApiResult<T> {
   status: string;
