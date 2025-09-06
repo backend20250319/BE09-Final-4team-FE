@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react"
 import { typography } from "@/lib/design-tokens"
-import { TemplateIcon } from "@/components/ui/template-icon"
+import { TemplateIcon } from "../common/TemplateIcon"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   AlertDialog,
@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { useDocumentWriter } from "./hooks/useDocumentWriter"
+import { useDocumentWriter } from "../../hooks/useDocumentWriter"
 import { DesktopLayout } from "./layouts/DesktopLayout"
 import { MobileLayout } from "./layouts/MobileLayout"
 import { DocumentWriterModalProps } from "./types"

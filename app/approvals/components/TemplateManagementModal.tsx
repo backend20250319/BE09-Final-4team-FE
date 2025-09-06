@@ -27,8 +27,8 @@ import {
   useDeleteTemplate,
   useUpdateTemplateVisibility,
   useBulkProcessCategories
-} from "@/lib/hooks/useApproval"
-import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
+} from "../hooks/useApproval"
+import { useTemplateFiltering } from "../hooks/useTemplateFiltering"
 import { MoreVertical, FolderPlus, Edit, Copy, Trash2, Settings, FileText, Plus, X, GripVertical, Search } from "lucide-react"
 import {
   DndContext,

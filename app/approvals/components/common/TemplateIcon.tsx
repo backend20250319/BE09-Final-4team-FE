@@ -1,8 +1,59 @@
 "use client"
 
-import { getIconComponent } from "@/lib/mock-data/form-templates"
 import { isLightColor } from "@/lib/utils/color"
 import { cn } from "@/lib/utils"
+import {
+  Calendar,
+  User,
+  CreditCard,
+  Car,
+  Home,
+  Briefcase,
+  FileText,
+  Settings,
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  ShoppingCart,
+  DollarSign,
+  Award,
+  Target,
+  Zap,
+  Heart,
+  Star,
+  Bookmark
+} from "lucide-react"
+
+// 아이콘 매핑 유틸리티
+export const iconMap = {
+  Calendar,
+  User,
+  CreditCard,
+  Car,
+  Home,
+  Briefcase,
+  FileText,
+  Settings,
+  Clock,
+  Mail,
+  Phone,
+  MapPin,
+  Building,
+  ShoppingCart,
+  DollarSign,
+  Award,
+  Target,
+  Zap,
+  Heart,
+  Star,
+  Bookmark
+}
+
+const getIconComponent = (iconName: string) => {
+  return iconMap[iconName as keyof typeof iconMap] || FileText
+}
 
 interface TemplateIconProps {
   /** 아이콘 이름 */

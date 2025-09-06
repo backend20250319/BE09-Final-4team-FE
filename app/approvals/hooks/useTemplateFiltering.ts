@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { TemplateSummaryResponse, CategoryResponse } from '@/lib/services/approval/types'
-import { useTemplates, useCategories } from '@/lib/hooks/useApproval'
+import { useTemplates, useCategories } from './useApproval'
 
 export interface UseTemplateFilteringReturn {
   // 상태

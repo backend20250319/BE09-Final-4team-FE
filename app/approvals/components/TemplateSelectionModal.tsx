@@ -6,15 +6,15 @@ import { FileText } from "lucide-react"
 import { TemplateSummaryResponse, DocumentSummaryResponse, DocumentStatus } from "@/lib/services/approval/types"
 import { TemplatesGrid } from "./common/TemplatesGrid"
 import { CategoryFilterButtons } from "./common/CategoryFilterButtons"
-import { useTemplateFiltering } from "@/lib/hooks/useTemplateFiltering"
-import { useDocuments } from "@/lib/hooks/useApproval"
+import { useTemplateFiltering } from "../hooks/useTemplateFiltering"
+import { useDocuments } from "../hooks/useApproval"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
 import { Clock, Trash2 } from "lucide-react"
 import { getRelativeTime } from "@/lib/utils/datetime"
-import { TemplateIcon } from "@/components/ui/template-icon"
+import { TemplateIcon } from "./common/TemplateIcon"
 
 interface TemplateSelectionModalProps {
   isOpen: boolean

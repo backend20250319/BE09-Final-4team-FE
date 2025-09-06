@@ -21,8 +21,8 @@ import {
   AttachmentInfoResponse,
   AttachmentUsageType 
 } from "@/lib/services/approval/types"
-import { useTemplate, useCategories } from "@/lib/hooks/useApproval"
-import { TemplateIcon } from "@/components/ui/template-icon"
+import { useTemplate, useCategories } from "../hooks/useApproval"
+import { TemplateIcon } from "./common/TemplateIcon"
 import { AttachmentsManager, Attachment } from "@/components/ui/attachments-manager"
 import {
   Plus,

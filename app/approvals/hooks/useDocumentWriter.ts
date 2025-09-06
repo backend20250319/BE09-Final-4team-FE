@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer } from "react"
+import { useEffect, useReducer } from "react"
 import { 
   TemplateResponse,
   DocumentFieldValueRequest,
@@ -12,9 +12,9 @@ import {
 } from "@/lib/services/approval/types"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { userApi } from "@/lib/services/user/api"
-import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "@/lib/hooks/useApproval"
+import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "./useApproval"
 import { Attachment } from "@/components/ui/attachments-manager"
-import { DocumentWriterState, DocumentWriterAction, LocalApprovalStage, LocalReference } from "../types"
+import { DocumentWriterState, DocumentWriterAction, LocalApprovalStage, LocalReference } from "../components/DocumentWriterModal/types"
 
 // 초기 상태 정의
 const initialState: DocumentWriterState = {

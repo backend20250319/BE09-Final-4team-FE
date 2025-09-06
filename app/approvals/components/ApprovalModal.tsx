@@ -28,8 +28,8 @@ import {
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
 import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, UserRole } from "@/lib/services/approval/types"
-import { getStatusText } from "@/lib/utils/approval"
-import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "@/lib/hooks/useApproval"
+import { getStatusText } from "../utils"
+import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "../hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
 import { getRelativeTime } from "@/lib/utils/datetime"
 

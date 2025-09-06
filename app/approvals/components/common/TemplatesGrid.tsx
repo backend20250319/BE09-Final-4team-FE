@@ -6,7 +6,7 @@ import { typography } from "@/lib/design-tokens"
 import { TemplateSummaryResponse } from "@/lib/services/approval/types"
 import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
-import { TemplateIcon } from "@/components/ui/template-icon"
+import { TemplateIcon } from "./TemplateIcon"
 
 export interface TemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
   forms: T[]
