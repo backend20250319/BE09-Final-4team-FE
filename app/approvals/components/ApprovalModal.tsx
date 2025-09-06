@@ -27,7 +27,8 @@ import {
   FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus } from "@/lib/services/approval/types"
+import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, UserRole } from "@/lib/services/approval/types"
+import { getStatusText } from "@/lib/utils/approval"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "@/lib/hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
 import { getRelativeTime } from "@/lib/utils/datetime"
@@ -66,8 +67,8 @@ function ApprovalHeader({ displayData, documentDetail, isLoading }: {
           </h2>
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-sm border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
             <StatusIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{getStatusText(displayData.status, displayData.userRole === "APPROVER")}</span>
-            <span className="sm:hidden">{getStatusText(displayData.status, displayData.userRole === "APPROVER").replace('승인 필요', '승인').replace('진행중', '진행')}</span>
+            <span className="hidden sm:inline">{getStatusText(displayData.status as DocumentStatus, displayData.userRole as UserRole)}</span>
+            <span className="sm:hidden">{getStatusText(displayData.status as DocumentStatus, displayData.userRole as UserRole).replace('승인 필요', '승인').replace('진행중', '진행')}</span>
           </div>
         </div>
       </div>
@@ -188,17 +189,17 @@ function TimelineSection({
   isSubmitting: boolean
   canComment: boolean
 }) {
-  const getHistoryText = (action: string) => {
+  const getHistoryText = (action: ActivityType | string) => {
     switch (action) {
-      case "created": return "문서를 생성"
-      case "updated": return "문서를 수정"
-      case "approved": return "승인"
-      case "rejected": return "반려"
+      case ActivityType.CREATE: return "문서를 생성"
+      case ActivityType.UPDATE: return "문서를 수정"
+      case ActivityType.SUBMIT: return "문서를 제출"
+      case ActivityType.APPROVE: return "승인"
+      case ActivityType.REJECT: return "반려"
+      case ActivityType.MODIFY_APPROVAL: return "승인자를 수정"
+      case ActivityType.COMMENT: return "댓글을 작성"
       case "comment": return "댓글을 작성"
-      case "approver_added": return "승인권자를 추가"
-      case "approver_removed": return "승인권자를 제거"
-      case "file_attached": return "첨부파일을 추가"
-      default: return action
+      default: return String(action)
     }
   }
 
@@ -491,18 +492,6 @@ function getStatusTextColor(status: string, isMyApproval?: boolean) {
   }
 }
 
-function getStatusText(status: string, isMyApproval?: boolean) {
-  switch (status) {
-    case "pending":
-      return isMyApproval ? "승인 필요" : "진행중"
-    case "approved":
-      return "승인됨"
-    case "rejected":
-      return "반려됨"
-    default:
-      return status
-  }
-}
 
 export function ApprovalModal({
   isOpen,
@@ -589,7 +578,7 @@ export function ApprovalModal({
       id: activity.id?.toString() || index.toString(),
       date: activity.createdAt,
       user: activity.user,
-      action: activity.activityType.toLowerCase(),
+      action: activity.activityType,
       content: activity.reason,
       type: 'history' as const,
       uniqueId: `activity-${activity.id || index}`

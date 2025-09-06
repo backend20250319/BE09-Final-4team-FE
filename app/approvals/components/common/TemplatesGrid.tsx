@@ -25,6 +25,7 @@ export function TemplatesGrid<T extends TemplateSummaryResponse = TemplateSummar
         return (
           <GlassCard
             key={form.id}
+            hover={false}
             className="relative p-4 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-blue-200"
             onClick={() => onCardClick?.(form)}
           >

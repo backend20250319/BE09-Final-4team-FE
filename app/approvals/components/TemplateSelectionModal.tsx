@@ -1,7 +1,6 @@
 "use client"
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { typography } from "@/lib/design-tokens"
 import { FileText } from "lucide-react"
 import { TemplateSummaryResponse, DocumentSummaryResponse, DocumentStatus } from "@/lib/services/approval/types"
@@ -13,7 +12,7 @@ import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Input } from "@/components/ui/input"
-import { Clock } from "lucide-react"
+import { Clock, Trash2 } from "lucide-react"
 import { getRelativeTime } from "@/lib/utils/datetime"
 import { TemplateIcon } from "@/components/ui/template-icon"
 
@@ -65,10 +64,10 @@ export function TemplateSelectionModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!max-w-4xl !w-[95vw] h-[80vh] flex flex-col p-0">
-        <VisuallyHidden>
-          <DialogTitle>문서 양식 선택</DialogTitle>
-        </VisuallyHidden>
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 pt-6">
+        <DialogHeader className="px-6 pt-6 flex-shrink-0">
+          <DialogTitle className={`${typography.h2} text-gray-800`}>문서 작성하기</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
           {/* 로딩 및 에러 처리 */}
           {isLoading && (
             <div className="flex-1 flex items-center justify-center">
