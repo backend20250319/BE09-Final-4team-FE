@@ -89,7 +89,7 @@ export default function VacationModal({
 
   const vacationTypes = propVacationTypes || defaultVacationTypes;
 
-  const handleStartDateChange = (newStartDate: Date): void => {
+  const handleStartDateChange = (newStartDate: Date | null): void => {
     setStartDate(newStartDate);
 
     // 시작일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
@@ -102,7 +102,7 @@ export default function VacationModal({
     }
   };
 
-  const handleEndDateChange = (newEndDate: Date): void => {
+  const handleEndDateChange = (newEndDate: Date | null): void => {
     setEndDate(newEndDate);
 
     // 종료일만 선택된 경우에도 해당 날짜를 selectedDates에 추가
@@ -284,8 +284,9 @@ export default function VacationModal({
                 {showStartTimeDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                     <SelectTime
-                      selectedTime={startTime}
                       onTimeSelect={handleStartTimeSelect}
+                      onClose={() => setShowStartTimeDropdown(false)}
+                      isDropdown={true}
                     />
                   </div>
                 )}
@@ -304,8 +305,9 @@ export default function VacationModal({
                 {showEndTimeDropdown && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                     <SelectTime
-                      selectedTime={endTime}
                       onTimeSelect={handleEndTimeSelect}
+                      onClose={() => setShowEndTimeDropdown(false)}
+                      isDropdown={true}
                     />
                   </div>
                 )}

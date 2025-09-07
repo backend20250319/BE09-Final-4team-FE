@@ -17,13 +17,24 @@ import {
   DayOfWeek,
   WorkCycle,
   WorkPolicyType,
+  AnnualLeaveRequestDto,
 } from "@/lib/services/attendance";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 // Type definitions
+interface AnnualLeavePolicy {
+  id?: string;
+  name: string;
+  minYears: number;
+  maxYears: number;
+  leaveDays: number;
+  holidayDays: number;
+}
+
 interface FormData {
   [key: string]: any;
+  annualLeaves?: AnnualLeavePolicy[];
 }
 
 interface PolicyData {
@@ -33,7 +44,18 @@ interface PolicyData {
 
 export default function CreateWorkPolicyPage(): JSX.Element {
   const [workType, setWorkType] = useState<string>("fixed");
-  const [formData, setFormData] = useState<FormData>({});
+  const [formData, setFormData] = useState<FormData>({
+    annualLeaves: [
+      {
+        id: "1",
+        name: "정책 1",
+        minYears: 0,
+        maxYears: 2,
+        leaveDays: 15,
+        holidayDays: 0,
+      },
+    ],
+  });
   const router = useRouter();
 
   // 근무 유형별 폼 컴포넌트 렌더링
@@ -166,7 +188,7 @@ export default function CreateWorkPolicyPage(): JSX.Element {
         breakEndTime, // string "HH:mm:ss"
         avgWorkTime: undefined,
         totalRequiredMinutes,
-        annualLeaves: undefined,
+        annualLeaves: policyData.annualLeaves || [],
       };
 
       const created = await workPolicyApi.createWorkPolicy(request as any);

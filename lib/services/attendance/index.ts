@@ -9,6 +9,7 @@ export {
   annualLeaveApi,
   leaveApi,
   workMonitorApi,
+  employeeLeaveBalanceApi,
 } from "./api";
 
 // Export default API object for convenience
