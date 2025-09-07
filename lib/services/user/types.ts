@@ -145,6 +145,12 @@ export interface LoginResponse {
   email: string;
   name: string;
   role: string;
+  needsPasswordReset: boolean;
+}
+
+export interface PasswordChangeRequestDto {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface DetailProfileResponseDto {

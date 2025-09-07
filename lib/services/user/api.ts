@@ -5,6 +5,7 @@ import {
     UserResponseDto,
     LoginRequestDto,
     LoginResponse,
+    PasswordChangeRequestDto,
     DetailProfileResponseDto,
     ColleagueSearchRequestDto,
     ColleagueResponseDto,
@@ -24,6 +25,10 @@ export const authApi = {
     refresh: async (): Promise<LoginResponse> => {
         const response = await apiClient.post<ApiResult<LoginResponse>>('/api/auth/refresh', null, { withCredentials: true });
         return response.data.data;
+    },
+
+    changePassword: async (data: PasswordChangeRequestDto): Promise<void> => {
+        await apiClient.post<ApiResult<void>>('/api/auth/change-password', data);
     },
 };
 

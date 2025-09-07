@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { authApi } from '@/lib/services/user/api';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,12 +21,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [isPasswordResetRequired, setIsPasswordResetRequired] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && !isPasswordResetRequired) {
       router.push('/');
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, isPasswordResetRequired, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,8 +61,14 @@ export default function LoginPage() {
         expiresIn: loginData.expiresIn,
       });
 
-      toast.success('로그인 성공!');
-      router.push('/');
+      if (loginData.needsPasswordReset) {
+        setIsPasswordResetRequired(true);
+        setShowPasswordChangeModal(true);
+        toast.warning('비밀번호를 변경해주세요.');
+      } else {
+        toast.success('로그인 성공!');
+        router.push('/');
+      }
     } catch (error: any) {
       console.error('로그인 오류:', error);
       const errorMessage = error.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
@@ -69,7 +78,26 @@ export default function LoginPage() {
     }
   };
 
-  return !isLoggedIn && (
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordChangeModal(false);
+    setIsPasswordResetRequired(false);
+    toast.success('비밀번호가 성공적으로 변경되었습니다. 메인 페이지로 이동합니다.');
+    router.push('/');
+  };
+
+  const handlePasswordChangeCancel = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    } finally {
+      setShowPasswordChangeModal(false);
+      setIsPasswordResetRequired(false);
+      window.location.href = '/login';
+    }
+  };
+
+  return (!isLoggedIn || isPasswordResetRequired) && (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 animate-blob rounded-full bg-purple-300 mix-blend-multiply opacity-70 blur-xl"></div>
@@ -151,6 +179,12 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+
+      <PasswordChangeModal
+        isOpen={showPasswordChangeModal}
+        onClose={handlePasswordChangeCancel}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </div>
   );
 }

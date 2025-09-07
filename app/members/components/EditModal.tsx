@@ -314,10 +314,9 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         }))
         onClose()
         
-        // 비밀번호가 업데이트된 경우 별도 메시지 표시
         if (tempPassword) {
           toast.success('구성원 정보와 임시 비밀번호가 성공적으로 업데이트되었습니다.')
-          setTempPassword('') // 성공 후 임시 비밀번호 초기화
+          setTempPassword('')
         } else {
           toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
         }
