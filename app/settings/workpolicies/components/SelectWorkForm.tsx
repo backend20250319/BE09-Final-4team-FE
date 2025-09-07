@@ -93,11 +93,11 @@ export function SelectWorkForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              시작 시간
+              코어타임 시작
             </label>
             <Select
-              value={formData.startTime || "09:00"}
-              onValueChange={(value) => updateFormData("startTime", value)}
+              value={formData.coreTimeStart || "10:00"}
+              onValueChange={(value) => updateFormData("coreTimeStart", value)}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -117,18 +117,18 @@ export function SelectWorkForm({
               종료 시간
             </label>
             <Select
-              value={formData.endTime || "18:00"}
-              onValueChange={(value) => updateFormData("endTime", value)}
+              value={formData.coreTimeEnd || "16:00"}
+              onValueChange={(value) => updateFormData("coreTimeEnd", value)}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="14:00">14:00</SelectItem>
+                <SelectItem value="15:00">15:00</SelectItem>
+                <SelectItem value="16:00">16:00</SelectItem>
                 <SelectItem value="17:00">17:00</SelectItem>
                 <SelectItem value="18:00">18:00</SelectItem>
-                <SelectItem value="19:00">19:00</SelectItem>
-                <SelectItem value="20:00">20:00</SelectItem>
-                <SelectItem value="21:00">21:00</SelectItem>
               </SelectContent>
             </Select>
           </div>

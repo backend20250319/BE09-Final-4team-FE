@@ -30,6 +30,7 @@ export enum WorkStatus {
 // 스케줄 타입 열거형
 export enum ScheduleType {
   WORK = "WORK",
+  CORETIME = "CORETIME",
   SICK_LEAVE = "SICK_LEAVE",
   VACATION = "VACATION",
   BUSINESS_TRIP = "BUSINESS_TRIP",
