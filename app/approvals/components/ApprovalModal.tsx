@@ -27,7 +27,7 @@ import {
   FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, UserRole } from "@/lib/services/approval/types"
+import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, UserRole, DocumentFieldValueResponse, FieldType } from "@/lib/services/approval/types"
 import { getStatusText } from "../utils"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "../hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
@@ -116,35 +116,34 @@ function ApprovalInfo({ displayData }: { displayData: any }) {
 }
 
 // 필드별 값 표시 컴포넌트
-function FormFieldDisplay({
-  field,
-  value
-}: {
-  field: { name: string; type: string; options?: string[] }
-  value: any
-}) {
+function FormFieldDisplay({ field }: { field: DocumentFieldValueResponse }) {
   const formatValue = () => {
-    if (!value && value !== 0) return '-'
+    const value = field.fieldValue
+    if (!value) return '-'
 
-    switch (field.type) {
-      case 'money':
+    switch (field.fieldType) {
+      case FieldType.MONEY:
         return `${value}원`
-      case 'date':
-        return new Date(value).toLocaleDateString('ko-KR')
-      case 'multiselect':
-        return Array.isArray(value) ? value.join(', ') : value
-
-      case 'select':
-      case 'text':
-      case 'number':
+      case FieldType.DATE:
+        return new Date(value).toLocaleDateString()
+      case FieldType.MULTISELECT:
+        try {
+          const options = JSON.parse(value)
+          return Array.isArray(options) ? options.join(', ') : value
+        } catch {
+          return value
+        }
+      case FieldType.SELECT:
+      case FieldType.TEXT:
+      case FieldType.NUMBER:
       default:
-        return value.toString()
+        return value
     }
   }
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-gray-500 font-medium">{field.name}</p>
+      <p className="text-xs text-gray-500 font-medium">{field.fieldName}</p>
       <p className="text-sm font-semibold text-gray-800 break-words">
         {formatValue()}
       </p>
@@ -153,28 +152,21 @@ function FormFieldDisplay({
 }
 
 // 양식 필드 섹션 컴포넌트
-function FormFieldsSection({ documentDetail }: { documentDetail: any }) {
-  if (!documentDetail?.template?.fields || !documentDetail?.fieldValues) {
+function FormFieldsSection({ documentDetail }: { documentDetail: DocumentResponse | undefined }) {
+  if (!documentDetail?.fieldValues || documentDetail.fieldValues.length === 0) {
     return null
   }
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-        {documentDetail.fieldValues.map((fieldValue: any, index: number) => (
-          <div key={fieldValue.fieldId || index} className="space-y-1">
-            <p className="text-xs text-gray-500 font-medium">{fieldValue.fieldName || `필드 ${index + 1}`}</p>
-            <p className="text-sm font-semibold text-gray-800 break-words">
-              {fieldValue.value || '-'}
-            </p>
-          </div>
+        {documentDetail.fieldValues.map((field, index) => (
+          <FormFieldDisplay key={field.id || index} field={field} />
         ))}
       </div>
     </div>
   )
 }
-
-
 
 function TimelineSection({
   timeline,

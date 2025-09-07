@@ -215,6 +215,7 @@ export interface UpdateTemplateRequest {
 export interface DocumentFieldValueResponse {
   id: number
   fieldName: string
+  fieldType: FieldType
   fieldValue?: string
 }
 
