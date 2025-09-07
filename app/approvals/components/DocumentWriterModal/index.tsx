@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { useDocumentWriter } from "./hooks/useDocumentWriter"
+import { useTemplate } from "../../hooks/useApproval"
 import { DesktopLayout } from "./layouts/DesktopLayout"
 import { MobileLayout } from "./layouts/MobileLayout"
 import { DocumentWriterModalProps } from "./types"
@@ -27,9 +28,12 @@ export function DocumentWriterModal({
   isOpen,
   onClose,
   onBack,
-  formTemplate,
+  templateId,
+  templateSummary,
   draftDocumentId
 }: DocumentWriterModalProps) {
+  // 템플릿 전체 정보 로드
+  const { data: formTemplate, isLoading: templateLoading } = useTemplate(templateId)
   const {
     // 상태
     content,
@@ -82,7 +86,9 @@ export function DocumentWriterModal({
     }
   }
 
-  if (!formTemplate) return null
+  // templateSummary 또는 formTemplate 중 하나라도 있어야 함
+  const displayTemplate = formTemplate || templateSummary
+  if (!displayTemplate) return null
 
   return (
     <TooltipProvider>
@@ -90,7 +96,7 @@ export function DocumentWriterModal({
         <DialogContent className="!max-w-6xl !w-[95vw] h-[85vh] flex flex-col p-0">
           {/* 헤더 */}
           <DialogHeader className="pb-0 px-6 pt-6 flex-shrink-0">
-            <DialogTitle className="sr-only">{formTemplate.title}</DialogTitle>
+            <DialogTitle className="sr-only">{displayTemplate.title}</DialogTitle>
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -102,12 +108,12 @@ export function DocumentWriterModal({
               </Button>
               <div className="flex items-center gap-4 flex-1">
                 <TemplateIcon
-                  icon={typeof formTemplate.icon === 'string' ? formTemplate.icon : 'FileText'}
-                  color={formTemplate.color}
+                  icon={typeof displayTemplate.icon === 'string' ? displayTemplate.icon : 'FileText'}
+                  color={displayTemplate.color}
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className={`${typography.h3} text-gray-800 truncate`}>{formTemplate.title}</h2>
-                  <p className="text-sm text-gray-600 truncate">{formTemplate.description}</p>
+                  <h2 className={`${typography.h3} text-gray-800 truncate`}>{displayTemplate.title}</h2>
+                  <p className="text-sm text-gray-600 truncate">{displayTemplate.description}</p>
                 </div>
               </div>
             </div>
@@ -124,7 +130,9 @@ export function DocumentWriterModal({
           <>
             {/* 데스크탑 레이아웃 */}
             <DesktopLayout 
+              templateSummary={templateSummary}
               formTemplate={formTemplate}
+              templateLoading={templateLoading}
               content={content}
               setContent={setContent}
               attachments={attachments}
@@ -153,7 +161,9 @@ export function DocumentWriterModal({
             
             {/* 모바일 레이아웃 */}
             <MobileLayout 
+              templateSummary={templateSummary}
               formTemplate={formTemplate}
+              templateLoading={templateLoading}
               content={content}
               setContent={setContent}
               attachments={attachments}

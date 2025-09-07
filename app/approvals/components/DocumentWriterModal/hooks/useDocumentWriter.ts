@@ -212,7 +212,10 @@ export function useDocumentWriter(
 
   // 임시저장 처리
   const handleSaveDraft = useCallback(async () => {
-    if (!formTemplate) return
+    if (!formTemplate) {
+      dispatch({ type: 'SET_ERROR', payload: "템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요." })
+      return
+    }
 
     dispatch({ type: 'SET_IS_SUBMITTING', payload: true })
     dispatch({ type: 'SET_ERROR', payload: null })
@@ -306,7 +309,10 @@ export function useDocumentWriter(
 
   // 제출 처리
   const handleSubmit = useCallback(async () => {
-    if (!formTemplate) return
+    if (!formTemplate) {
+      dispatch({ type: 'SET_ERROR', payload: "템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요." })
+      return
+    }
 
     // 유효성 검증
     if (formTemplate.useBody && !state.content.trim()) {

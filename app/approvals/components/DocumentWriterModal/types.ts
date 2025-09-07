@@ -1,5 +1,6 @@
 import { 
   TemplateResponse, 
+  TemplateSummaryResponse,
   AttachmentInfoResponse
 } from "@/lib/services/approval/types"
 import { UserResponseDto } from "@/lib/services/user/types"
@@ -24,7 +25,8 @@ export interface DocumentWriterModalProps {
   isOpen: boolean
   onClose: () => void
   onBack: () => void
-  formTemplate: TemplateResponse | null
+  templateId: number | null
+  templateSummary?: TemplateSummaryResponse | null
   draftDocumentId?: number
 }
 
@@ -59,7 +61,9 @@ export interface FormFieldRendererProps {
 
 // Layout Props
 export interface DocumentWriterLayoutProps {
-  formTemplate: TemplateResponse
+  templateSummary: TemplateSummaryResponse | null
+  formTemplate: TemplateResponse | null
+  templateLoading: boolean
   content: string
   setContent: (content: string) => void
   attachments: Attachment[]

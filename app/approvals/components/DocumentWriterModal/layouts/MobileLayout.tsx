@@ -18,7 +18,9 @@ import { FormFieldRenderer } from "../components/FormFieldRenderer"
 import { DocumentWriterLayoutProps } from "../types"
 
 const MobileLayoutComponent = ({
+  templateSummary,
   formTemplate,
+  templateLoading,
   content,
   setContent,
   attachments,
@@ -50,44 +52,69 @@ const MobileLayoutComponent = ({
   isDeletingDocument: boolean
 }) => {
 
+  // templateSummary 또는 formTemplate 중 우선순위에 따라 사용
+  const displayTemplate = formTemplate || templateSummary
+
   return (
     <div className="lg:hidden flex-1 overflow-y-auto min-h-0">
       <div className="space-y-6 px-6 py-4">
         {/* 양식 필드 */}
-        {formTemplate.fields && formTemplate.fields.length > 0 && (
+        {templateLoading || !formTemplate ? (
           <CollapsibleSection title="양식 항목" defaultOpen={true}>
             <div className="space-y-4">
-              {formTemplate.fields.map((field, index) => (
-                <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {field.name}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </Label>
-                  <FormFieldRenderer
-                    field={field}
-                    value={formFieldValues[field.name]}
-                    onChange={(value) =>
-                      setFormFieldValues(prev => ({
-                        ...prev,
-                        [field.name]: value
-                      }))
-                    }
-                  />
+              {[...Array(2)].map((_, index) => (
+                <div key={`skeleton-field-${index}`} className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
                 </div>
               ))}
             </div>
           </CollapsibleSection>
+        ) : (
+          formTemplate.fields && formTemplate.fields.length > 0 && (
+            <CollapsibleSection title="양식 항목" defaultOpen={true}>
+              <div className="space-y-4">
+                {formTemplate.fields.map((field, index) => (
+                  <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {field.name}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <FormFieldRenderer
+                      field={field}
+                      value={formFieldValues[field.name]}
+                      onChange={(value) =>
+                        setFormFieldValues(prev => ({
+                          ...prev,
+                          [field.name]: value
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )
         )}
 
         {/* 참고파일 */}
-        {formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+        {templateLoading || !formTemplate ? (
           <CollapsibleSection title="참고 파일">
-            <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+            <div className="space-y-2">
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            </div>
           </CollapsibleSection>
+        ) : (
+          formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+            <CollapsibleSection title="참고 파일">
+              <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+            </CollapsibleSection>
+          )
         )}
 
         {/* 본문 작성 */}
-        {formTemplate.useBody && (
+        {displayTemplate?.useBody && (
           <CollapsibleSection title="내용 작성" defaultOpen={true}>
             <div className="space-y-2">
               <Textarea
@@ -102,11 +129,13 @@ const MobileLayoutComponent = ({
 
         {/* 승인 단계 */}
         <CollapsibleSection title="승인 단계" defaultOpen={true}>
-          {usersLoading ? (
+          {templateLoading || usersLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm text-gray-600">사용자 목록 로드 중...</span>
+                <span className="text-sm text-gray-600">
+                  {templateLoading ? "템플릿 로드 중..." : "사용자 목록 로드 중..."}
+                </span>
               </div>
             </div>
           ) : (
@@ -120,11 +149,13 @@ const MobileLayoutComponent = ({
 
         {/* 참조자 */}
         <CollapsibleSection title="참조자">
-          {usersLoading ? (
+          {templateLoading || usersLoading ? (
             <div className="flex items-center justify-center py-4">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-sm text-gray-600">로드 중...</span>
+                <span className="text-sm text-gray-600">
+                  {templateLoading ? "템플릿 로드 중..." : "로드 중..."}
+                </span>
               </div>
             </div>
           ) : (
@@ -137,17 +168,17 @@ const MobileLayoutComponent = ({
         </CollapsibleSection>
 
         {/* 첨부파일 */}
-        {formTemplate.useAttachment !== AttachmentUsageType.DISABLED && (
+        {displayTemplate?.useAttachment !== AttachmentUsageType.DISABLED && (
           <CollapsibleSection
             title={
               <div className="flex items-center gap-2">
                 <span>첨부파일</span>
-                {formTemplate.useAttachment === AttachmentUsageType.REQUIRED && (
+                {displayTemplate?.useAttachment === AttachmentUsageType.REQUIRED && (
                   <Badge variant="destructive" className="text-xs">필수</Badge>
                 )}
               </div>
             }
-            defaultOpen={formTemplate.useAttachment === AttachmentUsageType.REQUIRED}
+            defaultOpen={displayTemplate?.useAttachment === AttachmentUsageType.REQUIRED}
           >
             <div className="max-h-64 overflow-y-auto">
               <AttachmentsManager

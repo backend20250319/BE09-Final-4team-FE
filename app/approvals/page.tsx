@@ -10,7 +10,7 @@ import { TemplateSelectionModal } from "./components/TemplateSelectionModal"
 import { TemplateManagementModal } from "./components/TemplateManagementModal"
 import { DocumentWriterModal } from "./components/DocumentWriterModal"
 import { colors, typography } from "@/lib/design-tokens"
-import { useDocuments, useTemplate } from "./hooks/useApproval"
+import { useDocuments } from "./hooks/useApproval"
 import { DocumentSummaryResponse, DocumentStatus, UserRole, TemplateSummaryResponse, TemplateResponse } from "@/lib/services/approval/types"
 import { getStatusText } from "./utils"
 import { TemplateIcon } from "./components/common/TemplateIcon"
@@ -37,6 +37,7 @@ export default function ApprovalsPage() {
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+  const [selectedTemplateSummary, setSelectedTemplateSummary] = useState<TemplateSummaryResponse | null>(null)
   const [selectedDraftDocument, setSelectedDraftDocument] = useState<DocumentSummaryResponse | null>(null)
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
 
@@ -53,9 +54,6 @@ export default function ApprovalsPage() {
       size: 100, // 임시로 큰 수로 설정 (페이지네이션 추후 구현)
     },
   })
-
-  // 선택된 템플릿 전체 정보 로드
-  const { data: selectedFormTemplate, isLoading: templateLoading } = useTemplate(selectedTemplateId)
 
   const documents = documentsData?.content || []
 
@@ -139,6 +137,7 @@ export default function ApprovalsPage() {
 
   const handleFormSelect = (form: TemplateSummaryResponse) => {
     setSelectedTemplateId(form.id)
+    setSelectedTemplateSummary(form)
     setSelectedDraftDocument(null) // 새 문서 작성 시 DRAFT 초기화
     setIsFormSelectionOpen(false)
     setIsFormWriterOpen(true)
@@ -147,6 +146,7 @@ export default function ApprovalsPage() {
   const handleDraftDocumentSelect = (document: DocumentSummaryResponse) => {
     setSelectedDraftDocument(document)
     setSelectedTemplateId(document.template.id)
+    setSelectedTemplateSummary(document.template)
     setIsFormSelectionOpen(false)
     setIsFormWriterOpen(true)
   }
@@ -366,28 +366,23 @@ export default function ApprovalsPage() {
       />
 
       {/* 문서 작성 모달 */}
-      {isFormWriterOpen && templateLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 flex items-center gap-3">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <span>템플릿을 불러오는 중...</span>
-          </div>
-        </div>
-      )}
       <DocumentWriterModal
-        isOpen={isFormWriterOpen && !templateLoading && !!selectedFormTemplate}
+        isOpen={isFormWriterOpen && !!selectedTemplateId}
         onClose={() => {
           setIsFormWriterOpen(false)
           setSelectedDraftDocument(null)
           setSelectedTemplateId(null)
+          setSelectedTemplateSummary(null)
         }}
         onBack={() => {
           setIsFormWriterOpen(false)
           setIsFormSelectionOpen(true)
           setSelectedDraftDocument(null)
           setSelectedTemplateId(null)
+          setSelectedTemplateSummary(null)
         }}
-        formTemplate={selectedFormTemplate}
+        templateId={selectedTemplateId}
+        templateSummary={selectedTemplateSummary}
         draftDocumentId={selectedDraftDocument?.id}
       />
     </MainLayout>

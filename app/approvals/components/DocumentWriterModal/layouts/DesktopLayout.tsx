@@ -19,7 +19,9 @@ import { FormFieldRenderer } from "../components/FormFieldRenderer"
 import { DocumentWriterLayoutProps } from "../types"
 
 const DesktopLayoutComponent = ({
+  templateSummary,
   formTemplate,
+  templateLoading,
   content,
   setContent,
   attachments,
@@ -50,39 +52,55 @@ const DesktopLayoutComponent = ({
   isSubmittingDocument: boolean
   isDeletingDocument: boolean
 }) => {
+  
+  // templateSummary 또는 formTemplate 중 우선순위에 따라 사용
+  const displayTemplate = formTemplate || templateSummary
 
   return (
     <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
       {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
       <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* 양식 필드 */}
-        {formTemplate.fields && formTemplate.fields.length > 0 && (
+        {templateLoading || !formTemplate ? (
           <div className="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {formTemplate.fields.map((field, index) => (
-                <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">
-                    {field.name}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </Label>
-                  <FormFieldRenderer
-                    field={field}
-                    value={formFieldValues[field.name]}
-                    onChange={(value) =>
-                      setFormFieldValues(prev => ({
-                        ...prev,
-                        [field.name]: value
-                      }))
-                    }
-                  />
+              {[...Array(2)].map((_, index) => (
+                <div key={`skeleton-field-${index}`} className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
                 </div>
               ))}
             </div>
           </div>
+        ) : (
+          formTemplate.fields && formTemplate.fields.length > 0 && (
+            <div className="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {formTemplate.fields.map((field, index) => (
+                  <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      {field.name}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                    </Label>
+                    <FormFieldRenderer
+                      field={field}
+                      value={formFieldValues[field.name]}
+                      onChange={(value) =>
+                        setFormFieldValues(prev => ({
+                          ...prev,
+                          [field.name]: value
+                        }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
         )}
 
         {/* 본문 작성 */}
-        {formTemplate.useBody && (
+        {displayTemplate?.useBody && (
           <div className="space-y-2 flex-1 flex flex-col min-h-0">
             <Textarea
               placeholder="내용을 입력하세요"
@@ -94,13 +112,13 @@ const DesktopLayoutComponent = ({
         )}
 
         {/* 첨부파일 */}
-        {formTemplate.useAttachment !== AttachmentUsageType.DISABLED && (
+        {displayTemplate?.useAttachment !== AttachmentUsageType.DISABLED && (
           <div className="space-y-2 flex-shrink-0 mt-4">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-medium text-gray-700">
                 첨부파일{attachments.length > 0 && ` (${attachments.length}개)`}
               </h3>
-              {formTemplate.useAttachment === AttachmentUsageType.REQUIRED && (
+              {displayTemplate?.useAttachment === AttachmentUsageType.REQUIRED && (
                 <Badge variant="destructive" className="text-xs">필수</Badge>
               )}
             </div>
@@ -116,24 +134,39 @@ const DesktopLayoutComponent = ({
       <div className="w-80 flex-shrink-0 flex flex-col min-h-0">
         <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50 rounded-lg p-4 min-h-0">
           {/* 참고파일 */}
-          {formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+          {templateLoading || !formTemplate ? (
             <>
               <div className="space-y-3">
-                <h3 className={`${typography.h4} text-gray-800`}>참고 파일</h3>
-                <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+                <div className="h-5 bg-gray-200 rounded w-24 animate-pulse"></div>
+                <div className="space-y-2">
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
               </div>
               <Separator />
             </>
+          ) : (
+            formTemplate.referenceFiles && formTemplate.referenceFiles.length > 0 && (
+              <>
+                <div className="space-y-3">
+                  <h3 className={`${typography.h4} text-gray-800`}>참고 파일</h3>
+                  <ReferenceFilesManager referenceFiles={formTemplate.referenceFiles} />
+                </div>
+                <Separator />
+              </>
+            )
           )}
 
           {/* 승인 단계 */}
           <div className="space-y-3">
             <h3 className={`${typography.h4} text-gray-800`}>승인 단계</h3>
-            {usersLoading ? (
+            {templateLoading || usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-gray-600">사용자 목록 로드 중...</span>
+                  <span className="text-sm text-gray-600">
+                    {templateLoading ? "템플릿 로드 중..." : "사용자 목록 로드 중..."}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -150,11 +183,13 @@ const DesktopLayoutComponent = ({
           {/* 참조자 */}
           <div className="space-y-3">
             <h3 className={`${typography.h4} text-gray-800`}>참조자</h3>
-            {usersLoading ? (
+            {templateLoading || usersLoading ? (
               <div className="flex items-center justify-center py-4">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-gray-600">로드 중...</span>
+                  <span className="text-sm text-gray-600">
+                    {templateLoading ? "템플릿 로드 중..." : "로드 중..."}
+                  </span>
                 </div>
               </div>
             ) : (
