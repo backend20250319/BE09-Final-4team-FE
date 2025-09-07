@@ -1,6 +1,6 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useRef, useEffect } from "react"
 import { Separator } from "@/components/ui/separator"
 import { typography } from "@/lib/design-tokens"
 
@@ -8,7 +8,7 @@ import { ApprovalStagesManager } from "../components/ApprovalStagesManager"
 import { ReferencesManager } from "../components/ReferencesManager"
 import { ReferenceFilesManager } from "../components/ReferenceFilesManager"
 import { FormFields } from "../components/shared/FormFields"
-import { ContentEditor } from "../components/shared/ContentEditor"
+import { ContentEditor, ContentEditorRef } from "../components/shared/ContentEditor"
 import { AttachmentSection } from "../components/shared/AttachmentSection"
 import { ActionButtons } from "../components/shared/ActionButtons"
 import { LoadingSkeletons, LoadingContent, ReferencesLoadingContent } from "../components/shared/LoadingSkeletons"
@@ -18,7 +18,7 @@ const DesktopLayoutComponent = ({
   templateSummary,
   formTemplate,
   templateLoading,
-  content,
+  contentRef,
   setContent,
   attachments,
   setAttachments,
@@ -48,6 +48,14 @@ const DesktopLayoutComponent = ({
   isSubmittingDocument: boolean
   isDeletingDocument: boolean
 }) => {
+  const editorRef = useRef<ContentEditorRef>(null)
+
+  // contentRef 값이 변경되면 editor에 반영
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.setValue(contentRef.current)
+    }
+  }, [contentRef.current])
   
   // templateSummary 또는 formTemplate 중 우선순위에 따라 사용
   const displayTemplate = formTemplate || templateSummary
@@ -72,8 +80,12 @@ const DesktopLayoutComponent = ({
         {/* 본문 작성 */}
         {displayTemplate?.useBody && (
           <ContentEditor
-            content={content}
-            setContent={setContent}
+            ref={editorRef}
+            initialContent={contentRef.current}
+            setContent={(content) => {
+              contentRef.current = content
+              setContent(content)
+            }}
             isMobile={false}
           />
         )}

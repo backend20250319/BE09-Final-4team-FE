@@ -36,7 +36,7 @@ export function DocumentWriterModal({
   const { data: formTemplate, isLoading: templateLoading } = useTemplate(templateId)
   const {
     // 상태
-    content,
+    contentRef,
     attachments,
     approvalStages,
     references,
@@ -133,7 +133,7 @@ export function DocumentWriterModal({
               templateSummary={templateSummary}
               formTemplate={formTemplate}
               templateLoading={templateLoading}
-              content={content}
+              contentRef={contentRef}
               setContent={setContent}
               attachments={attachments}
               setAttachments={setAttachments}
@@ -164,7 +164,7 @@ export function DocumentWriterModal({
               templateSummary={templateSummary}
               formTemplate={formTemplate}
               templateLoading={templateLoading}
-              content={content}
+              contentRef={contentRef}
               setContent={setContent}
               attachments={attachments}
               setAttachments={setAttachments}

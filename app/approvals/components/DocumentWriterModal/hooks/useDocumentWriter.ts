@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback, useMemo } from "react"
+import { useEffect, useCallback, useMemo, useRef, useState } from "react"
 import { 
   TemplateResponse,
   DocumentFieldValueRequest,
@@ -14,115 +14,85 @@ import { UserResponseDto } from "@/lib/services/user/types"
 import { userApi } from "@/lib/services/user/api"
 import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "../../../hooks/useApproval"
 import { Attachment } from "@/components/ui/attachments-manager"
-import { DocumentWriterState, DocumentWriterAction, LocalApprovalStage, LocalReference } from "../types"
+import { LocalApprovalStage, LocalReference } from "../types"
 
-// 초기 상태 정의
-const initialState: DocumentWriterState = {
-  content: "",
-  attachments: [],
-  approvalStages: [{
-    id: "stage-1",
-    name: "1단계",
-    approvers: []
-  }],
-  references: [],
-  formFieldValues: {},
-  isSubmitting: false,
-  availableUsers: [],
-  usersLoading: false,
-  error: null,
-  currentDraftId: null,
-  isDraft: false,
-  isDeleting: false,
-  showDeleteConfirm: false
-}
-
-// 리듀서 함수
-function documentWriterReducer(state: DocumentWriterState, action: DocumentWriterAction): DocumentWriterState {
-  switch (action.type) {
-    case 'SET_CONTENT':
-      if (state.content === action.payload) return state
-      return { ...state, content: action.payload }
-    case 'SET_ATTACHMENTS':
-      if (state.attachments === action.payload) return state
-      return { ...state, attachments: action.payload }
-    case 'SET_APPROVAL_STAGES':
-      if (state.approvalStages === action.payload) return state
-      return { ...state, approvalStages: action.payload }
-    case 'SET_REFERENCES':
-      if (state.references === action.payload) return state
-      return { ...state, references: action.payload }
-    case 'SET_FORM_FIELD_VALUES':
-      if (state.formFieldValues === action.payload) return state
-      return { ...state, formFieldValues: action.payload }
-    case 'SET_IS_SUBMITTING':
-      if (state.isSubmitting === action.payload) return state
-      return { ...state, isSubmitting: action.payload }
-    case 'SET_AVAILABLE_USERS':
-      if (state.availableUsers === action.payload) return state
-      return { ...state, availableUsers: action.payload }
-    case 'SET_USERS_LOADING':
-      if (state.usersLoading === action.payload) return state
-      return { ...state, usersLoading: action.payload }
-    case 'SET_ERROR':
-      if (state.error === action.payload) return state
-      return { ...state, error: action.payload }
-    case 'SET_CURRENT_DRAFT_ID':
-      if (state.currentDraftId === action.payload) return state
-      return { ...state, currentDraftId: action.payload }
-    case 'SET_IS_DRAFT':
-      if (state.isDraft === action.payload) return state
-      return { ...state, isDraft: action.payload }
-    case 'SET_IS_DELETING':
-      if (state.isDeleting === action.payload) return state
-      return { ...state, isDeleting: action.payload }
-    case 'SET_SHOW_DELETE_CONFIRM':
-      if (state.showDeleteConfirm === action.payload) return state
-      return { ...state, showDeleteConfirm: action.payload }
-    case 'RESET_STATE':
-      return initialState
-    case 'INITIALIZE_FROM_TEMPLATE':
-      return {
-        ...initialState,
-        content: action.payload.template.bodyTemplate || "",
-        currentDraftId: action.payload.draftDocumentId || null,
-        isDraft: !!action.payload.draftDocumentId
-      }
-    default:
-      return state
-  }
-}
 
 export function useDocumentWriter(
   isOpen: boolean,
   formTemplate: TemplateResponse | null,
   draftDocumentId?: number
 ) {
-  const [state, dispatch] = useReducer(documentWriterReducer, initialState)
+  // 개별 상태 관리
+  const contentRef = useRef("")
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [approvalStages, setApprovalStages] = useState<LocalApprovalStage[]>([{
+    id: "stage-1",
+    name: "1단계",
+    approvers: []
+  }])
+  const [references, setReferences] = useState<LocalReference[]>([])
+  const [formFieldValues, setFormFieldValues] = useState<Record<string, any>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableUsers, setAvailableUsers] = useState<UserResponseDto[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [currentDraftId, setCurrentDraftId] = useState<number | null>(draftDocumentId || null)
+  const [isDraft, setIsDraft] = useState(!!draftDocumentId)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   // Approval 훅들
   const createDocument = useCreateDocument()
   const updateDocument = useUpdateDocument()
   const submitDocument = useSubmitDocument()
   const deleteDocument = useDeleteDocument()
-  const { data: draftDocument, isLoading: draftLoading } = useDocument(state.currentDraftId)
+  const { data: draftDocument, isLoading: draftLoading } = useDocument(currentDraftId)
 
   // 모달이 열릴 때/닫힐 때 상태 관리
   useEffect(() => {
     if (isOpen && formTemplate && !draftDocument) {
-      dispatch({
-        type: 'INITIALIZE_FROM_TEMPLATE',
-        payload: { template: formTemplate, draftDocumentId }
-      })
+      // 초기화
+      contentRef.current = formTemplate.bodyTemplate || ""
+      setAttachments([])
+      setApprovalStages([{
+        id: "stage-1",
+        name: "1단계",
+        approvers: []
+      }])
+      setReferences([])
+      setFormFieldValues({})
+      setIsSubmitting(false)
+      setError(null)
+      setCurrentDraftId(draftDocumentId || null)
+      setIsDraft(!!draftDocumentId)
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     } else if (!isOpen) {
-      dispatch({ type: 'RESET_STATE' })
+      // 리셋
+      contentRef.current = ""
+      setAttachments([])
+      setApprovalStages([{
+        id: "stage-1",
+        name: "1단계",
+        approvers: []
+      }])
+      setReferences([])
+      setFormFieldValues({})
+      setIsSubmitting(false)
+      setAvailableUsers([])
+      setUsersLoading(false)
+      setError(null)
+      setCurrentDraftId(null)
+      setIsDraft(false)
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }, [isOpen, formTemplate, draftDocument, draftDocumentId])
 
   // DRAFT 문서 로드 시 필드 초기화
   useEffect(() => {
     if (draftDocument && draftDocument.status === DocumentStatus.DRAFT) {
-      dispatch({ type: 'SET_CONTENT', payload: draftDocument.content || "" })
+      contentRef.current = draftDocument.content || ""
       
       // 양식 필드 값 설정
       const fieldValues: Record<string, any> = {}
@@ -142,7 +112,7 @@ export function useDocumentWriter(
           fieldValues[fieldValue.fieldName] = fieldValue.fieldValue || ""
         }
       })
-      dispatch({ type: 'SET_FORM_FIELD_VALUES', payload: fieldValues })
+      setFormFieldValues(fieldValues)
       
       // 승인 단계 설정
       const stages: LocalApprovalStage[] = draftDocument.approvalStages.map((stage, index) => ({
@@ -163,7 +133,7 @@ export function useDocumentWriter(
           approvers: []
         })
       }
-      dispatch({ type: 'SET_APPROVAL_STAGES', payload: stages })
+      setApprovalStages(stages)
       
       // 참조자 설정
       const referenceTargets = draftDocument.referenceTargets.map((target, index) => ({
@@ -176,7 +146,7 @@ export function useDocumentWriter(
       const uniqueReferences = referenceTargets.filter((reference, index, self) => 
         self.findIndex(r => r.id === reference.id) === index
       )
-      dispatch({ type: 'SET_REFERENCES', payload: uniqueReferences })
+      setReferences(uniqueReferences)
       
       // 첨부파일 설정
       const attachmentList: Attachment[] = draftDocument.attachments.map(attachment => ({
@@ -185,23 +155,23 @@ export function useDocumentWriter(
         size: (attachment.fileSize / 1024).toFixed(1) + 'KB',
         url: `/api/files/${attachment.fileId}/download`
       }))
-      dispatch({ type: 'SET_ATTACHMENTS', payload: attachmentList })
+      setAttachments(attachmentList)
     }
   }, [draftDocument])
 
   // 사용자 목록 로드
   useEffect(() => {
     const loadUsers = async () => {
-      dispatch({ type: 'SET_USERS_LOADING', payload: true })
-      dispatch({ type: 'SET_ERROR', payload: null })
+      setUsersLoading(true)
+      setError(null)
       try {
         const users = await userApi.getAllUsers()
-        dispatch({ type: 'SET_AVAILABLE_USERS', payload: users })
+        setAvailableUsers(users)
       } catch (error) {
         console.error("사용자 목록 로드 실패:", error)
-        dispatch({ type: 'SET_ERROR', payload: "사용자 목록을 불러오는데 실패했습니다." })
+        setError("사용자 목록을 불러오는데 실패했습니다.")
       } finally {
-        dispatch({ type: 'SET_USERS_LOADING', payload: false })
+        setUsersLoading(false)
       }
     }
 
@@ -213,15 +183,15 @@ export function useDocumentWriter(
   // 임시저장 처리
   const handleSaveDraft = useCallback(async () => {
     if (!formTemplate) {
-      dispatch({ type: 'SET_ERROR', payload: "템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요." })
+      setError("템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요.")
       return
     }
 
-    dispatch({ type: 'SET_IS_SUBMITTING', payload: true })
-    dispatch({ type: 'SET_ERROR', payload: null })
+    setIsSubmitting(true)
+    setError(null)
     
     try {
-      const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues)
+      const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues)
         .map(([fieldName, fieldValue]) => {
           const templateField = formTemplate.fields?.find(f => f.name === fieldName)
           if (!templateField?.id) return null // templateFieldId가 없으면 제외
@@ -232,7 +202,7 @@ export function useDocumentWriter(
         })
         .filter(Boolean) as DocumentFieldValueRequest[]
 
-      const approvalStageRequests: ApprovalStageRequest[] = state.approvalStages.map((stage, index) => ({
+      const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
         stageOrder: index + 1,
         stageName: stage.name,
         approvalTargets: stage.approvers.map(approver => ({
@@ -242,30 +212,30 @@ export function useDocumentWriter(
         }))
       }))
 
-      const referenceTargetRequests: ApprovalTargetRequest[] = state.references.map(reference => ({
+      const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
         targetType: TargetType.USER,
         userId: reference.id,
         isReference: true
       }))
 
-      const attachmentIds = state.attachments.map(attachment => attachment.id || '')
+      const attachmentIds = attachments.map(attachment => attachment.id || '')
 
-      if (state.currentDraftId) {
+      if (currentDraftId) {
         // 기존 DRAFT 수정
         const updateRequest: UpdateDocumentRequest = {
-          content: formTemplate.useBody ? state.content : undefined,
+          content: formTemplate.useBody ? contentRef.current : undefined,
           fieldValues,
           approvalStages: approvalStageRequests,
           referenceTargets: referenceTargetRequests,
           attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
         }
 
-        await updateDocument.mutateAsync({ id: state.currentDraftId, request: updateRequest })
+        await updateDocument.mutateAsync({ id: currentDraftId, request: updateRequest })
       } else {
         // 새 DRAFT 생성
         const createRequest: CreateDocumentRequest = {
           templateId: formTemplate.id,
-          content: formTemplate.useBody ? state.content : undefined,
+          content: formTemplate.useBody ? contentRef.current : undefined,
           fieldValues,
           approvalStages: approvalStageRequests,
           referenceTargets: referenceTargetRequests,
@@ -274,53 +244,53 @@ export function useDocumentWriter(
         }
 
         const result = await createDocument.mutateAsync(createRequest)
-        dispatch({ type: 'SET_CURRENT_DRAFT_ID', payload: result.id })
-        dispatch({ type: 'SET_IS_DRAFT', payload: true })
+        setCurrentDraftId(result.id)
+        setIsDraft(true)
       }
     } catch (error) {
       console.error("문서 임시저장 중 오류:", error)
       const errorMessage = error instanceof Error ? error.message : "문서 임시저장 중 오류가 발생했습니다."
-      dispatch({ type: 'SET_ERROR', payload: errorMessage })
+      setError(errorMessage)
     } finally {
-      dispatch({ type: 'SET_IS_SUBMITTING', payload: false })
+      setIsSubmitting(false)
     }
-  }, [formTemplate, state.formFieldValues, state.approvalStages, state.references, state.attachments, state.currentDraftId, state.content, updateDocument, createDocument])
+  }, [formTemplate, formFieldValues, approvalStages, references, attachments, currentDraftId, updateDocument, createDocument])
 
   // 문서 삭제
   const handleDelete = useCallback(async () => {
-    if (!state.currentDraftId) return
+    if (!currentDraftId) return
 
-    dispatch({ type: 'SET_IS_DELETING', payload: true })
-    dispatch({ type: 'SET_ERROR', payload: null })
+    setIsDeleting(true)
+    setError(null)
     
     try {
-      await deleteDocument.mutateAsync(state.currentDraftId)
+      await deleteDocument.mutateAsync(currentDraftId)
       return true // 성공 시 true 반환
     } catch (error) {
       console.error("문서 삭제 중 오류:", error)
       const errorMessage = error instanceof Error ? error.message : "문서 삭제 중 오류가 발생했습니다."
-      dispatch({ type: 'SET_ERROR', payload: errorMessage })
+      setError(errorMessage)
       return false
     } finally {
-      dispatch({ type: 'SET_IS_DELETING', payload: false })
-      dispatch({ type: 'SET_SHOW_DELETE_CONFIRM', payload: false })
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
-  }, [state.currentDraftId, deleteDocument])
+  }, [currentDraftId, deleteDocument])
 
   // 제출 처리
   const handleSubmit = useCallback(async () => {
     if (!formTemplate) {
-      dispatch({ type: 'SET_ERROR', payload: "템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요." })
+      setError("템플릿 정보를 불러오는 중입니다. 잠시만 기다려주세요.")
       return
     }
 
     // 유효성 검증
-    if (formTemplate.useBody && !state.content.trim()) {
+    if (formTemplate.useBody && !contentRef.current.trim()) {
       alert("내용을 입력해주세요.")
       return
     }
 
-    if (state.approvalStages.some(stage => stage.approvers.length === 0)) {
+    if (approvalStages.some(stage => stage.approvers.length === 0)) {
       alert("모든 승인 단계에 승인자를 지정해주세요.")
       return
     }
@@ -328,8 +298,8 @@ export function useDocumentWriter(
     if (formTemplate.fields) {
       const missingFields = formTemplate.fields
         .filter(field => field.required)
-        .filter(field => !state.formFieldValues[field.name] ||
-          (Array.isArray(state.formFieldValues[field.name]) && state.formFieldValues[field.name].length === 0)
+        .filter(field => !formFieldValues[field.name] ||
+          (Array.isArray(formFieldValues[field.name]) && formFieldValues[field.name].length === 0)
         )
 
       if (missingFields.length > 0) {
@@ -338,22 +308,22 @@ export function useDocumentWriter(
       }
     }
 
-    if (formTemplate.useAttachment === AttachmentUsageType.REQUIRED && state.attachments.length === 0) {
+    if (formTemplate.useAttachment === AttachmentUsageType.REQUIRED && attachments.length === 0) {
       alert("첨부파일을 업로드해주세요.")
       return
     }
 
-    dispatch({ type: 'SET_IS_SUBMITTING', payload: true })
-    dispatch({ type: 'SET_ERROR', payload: null })
+    setIsSubmitting(true)
+    setError(null)
     
     try {
-      if (state.currentDraftId) {
+      if (currentDraftId) {
         // DRAFT 문서 제출
-        await submitDocument.mutateAsync(state.currentDraftId)
+        await submitDocument.mutateAsync(currentDraftId)
         return true
       } else {
         // 새 문서 생성 후 바로 제출
-        const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues)
+        const fieldValues: DocumentFieldValueRequest[] = Object.entries(formFieldValues)
           .map(([fieldName, fieldValue]) => {
             const templateField = formTemplate.fields?.find(f => f.name === fieldName)
             if (!templateField?.id) return null // templateFieldId가 없으면 제외
@@ -364,7 +334,7 @@ export function useDocumentWriter(
           })
           .filter(Boolean) as DocumentFieldValueRequest[]
 
-        const approvalStageRequests: ApprovalStageRequest[] = state.approvalStages.map((stage, index) => ({
+        const approvalStageRequests: ApprovalStageRequest[] = approvalStages.map((stage, index) => ({
           stageOrder: index + 1,
           stageName: stage.name,
           approvalTargets: stage.approvers.map(approver => ({
@@ -374,17 +344,17 @@ export function useDocumentWriter(
           }))
         }))
 
-        const referenceTargetRequests: ApprovalTargetRequest[] = state.references.map(reference => ({
+        const referenceTargetRequests: ApprovalTargetRequest[] = references.map(reference => ({
           targetType: TargetType.USER,
           userId: reference.id,
           isReference: true
         }))
 
-        const attachmentIds = state.attachments.map(attachment => attachment.id || '')
+        const attachmentIds = attachments.map(attachment => attachment.id || '')
 
         const createDocumentRequest: CreateDocumentRequest = {
           templateId: formTemplate.id,
-          content: formTemplate.useBody ? state.content : undefined,
+          content: formTemplate.useBody ? contentRef.current : undefined,
           fieldValues,
           approvalStages: approvalStageRequests,
           referenceTargets: referenceTargetRequests,
@@ -398,34 +368,48 @@ export function useDocumentWriter(
     } catch (error) {
       console.error("문서 제출 중 오류:", error)
       const errorMessage = error instanceof Error ? error.message : "문서 제출 중 오류가 발생했습니다."
-      dispatch({ type: 'SET_ERROR', payload: errorMessage })
+      setError(errorMessage)
       return false
     } finally {
-      dispatch({ type: 'SET_IS_SUBMITTING', payload: false })
+      setIsSubmitting(false)
     }
-  }, [formTemplate, state.content, state.approvalStages, state.formFieldValues, state.attachments, state.currentDraftId, submitDocument, createDocument])
+  }, [formTemplate, approvalStages, formFieldValues, attachments, currentDraftId, submitDocument, createDocument])
 
-  const setters = useMemo(() => ({
-    setContent: (content: string) => dispatch({ type: 'SET_CONTENT', payload: content }),
-    setAttachments: (attachments: Attachment[]) => dispatch({ type: 'SET_ATTACHMENTS', payload: attachments }),
-    setApprovalStages: (stages: LocalApprovalStage[]) => dispatch({ type: 'SET_APPROVAL_STAGES', payload: stages }),
-    setReferences: (references: LocalReference[]) => dispatch({ type: 'SET_REFERENCES', payload: references }),
-    setFormFieldValues: (values: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => {
-      if (typeof values === 'function') {
-        dispatch({ type: 'SET_FORM_FIELD_VALUES', payload: values(state.formFieldValues) })
-      } else {
-        dispatch({ type: 'SET_FORM_FIELD_VALUES', payload: values })
-      }
-    },
-    setShowDeleteConfirm: (show: boolean) => dispatch({ type: 'SET_SHOW_DELETE_CONFIRM', payload: show })
-  }), [state.formFieldValues])
+  const setContentCallback = useCallback((content: string) => {
+    contentRef.current = content
+  }, [])
+  
+  const setFormFieldValuesCallback = useCallback((values: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => {
+    if (typeof values === 'function') {
+      setFormFieldValues(prev => values(prev))
+    } else {
+      setFormFieldValues(values)
+    }
+  }, [])
 
   return {
     // 상태
-    ...state,
+    contentRef,
+    attachments,
+    approvalStages,
+    references,
+    formFieldValues,
+    isSubmitting,
+    availableUsers,
+    usersLoading,
+    error,
+    currentDraftId,
+    isDraft,
+    isDeleting,
+    showDeleteConfirm,
     
     // 액션
-    ...setters,
+    setContent: setContentCallback,
+    setAttachments,
+    setApprovalStages,
+    setReferences,
+    setFormFieldValues: setFormFieldValuesCallback,
+    setShowDeleteConfirm,
     
     // 핸들러
     handleSaveDraft,

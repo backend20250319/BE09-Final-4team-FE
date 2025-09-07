@@ -1,6 +1,6 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useCallback } from "react"
 import { Label } from "@/components/ui/label"
 import { FormFieldRenderer } from "../FormFieldRenderer"
 
@@ -19,6 +19,14 @@ const FormFieldsComponent = ({
   setFormFieldValues,
   isMobile = false
 }: FormFieldsProps) => {
+  // onChange 핸들러를 메모이제이션
+  const handleFieldChange = useCallback((fieldName: string, value: any) => {
+    setFormFieldValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }))
+  }, [setFormFieldValues])
+
   if (templateLoading || !formTemplate) {
     const skeletonCount = 2
     return (
@@ -51,12 +59,7 @@ const FormFieldsComponent = ({
             <FormFieldRenderer
               field={field}
               value={formFieldValues[field.name]}
-              onChange={(value) =>
-                setFormFieldValues(prev => ({
-                  ...prev,
-                  [field.name]: value
-                }))
-              }
+              onChange={(value) => handleFieldChange(field.name, value)}
             />
           </div>
         ))}

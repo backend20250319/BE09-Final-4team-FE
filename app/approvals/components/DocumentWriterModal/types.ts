@@ -64,7 +64,7 @@ export interface DocumentWriterLayoutProps {
   templateSummary: TemplateSummaryResponse | null
   formTemplate: TemplateResponse | null
   templateLoading: boolean
-  content: string
+  contentRef: React.MutableRefObject<string>
   setContent: (content: string) => void
   attachments: Attachment[]
   setAttachments: (attachments: Attachment[]) => void
@@ -86,36 +86,3 @@ export interface DocumentWriterLayoutProps {
   setShowDeleteConfirm: (show: boolean) => void
 }
 
-// 상태 관리를 위한 타입
-export interface DocumentWriterState {
-  content: string
-  attachments: Attachment[]
-  approvalStages: LocalApprovalStage[]
-  references: LocalReference[]
-  formFieldValues: Record<string, any>
-  isSubmitting: boolean
-  availableUsers: UserResponseDto[]
-  usersLoading: boolean
-  error: string | null
-  currentDraftId: number | null
-  isDraft: boolean
-  isDeleting: boolean
-  showDeleteConfirm: boolean
-}
-
-export type DocumentWriterAction = 
-  | { type: 'SET_CONTENT'; payload: string }
-  | { type: 'SET_ATTACHMENTS'; payload: Attachment[] }
-  | { type: 'SET_APPROVAL_STAGES'; payload: LocalApprovalStage[] }
-  | { type: 'SET_REFERENCES'; payload: LocalReference[] }
-  | { type: 'SET_FORM_FIELD_VALUES'; payload: Record<string, any> }
-  | { type: 'SET_IS_SUBMITTING'; payload: boolean }
-  | { type: 'SET_AVAILABLE_USERS'; payload: UserResponseDto[] }
-  | { type: 'SET_USERS_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'SET_CURRENT_DRAFT_ID'; payload: number | null }
-  | { type: 'SET_IS_DRAFT'; payload: boolean }
-  | { type: 'SET_IS_DELETING'; payload: boolean }
-  | { type: 'SET_SHOW_DELETE_CONFIRM'; payload: boolean }
-  | { type: 'RESET_STATE' }
-  | { type: 'INITIALIZE_FROM_TEMPLATE'; payload: { template: TemplateResponse, draftDocumentId?: number } }
