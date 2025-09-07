@@ -39,6 +39,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     setUser(user)
     setAccessToken(tokens.accessToken)
+    
+    // 로그인 시에도 토큰 갱신 이벤트 발생 (웹소켓 연결을 위해)
+    window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
+      detail: { userId: user.id, email: user.email, name: user.name, role: user.role }
+    }))
   }
 
   const logout = async () => {
@@ -58,6 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       const response = await authApi.refresh()
+      
       const user: User = {
         id: response.userId,
         email: response.email,
@@ -66,7 +72,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       setUser(user)
       setAccessToken(response.accessToken)
-      console.log('인증 갱신 성공:', user)
+      
+      // 토큰 갱신 이벤트 발생
+      window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
+        detail: { userId: response.userId, email: response.email, name: response.name, role: response.role }
+      }))
     } catch (error) {
       console.error('인증 갱신 실패:', error)
       setUser(null)
@@ -85,12 +95,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role
       }
       setUser(user)
-      console.log('인증이 자동으로 갱신되었습니다.')
     }
 
     const handleTokenExpired = () => {
       setUser(null)
-      console.error('인증이 만료되었습니다.')
     }
 
     window.addEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
@@ -110,7 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           await refreshUser()
         }
       } catch (error) {
-        console.log('초기 인증 확인 실패 (정상적인 경우일 수 있음)')
+        // 정상적인 경우일 수 있음 (로그인하지 않은 상태)
       } finally {
         setLoading(false)
       }
