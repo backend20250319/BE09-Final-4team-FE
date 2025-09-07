@@ -12,12 +12,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus } from "lucide-react";
 import SelectTime from "@/components/clock/SelectTime";
-import { DayOfWeek, WorkPolicyType } from "@/lib/services/attendance";
+import {
+  DayOfWeek,
+  WorkPolicyType,
+  AnnualLeaveRequestDto,
+} from "@/lib/services/attendance";
 
 // Type definitions
+interface AnnualLeavePolicy {
+  id?: string;
+  name: string;
+  minYears: number;
+  maxYears: number;
+  leaveDays: number;
+  holidayDays: number;
+}
+
 interface FormData {
   [key: string]: any;
   workName?: string;
+  annualLeaves?: AnnualLeavePolicy[];
   workingDays?: Record<string, boolean>;
   weeklyHoliday?: Record<string, boolean>;
   cycleStartDay?: string;
@@ -82,6 +96,39 @@ export function FixedWorkForm({
 
   const openTimePicker = (field: keyof TimePickerState): void => {
     setShowTimePicker((prev) => ({ ...prev, [field]: true }));
+  };
+
+  // 연차 정책 관리 함수들
+  const addAnnualLeave = (): void => {
+    const newPolicy: AnnualLeavePolicy = {
+      id: Date.now().toString(),
+      name: `정책 ${(formData.annualLeaves || []).length + 1}`,
+      minYears: 0,
+      maxYears: 1,
+      leaveDays: 15,
+      holidayDays: 0,
+    };
+
+    const currentPolicies = formData.annualLeaves || [];
+    updateFormData("annualLeaves", [...currentPolicies, newPolicy]);
+  };
+
+  const removeAnnualLeave = (index: number): void => {
+    const currentPolicies = formData.annualLeaves || [];
+    const updatedPolicies = currentPolicies.filter((_, i) => i !== index);
+    updateFormData("annualLeaves", updatedPolicies);
+  };
+
+  const updateAnnualLeave = (
+    index: number,
+    field: keyof AnnualLeavePolicy,
+    value: string | number
+  ): void => {
+    const currentPolicies = formData.annualLeaves || [];
+    const updatedPolicies = currentPolicies.map((policy, i) =>
+      i === index ? { ...policy, [field]: value } : policy
+    );
+    updateFormData("annualLeaves", updatedPolicies);
   };
 
   const closeTimePicker = (field: keyof TimePickerState): void => {
@@ -421,6 +468,133 @@ export function FixedWorkForm({
           >
             <Plus className="w-4 h-4" />
             추가하기
+          </Button>
+        </div>
+      </div>
+
+      {/* 연차 정책 설정 */}
+      <div className="space-y-4 bg-white/50 backdrop-blur-sm p-4 rounded-lg border border-gray-200/50">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            연차 설정
+          </label>
+          {(formData.annualLeaves || []).map((policy, index) => (
+            <div
+              key={policy.id || index}
+              className="grid grid-cols-10 gap-2 mb-3 p-3 bg-gray-50 rounded-lg"
+            >
+              {/* 최소 근무년수 */}
+              <div className="col-span-3">
+                <label className="block text-xs text-gray-600 mb-1">
+                  최소 년수
+                </label>
+                <Input
+                  type="number"
+                  value={policy.minYears}
+                  onChange={(e) =>
+                    updateAnnualLeave(
+                      index,
+                      "minYears",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  min="0"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 최대 근무년수 */}
+              <div className="col-span-3">
+                <label className="block text-xs text-gray-600 mb-1">
+                  최대 년수
+                </label>
+                <Input
+                  type="number"
+                  value={policy.maxYears}
+                  onChange={(e) =>
+                    updateAnnualLeave(
+                      index,
+                      "maxYears",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  min="0"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 연차 일수 */}
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-600 mb-1">
+                  연차 일수
+                </label>
+                <Input
+                  type="number"
+                  value={policy.leaveDays}
+                  onChange={(e) =>
+                    updateAnnualLeave(
+                      index,
+                      "leaveDays",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  min="0"
+                  max="365"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 휴일 일수 */}
+              <div className="col-span-1">
+                <label className="block text-xs text-gray-600 mb-1">휴일</label>
+                <Input
+                  type="number"
+                  value={policy.holidayDays}
+                  onChange={(e) =>
+                    updateAnnualLeave(
+                      index,
+                      "holidayDays",
+                      parseInt(e.target.value) || 0
+                    )
+                  }
+                  min="0"
+                  className="text-sm"
+                />
+              </div>
+
+              {/* 삭제 버튼 */}
+              <div className="col-span-1 flex items-end">
+                {(formData.annualLeaves || []).length > 1 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeAnnualLeave(index)}
+                    className="text-red-500 hover:text-red-700 px-2"
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+
+              {/* 표시 텍스트 */}
+              <div className="col-span-10 mt-2">
+                <p className="text-xs text-gray-600">
+                  근무 {policy.minYears}년 ~ {policy.maxYears}년: 연차{" "}
+                  {policy.leaveDays}일
+                  {policy.holidayDays > 0 && `, 휴일 ${policy.holidayDays}일`}
+                </p>
+              </div>
+            </div>
+          ))}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addAnnualLeave}
+            className="flex items-center gap-2 mt-2"
+          >
+            <Plus className="w-4 h-4" />
+            연차 정책 추가
           </Button>
         </div>
       </div>
