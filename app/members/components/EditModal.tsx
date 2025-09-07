@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import SimpleDropdown from "./SimpleDropdown"
 import { Badge } from "@/components/ui/badge"
-import { useOrganizationsList, useTitlesFromMembers, useWorkPoliciesList } from '@/hooks/use-members-derived-data'
+import { useOrganizationsList, useTitlesFromAPI, useWorkPoliciesList } from '@/hooks/use-members-derived-data'
+import { titleApi } from '@/lib/services/title/api'
 import { Switch } from "@/components/ui/switch"
 import { 
   User, 
@@ -92,7 +93,7 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const [memberOrganizations, setMemberOrganizations] = useState<{ main: string | null; concurrent: string[] }>({ main: null, concurrent: [] })
   const { organizations, loading: orgLoading, error: orgError } = useOrganizationsList()
   const { workPolicies, loading: workPolicyLoading, error: workPolicyError } = useWorkPoliciesList()
-  const { ranks, positions, jobs, roles, loading: titleLoading, error: titleError } = useTitlesFromMembers()
+  const { ranks, positions, jobs, loading: titleLoading, error: titleError } = useTitlesFromAPI()
 
   const recomputePopoverWidths = () => {
     const readWidth = (el?: HTMLElement | null) => {
@@ -129,17 +130,14 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const canResetPassword = isAdmin
 
   useEffect(() => {
-    console.log('EditModal - employee 변경됨:', employee?.id, employee?.name);
     if (employee) {
       setEditedEmployee(prev => {
-        console.log('EditModal - setEditedEmployee 호출 전:', prev?.address, prev?.joinDate);
         const newEmployee = {
           ...employee,
           workPolicies: employee.workPolicies || [],
           address: prev?.address || employee.address || '',
           joinDate: prev?.joinDate || employee.joinDate || ''
         };
-        console.log('EditModal - setEditedEmployee 호출 후:', newEmployee.address, newEmployee.joinDate);
         return newEmployee;
       })
       const initialOrgs = (employee.organizations && employee.organizations.length > 0) ? employee.organizations : []
@@ -155,18 +153,15 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   useEffect(() => {
     const fetchDetailInfo = async () => {
       if (employee?.id && canEdit && !detailInfoLoaded) {
-        console.log('EditModal - 상세정보 가져오기 시작:', employee.id);
         try {
           const detailResponse = await userApi.getDetailProfile(employee.id);
           if (detailResponse.data) {
-            console.log('EditModal - 상세정보 응답:', detailResponse.data.address, detailResponse.data.joinDate);
             setEditedEmployee(prev => {
               const updated = {
                 ...prev,
                 address: detailResponse.data.address || prev?.address || '',
                 joinDate: detailResponse.data.joinDate || prev?.joinDate || ''
               };
-              console.log('EditModal - 상세정보 설정 후:', updated.address, updated.joinDate);
               return updated;
             });
             setDetailInfoLoaded(true);
@@ -237,6 +232,40 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!editedEmployee) return
 
     try {
+      let positionId = null;
+      let jobId = null;
+      let rankId = null;
+
+      if (editedEmployee.position) {
+        try {
+          const positions = await titleApi.getPositions();
+          const position = positions.find(p => p.name === editedEmployee.position);
+          positionId = position?.id || null;
+        } catch (error) {
+          console.error('직위 조회 실패:', error);
+        }
+      }
+
+      if (editedEmployee.job) {
+        try {
+          const jobs = await titleApi.getJobs();
+          const job = jobs.find(j => j.name === editedEmployee.job);
+          jobId = job?.id || null;
+        } catch (error) {
+          console.error('직책 조회 실패:', error);
+        }
+      }
+
+      if (editedEmployee.rank) {
+        try {
+          const ranks = await titleApi.getRanks();
+          const rank = ranks.find(r => r.name === editedEmployee.rank);
+          rankId = rank?.id || null;
+        } catch (error) {
+          console.error('직급 조회 실패:', error);
+        }
+      }
+
       const updateData = {
         name: editedEmployee.name,
         email: editedEmployee.email,
@@ -247,9 +276,9 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
         role: editedEmployee.role || null,
         workPolicyId: editedEmployee.workPolicies?.[0] ? parseInt(editedEmployee.workPolicies[0]) : null,
         profileImageUrl: editedEmployee.profileImage || null,
-        position: editedEmployee.position ? { id: 0, name: editedEmployee.position, sortOrder: 0 } : null,
-        job: editedEmployee.job ? { id: 0, name: editedEmployee.job, sortOrder: 0 } : null,
-        rank: editedEmployee.rank ? { id: 0, name: editedEmployee.rank, sortOrder: 0 } : null,
+        position: positionId ? { id: positionId, name: editedEmployee.position, sortOrder: 0 } : null,
+        job: jobId ? { id: jobId, name: editedEmployee.job, sortOrder: 0 } : null,
+        rank: rankId ? { id: rankId, name: editedEmployee.rank, sortOrder: 0 } : null,
         // 임시 비밀번호가 생성된 경우에만 포함
         ...(tempPassword && { password: tempPassword, needsPasswordReset: true }),
       }

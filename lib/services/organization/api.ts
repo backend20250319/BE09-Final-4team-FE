@@ -39,12 +39,12 @@ export const organizationApi = {
 
     createOrganization: async (data: CreateOrganizationRequest): Promise<OrganizationDto> => {
         const response = await apiClient.post('/api/organizations', data);
-        return response.data;
+        return response.data.data || response.data;
     },
 
     updateOrganization: async (organizationId: number, data: UpdateOrganizationRequest): Promise<OrganizationDto> => {
         const response = await apiClient.put(`/api/organizations/${organizationId}`, data);
-        return response.data;
+        return response.data.data || response.data;
     },
 
     deleteOrganization: async (organizationId: number): Promise<ApiResult<void>> => {

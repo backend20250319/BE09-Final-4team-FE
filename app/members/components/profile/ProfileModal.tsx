@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import {
   useOrganizationsList,
-  useTitlesFromMembers,
+  useTitlesFromAPI,
   useWorkPoliciesList,
 } from "@/hooks/use-members-derived-data";
 import { useRouter } from "next/navigation";
@@ -63,8 +63,7 @@ export default function ProfileModal({
     ranks,
     positions,
     jobs,
-    roles,
-  } = useTitlesFromMembers();
+  } = useTitlesFromAPI();
   const router = useRouter();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

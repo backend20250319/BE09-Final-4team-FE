@@ -34,6 +34,7 @@ interface Member {
   phone: string;
   currentMainOrg?: string;
   currentMainOrgName?: string;
+  isPrimary?: boolean;
 }
 
 interface SelectedMember {
@@ -117,32 +118,50 @@ export default function AddOrganizationModal({
   }, [organizations, excludedIds]);
 
   const memoizedSelectedLeader = useMemo(() => {
-    if (organization?.leader) {
-      return { member: organization.leader, assignmentType: "main" as const };
+    if (organization?.leader?.id) {
+      const assignmentType = organization.leader.isPrimary ? "main" : "concurrent";
+      
+      return { member: organization.leader, assignmentType };
     }
     return null;
-  }, [organization?.leader?.id, organization?.leader?.name, organization?.leader?.role, organization?.leader?.email]);
+  }, [organization?.leader?.id, organization?.leader?.name, organization?.leader?.role, organization?.leader?.email, organization?.leader?.isPrimary]);
 
-  if (isOpen && !isDirty) {
-    if (organization) {
-      setOrgName(organization.name);
-      setParentOrg(organization.parentId || "");
-      setSelectedLeader(memoizedSelectedLeader);
-      setSelectedMembers(organization.members || []);
-      setIsDirty(false);
-    } else {
+
+  useEffect(() => {
+    if (isOpen && !isDirty) {
+      if (organization) {
+        setOrgName(organization.name);
+        setParentOrg(organization.parentId || "");
+        setSelectedLeader(memoizedSelectedLeader);
+        setSelectedMembers(organization.members || []);
+        setIsDirty(false);
+      } else {
+        setOrgName("");
+        setParentOrg("");
+        setSelectedLeader(null);
+        setSelectedMembers([]);
+        setIsDirty(false);
+      }
+    } else if (!isOpen) {
       setOrgName("");
       setParentOrg("");
       setSelectedLeader(null);
       setSelectedMembers([]);
       setIsDirty(false);
+      setShowLeaderModal(false);
+      setShowMemberModal(false);
     }
-  }
+  }, [isOpen, isDirty, organization, memoizedSelectedLeader]);
 
   const checkMainOrgChanges = (members: SelectedMember[]) => {
-    const mainOrgChanges = members.filter(
-      (item) => item.assignmentType === "main" && item.member.currentMainOrg
-    );
+    const currentOrgId = organization?.id;
+    
+    const mainOrgChanges = members.filter((item) => {
+      if (item.assignmentType === "main" && item.member.currentMainOrg) {
+        return item.member.currentMainOrg !== currentOrgId;
+      }
+      return false;
+    });
 
     if (mainOrgChanges.length > 0) {
       setMainOrgWarningMembers(mainOrgChanges);
@@ -158,7 +177,32 @@ export default function AddOrganizationModal({
       return;
     }
 
-    if (checkMainOrgChanges(selectedMembers)) {
+    let finalMembers = [...selectedMembers];
+    
+    if (selectedLeader && selectedLeader.assignmentType === "concurrent") {
+      const leaderAlreadyInMembers = finalMembers.some(
+        member => member.member.id === selectedLeader.member.id
+      );
+      
+      if (!leaderAlreadyInMembers) {
+        finalMembers.push({
+          member: selectedLeader.member,
+          assignmentType: "concurrent" as const
+        });
+      } else {
+        const memberIndex = finalMembers.findIndex(
+          member => member.member.id === selectedLeader.member.id
+        );
+        if (memberIndex !== -1) {
+          finalMembers[memberIndex] = {
+            ...finalMembers[memberIndex],
+            assignmentType: "concurrent" as const
+          };
+        }
+      }
+    }
+
+    if (checkMainOrgChanges(finalMembers)) {
       return;
     }
 
@@ -166,13 +210,14 @@ export default function AddOrganizationModal({
       id: organization?.id || Date.now().toString(),
       name: orgName,
       parentId: parentOrg || undefined,
-      members: selectedMembers,
+      members: finalMembers,
       leader: selectedLeader?.member || undefined,
     };
 
     onSave(newOrg);
 
     resetForm();
+    onClose();
   };
 
   const handleDeleteClick = () => {
@@ -255,16 +300,23 @@ export default function AddOrganizationModal({
           orgName: organization.name,
           parent: organization.parentId || "",
           leaderId: organization.leader?.id || null,
+          leaderAssignmentType: (() => {
+            if (organization.leader?.id) {
+              return organization.leader.isPrimary ? "main" : "concurrent";
+            }
+            return "main";
+          })(),
           memberIds: (organization.members || [])
             .map((m) => m.member.id)
             .join(","),
         }
-      : { orgName: "", parent: "", leaderId: null, memberIds: "" };
+      : { orgName: "", parent: "", leaderId: null, leaderAssignmentType: "main", memberIds: "" };
 
     const current = {
       orgName,
       parent: parentOrg,
       leaderId: selectedLeader?.member.id || null,
+      leaderAssignmentType: selectedLeader?.assignmentType || "main",
       memberIds: selectedMembers.map((m) => m.member.id).join(","),
     };
     setIsDirty(JSON.stringify(initial) !== JSON.stringify(current));
@@ -390,7 +442,7 @@ export default function AddOrganizationModal({
                     }`}
                     onClick={removeLeader}
                   >
-                    {selectedLeader.member.name} {selectedLeader.member.role}
+                    {selectedLeader.member.name}
                     <span className="ml-1 text-xs">
                       (
                       {selectedLeader.assignmentType === "main"
@@ -433,7 +485,7 @@ export default function AddOrganizationModal({
                       }`}
                       onClick={() => removeMember(item.member.id)}
                     >
-                      {item.member.name} {item.member.role}
+                      {item.member.name}
                       <span className="ml-1 text-xs">
                         ({item.assignmentType === "main" ? "메인" : "겸직"})
                       </span>

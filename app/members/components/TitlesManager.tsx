@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,57 +12,139 @@ import modalStyles from "./members-modal.module.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Plus, ArrowLeft } from "lucide-react";
+import { titleApi, TitleDto } from "@/lib/services/title/api";
+import { toast } from "sonner";
 
 type TitleKind = "rank" | "position" | "duty" | "job";
 
 interface TitlesState {
-  rank: string[];
-  position: string[];
-  duty: string[];
-  job: string[];
+  rank: TitleDto[];
+  position: TitleDto[];
+  duty: TitleDto[];
+  job: TitleDto[];
 }
 
-const initialData: Omit<TitlesState, "setAll" | "add" | "update" | "remove"> = {
-  rank: ["사원", "대리", "과장", "차장", "부장", "팀장", "이사", "대표"],
-  position: [
-    "CEO",
-    "COO",
-    "CTO",
-    "CPO",
-    "CMO",
-    "VP",
-    "Director",
-    "Head",
-    "Manager",
-  ],
-  duty: ["본부장", "팀장", "팀원", "인턴"],
-  job: ["프론트엔드", "백엔드", "모바일", "UI/UX", "데브옵스", "데이터"],
-};
+function useTitlesFromAPI(type: TitleKind) {
+  const [state, setState] = useState<TitlesState>({
+    rank: [],
+    position: [],
+    duty: [],
+    job: [],
+  });
+  const [loading, setLoading] = useState(true);
 
-function useTitlesLocal(type: TitleKind) {
-  const [state, setState] = useState<TitlesState>(initialData);
-  const add = (kind: TitleKind, name: string) => {
-    setState((prev) => ({
-      ...prev,
-      [kind]: [...(prev[kind as keyof TitlesState] as string[]), name],
-    }));
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [ranks, positions, jobs] = await Promise.all([
+          titleApi.getRanks(),
+          titleApi.getPositions(),
+          titleApi.getJobs(),
+        ]);
+        
+        setState({
+          rank: ranks,
+          position: positions,
+          duty: [], // duty는 현재 사용자 데이터에 없으므로 빈 배열
+          job: jobs,
+        });
+      } catch (error) {
+        console.error('Error loading titles:', error);
+        toast.error('데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const add = async (kind: TitleKind, name: string) => {
+    try {
+      let newTitle: TitleDto;
+      
+      if (kind === 'rank') {
+        newTitle = await titleApi.createRank({ name });
+      } else if (kind === 'position') {
+        newTitle = await titleApi.createPosition({ name });
+      } else if (kind === 'job') {
+        newTitle = await titleApi.createJob({ name });
+      } else {
+        throw new Error('Invalid title kind');
+      }
+      
+      setState((prev) => ({
+        ...prev,
+        [kind]: [...(prev[kind as keyof TitlesState] as TitleDto[]), newTitle],
+      }));
+      toast.success('추가되었습니다.');
+    } catch (error) {
+      console.error('Error adding title:', error);
+      toast.error('추가에 실패했습니다.');
+    }
   };
-  const update = (kind: TitleKind, index: number, name: string) => {
-    setState((prev) => {
-      const next = [...(prev[kind as keyof TitlesState] as string[])];
-      next[index] = name;
-      return { ...prev, [kind]: next };
-    });
+
+  const update = async (kind: TitleKind, index: number, name: string) => {
+    try {
+      const currentList = state[kind as keyof TitlesState] as TitleDto[];
+      const titleToUpdate = currentList[index];
+      
+      if (!titleToUpdate) return;
+      
+      let updatedTitle: TitleDto;
+      
+      if (kind === 'rank') {
+        updatedTitle = await titleApi.updateRank(titleToUpdate.id, { name });
+      } else if (kind === 'position') {
+        updatedTitle = await titleApi.updatePosition(titleToUpdate.id, { name });
+      } else if (kind === 'job') {
+        updatedTitle = await titleApi.updateJob(titleToUpdate.id, { name });
+      } else {
+        throw new Error('Invalid title kind');
+      }
+      
+      setState((prev) => {
+        const next = [...(prev[kind as keyof TitlesState] as TitleDto[])];
+        next[index] = updatedTitle;
+        return { ...prev, [kind]: next };
+      });
+      toast.success('수정되었습니다.');
+    } catch (error) {
+      console.error('Error updating title:', error);
+      toast.error('수정에 실패했습니다.');
+    }
   };
-  const remove = (kind: TitleKind, index: number) => {
-    setState((prev) => {
-      const next = (prev[kind as keyof TitlesState] as string[]).filter(
-        (_, i) => i !== index
-      );
-      return { ...prev, [kind]: next };
-    });
+
+  const remove = async (kind: TitleKind, index: number) => {
+    try {
+      const currentList = state[kind as keyof TitlesState] as TitleDto[];
+      const titleToDelete = currentList[index];
+      
+      if (!titleToDelete) return;
+      
+      if (kind === 'rank') {
+        await titleApi.deleteRank(titleToDelete.id);
+      } else if (kind === 'position') {
+        await titleApi.deletePosition(titleToDelete.id);
+      } else if (kind === 'job') {
+        await titleApi.deleteJob(titleToDelete.id);
+      }
+      
+      setState((prev) => {
+        const next = (prev[kind as keyof TitlesState] as TitleDto[]).filter(
+          (_, i) => i !== index
+        );
+        return { ...prev, [kind]: next };
+      });
+      toast.success('삭제되었습니다.');
+    } catch (error) {
+      console.error('Error removing title:', error);
+      toast.error('삭제에 실패했습니다.');
+    }
   };
-  return { state, add, update, remove };
+
+  return { state, add, update, remove, loading };
 }
 
 interface TitlesManagerProps {
@@ -76,13 +158,13 @@ export default function TitlesManager({
   onClose,
   type,
 }: TitlesManagerProps) {
-  const { state, add, update, remove } = useTitlesLocal(type);
+  const { state, add, update, remove, loading } = useTitlesFromAPI(type);
   const { rank, position, duty, job } = state;
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingText, setAddingText] = useState("");
   const [confirmIndex, setConfirmIndex] = useState<number | null>(null);
 
-  const titleMap: Record<TitleKind, { title: string; list: string[] }> =
+  const titleMap: Record<TitleKind, { title: string; list: TitleDto[] }> =
     useMemo(
       () => ({
         rank: { title: "직급 설정", list: rank },
@@ -131,25 +213,37 @@ export default function TitlesManager({
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="space-y-2">
-              {current.list.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <Input
-                    value={item}
-                    onChange={(e) => update(type, idx, e.target.value)}
-                    className="border-blue-300 focus-visible:ring-blue-400"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="text-gray-500 hover:text-red-600"
-                    onClick={() => setConfirmIndex(idx)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="text-gray-500">데이터를 불러오는 중...</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {current.list.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    등록된 {current.title.replace('설정', '')}이 없습니다.
+                  </div>
+                ) : (
+                  current.list.map((item, idx) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Input
+                        value={item.name}
+                        onChange={(e) => update(type, idx, e.target.value)}
+                        className="border-blue-300 focus-visible:ring-blue-400"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="text-gray-500 hover:text-red-600"
+                        onClick={() => setConfirmIndex(idx)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             <Button
               variant="outline"

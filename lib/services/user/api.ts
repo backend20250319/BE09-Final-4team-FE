@@ -36,7 +36,10 @@ export const userApi = {
     getAllUsers: async (): Promise<UserResponseDto[]> => {
         try {
             const response = await apiClient.get<ApiResult<UserResponseDto[]>>('/api/users');
-            if (response.data && response.data.data && Array.isArray(response.data.data)) {
+            
+            if (response.data && response.data.status === 'SUCCESS' && Array.isArray(response.data.data)) {
+                return response.data.data;
+            } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
                 return response.data.data;
             } else if (Array.isArray(response.data)) {
                 return response.data;

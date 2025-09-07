@@ -201,16 +201,14 @@ export default function MembersPage() {
   }, [buildOrgStructure]);
 
   const fetchEmployees = useCallback(async () => {
-  if (!isLoggedIn) {
-    router.push('/login');
-    return;
-  }
+    if (!isLoggedIn) {
+      router.push('/login');
+      return;
+    }
 
   setDataLoading(true);
   try {
-    console.log('사용자 목록 조회 시작');
     const users = await userApi.getAllUsers();
-    console.log('사용자 목록 조회 성공:', users);
     
     if (Array.isArray(users)) {
       const convertedUsers = users.map(convertUserToEmployee);
@@ -338,11 +336,9 @@ export default function MembersPage() {
   }, [orgStructure, orgSearchTerm]);
 
   const handleEmployeeUpdate = (updatedEmployee: Employee) => {
-    console.log('handleEmployeeUpdate 호출됨:', updatedEmployee);
     setEmployees((prev) => {
       const updated = prev.map((emp) => {
         if (emp.id === updatedEmployee.id) {
-          console.log('업데이트할 직원 찾음:', emp.id, '→', updatedEmployee);
           return updatedEmployee;
         }
         return emp;
@@ -352,7 +348,6 @@ export default function MembersPage() {
         return a.name.localeCompare(b.name, 'ko', { numeric: true });
       });
       
-      console.log('업데이트된 employees 배열:', sorted);
       return sorted;
     });
   };
@@ -481,7 +476,7 @@ export default function MembersPage() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {org.children && (
+            {org.children ? (
               <div
                 onClick={(e) => {
                   e.stopPropagation();
@@ -490,6 +485,10 @@ export default function MembersPage() {
                 className="p-1 hover:bg-gray-200 rounded cursor-pointer"
               >
                 {org.isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </div>
+            ) : (
+              <div className="p-1 w-6 h-6 flex items-center justify-center">
+                <span className="text-gray-400 text-lg">·</span>
               </div>
             )}
             <Building2 className="w-4 h-4" />
