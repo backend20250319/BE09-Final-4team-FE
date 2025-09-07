@@ -36,7 +36,11 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { attendanceApi, workMonitorApi } from "@/lib/services/attendance";
+import {
+  attendanceApi,
+  workMonitorApi,
+  employeeLeaveBalanceApi,
+} from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKstTime } from "@/lib/utils/datetime";
 
@@ -86,12 +90,26 @@ export default function DashboardPage() {
   const [newsData, setNewsData] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
 
+  // 이번 주 근로시간 상태
+  const [weeklyWork, setWeeklyWork] = useState<{
+    weekly: number;
+    dailyAverage: number;
+    overtime: number;
+  }>({ weekly: 0, dailyAverage: 0, overtime: 0 });
+
   // 오늘 출근/지각/휴가 수
   const [workMonitor, setWorkMonitor] = useState<{
     attendanceCount: number;
     lateCount: number;
     vacationCount: number;
   } | null>(null);
+
+  // 나의 연차 요약 상태
+  const [leaveSummary, setLeaveSummary] = useState<{
+    remaining: number;
+    total: number;
+    used: number;
+  }>({ remaining: 0, total: 0, used: 0 });
 
   useEffect(() => {
     const updateTime = () => {
@@ -260,6 +278,63 @@ export default function DashboardPage() {
     };
     loadNews(); // 컴포넌트 마운트 시 뉴스 로드 함수 호출
   }, []);
+
+  useEffect(() => {
+    const loadWeekly = async () => {
+      try {
+        if (!user?.id) return;
+        const detail = await attendanceApi.getThisWeekAttendance(
+          Number(user.id)
+        );
+        const days = detail?.dailySummaries || [];
+        let totalHours = 0;
+        let workedDays = 0;
+        days.forEach((d: any) => {
+          const h =
+            typeof d.workHours === "number"
+              ? d.workHours
+              : typeof d.workMinutes === "number"
+              ? d.workMinutes / 60
+              : 0;
+          if (h > 0) {
+            totalHours += h;
+            workedDays += 1;
+          }
+        });
+        const dailyAvg =
+          workedDays > 0 ? Math.round((totalHours / workedDays) * 10) / 10 : 0;
+        const overtime = Math.max(0, Math.round((totalHours - 40) * 10) / 10);
+        setWeeklyWork({
+          weekly: Math.round(totalHours * 10) / 10,
+          dailyAverage: dailyAvg,
+          overtime,
+        });
+      } catch (e) {
+        // 실패 시 기본값 유지
+        setWeeklyWork({ weekly: 0, dailyAverage: 0, overtime: 0 });
+      }
+    };
+    loadWeekly();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const loadLeaveSummary = async () => {
+      try {
+        if (!user?.id) return;
+        const summary = await employeeLeaveBalanceApi.getLeaveBalanceSummary(
+          Number(user.id)
+        );
+        const total = summary?.totalGrantedDays ?? 0;
+        const used = summary?.totalUsedDays ?? 0;
+        const remaining =
+          summary?.totalRemainingDays ?? Math.max(0, total - used);
+        setLeaveSummary({ remaining, total, used });
+      } catch (e) {
+        setLeaveSummary({ remaining: 0, total: 0, used: 0 });
+      }
+    };
+    loadLeaveSummary();
+  }, [user?.id]);
 
   // 출근
   const handleCheckIn = async () => {
@@ -598,14 +673,14 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="text-center bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
               <div className="text-3xl font-bold mb-2">
-                {employeeData.workHoursData.weekly}h
+                {weeklyWork.weekly}h
               </div>
               <div className="text-sm opacity-90">이번 주 근무시간</div>
             </div>
             <div className="flex justify-center gap-6 text-sm text-gray-600">
-              <span>일 평균 {employeeData.workHoursData.dailyAverage}h</span>
+              <span>일 평균 {weeklyWork.dailyAverage}h</span>
               <span className="text-red-600 font-medium">
-                초과근무 {employeeData.workHoursData.overtime}h
+                초과근무 {weeklyWork.overtime}h
               </span>
             </div>
           </CardContent>
@@ -624,13 +699,13 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="text-center bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
               <div className="text-3xl font-bold mb-2">
-                {employeeData.leaveData.remaining}일
+                {leaveSummary.remaining}일
               </div>
               <div className="text-sm opacity-90">남은 연차</div>
             </div>
             <div className="flex justify-center gap-6 text-sm text-gray-600">
-              <span>총 연차 {employeeData.leaveData.total}일</span>
-              <span>사용 연차 {employeeData.leaveData.used}일</span>
+              <span>총 연차 {leaveSummary.total}일</span>
+              <span>사용 연차 {leaveSummary.used}일</span>
             </div>
           </CardContent>
         </GlassCard>

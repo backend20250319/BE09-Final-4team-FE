@@ -181,6 +181,17 @@ export default function VacationPage(): JSX.Element {
     ]);
   }, []);
 
+  useEffect(() => {
+    const draft =
+      typeof window !== "undefined"
+        ? localStorage.getItem("aichat:vacationDraft")
+        : null;
+    if (draft) {
+      setSelectedVacationType("기본 연차");
+      setIsModalOpen(true);
+    }
+  }, []);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "승인됨":
