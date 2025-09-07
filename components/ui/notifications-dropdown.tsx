@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "./button";
 import {
@@ -58,7 +58,8 @@ export function NotificationsDropdown({
   onNotificationClick,
 }: NotificationsDropdownProps) {
   const router = useRouter();
-  const { hasUnreadNotifications: contextHasUnread, refreshUnreadStatus } = useNotifications();
+  const { hasUnreadNotifications: contextHasUnread, refreshUnreadStatus, recentNotifications } =
+    useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [notificationsList, setNotificationsList] = useState<Notification[]>(
     []
@@ -69,6 +70,7 @@ export function NotificationsDropdown({
   const [error, setError] = useState<string | null>(null);
   const [lastId, setLastId] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 알림 목록 조회
   const loadNotifications = async (reset: boolean = false) => {
@@ -83,12 +85,14 @@ export function NotificationsDropdown({
       const newNotifications = response.data || [];
 
       setNotificationsList((prev) => {
-        const updatedList = reset ? newNotifications : [...prev, ...newNotifications];
-        
+        const updatedList = reset
+          ? newNotifications
+          : [...prev, ...newNotifications];
+
         // 알림 목록 업데이트 후 안읽은 알림 상태 확인
-        const hasUnread = updatedList.some(n => !n.read);
+        const hasUnread = updatedList.some((n) => !n.read);
         setHasUnreadNotifications(hasUnread);
-        
+
         return updatedList;
       });
 
@@ -107,20 +111,8 @@ export function NotificationsDropdown({
   // 읽지 않은 알림 체크
   const checkUnreadNotifications = async () => {
     try {
-      // 먼저 알림 목록을 로드한 후 읽지 않은 알림 확인
-      if (notificationsList.length === 0) {
-        console.log('🔍 Loading notifications to check unread status...');
-        await loadNotifications(true); // 처음 로드
-      }
-      
-      // 로컬 알림 목록에서 읽지 않은 것이 있는지 확인
-      const hasUnread = notificationsList.some(n => !n.read);
-      console.log('📊 Unread notifications check:', hasUnread, 'total:', notificationsList.length);
-      setHasUnreadNotifications(hasUnread);
-      
-      // TODO: 백엔드 hasUnreadNotifications API가 준비되면 활성화
-      // const response = await communicationApi.notifications.hasUnreadNotifications();
-      // setHasUnreadNotifications(response.data || false);
+      const response = await communicationApi.notifications.hasUnreadNotifications();
+      setHasUnreadNotifications(response.data || false);
     } catch (error: any) {
       console.error("읽지 않은 알림 체크 실패:", error);
       setHasUnreadNotifications(false);
@@ -133,16 +125,15 @@ export function NotificationsDropdown({
       await communicationApi.notifications.markAsRead(notificationId);
 
       // 로컬 상태 업데이트
-      setNotificationsList((prev) => {
-        const updatedList = prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
-        
-        // 업데이트된 목록에서 안읽은 알림 상태 확인
-        const hasUnread = updatedList.some(n => !n.read);
-        setHasUnreadNotifications(hasUnread);
-        
-        return updatedList;
-      });
+      setNotificationsList((prev) =>
+        prev.map((n) =>
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
 
+      // 서버에서 실제 읽지 않은 알림 상태 확인
+      await checkUnreadNotifications();
+      
       // 컨텍스트 상태도 새로고침
       await refreshUnreadStatus();
     } catch (error) {
@@ -150,26 +141,14 @@ export function NotificationsDropdown({
     }
   };
 
-  const displayNotifications =
-    notifications.length > 0 ? notifications : notificationsList;
-
-  // 이 함수는 더 이상 사용되지 않음 (왼쪽 컬러 동그라미 제거됨)
-  // const getTypeColor = (type: Notification["type"]) => {
-  //   switch (type) {
-  //     case "ANNOUNCEMENT":
-  //       return "bg-blue-500";
-  //     case "APPROVAL_REQUEST":
-  //       return "bg-yellow-400";
-  //     case "APPROVAL_REJECTED":
-  //       return "bg-red-600";
-  //     case "APPROVAL_APPROVED":
-  //       return "bg-green-500";
-  //     case "APPROVAL_REFERENCE":
-  //       return "bg-purple-500";
-  //     default:
-  //       return "bg-gray-400";
-  //   }
-  // };
+  // props로 받은 notifications가 있으면 사용하되, 로컬 상태와 동기화
+  const displayNotifications = notifications.length > 0 
+    ? notifications.map(propNotification => {
+        // 로컬 상태에서 같은 ID의 알림을 찾아서 읽음 상태 동기화
+        const localNotification = notificationsList.find(n => n.id === propNotification.id);
+        return localNotification ? localNotification : propNotification;
+      })
+    : notificationsList;
 
   const handleNotificationClick = async (notification: Notification) => {
     // 읽지 않은 알림인 경우 읽음 처리
@@ -181,7 +160,7 @@ export function NotificationsDropdown({
     switch (notification.type) {
       case "ANNOUNCEMENT":
         // 현재 공지사항 페이지에 있으면 해시만 변경하고 hashchange 이벤트 발생
-        if (window.location.pathname === '/announcements') {
+        if (window.location.pathname === "/announcements") {
           window.location.hash = `#${notification.referenceId}`;
         } else {
           router.push(`/announcements#${notification.referenceId}`);
@@ -191,7 +170,7 @@ export function NotificationsDropdown({
       case "APPROVAL_APPROVED":
       case "APPROVAL_REJECTED":
       case "APPROVAL_REFERENCE":
-        // TODO: 결재 페이지 구현 시 실제 페이지로 이동
+        // TODO: 결재 페이지 구현 시 실제ㄷ 페이지로 이동
         console.log("결재 관련 알림:", notification);
         break;
       default:
@@ -201,20 +180,37 @@ export function NotificationsDropdown({
     onNotificationClick?.(notification);
   };
 
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
+  // 무한 스크롤 처리
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container || loading || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5;
+
+    if (isAtBottom) {
       loadNotifications(false);
     }
   };
+
+  // 스크롤 이벤트 리스너 등록
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [loading, hasMore]);
 
   const handleDropdownOpen = async (open: boolean) => {
     setIsOpen(open);
 
     if (open) {
-      // 드롭다운 열 때 최신 알림 목록 조회
-      await loadNotifications(true);
-      // 읽지 않은 알림 상태 체크
+      // 드롭다운 열 때마다 API로 완전 새로고침
+      // 1. 읽지 않은 알림 상태 먼저 체크
       await checkUnreadNotifications();
+      // 2. 최신 알림 목록 조회 (reset: true로 완전 새로고침)
+      await loadNotifications(true);
     }
   };
 
@@ -227,6 +223,15 @@ export function NotificationsDropdown({
   useEffect(() => {
     setHasUnreadNotifications(contextHasUnread);
   }, [contextHasUnread]);
+
+  // 새 알림 구독 시 빨간 표시 활성화 및 리렌더링
+  useEffect(() => {
+    if (recentNotifications.length > 0) {
+      setHasUnreadNotifications(true);
+      // 읽지 않은 알림 상태 새로고침으로 정확한 상태 반영
+      checkUnreadNotifications();
+    }
+  }, [recentNotifications]);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleDropdownOpen}>
@@ -246,7 +251,7 @@ export function NotificationsDropdown({
         <div className="p-3 border-b border-gray-200">
           <h3 className="text-sm font-semibold text-gray-900">알림</h3>
         </div>
-        <div className="max-h-64 overflow-y-auto">
+        <div ref={scrollContainerRef} className="max-h-64 overflow-y-auto">
           {error && (
             <div className="p-3 text-center text-red-500 text-sm">
               {error}
@@ -299,16 +304,6 @@ export function NotificationsDropdown({
           )}
         </div>
 
-        {hasMore && !loading && !error && displayNotifications.length > 0 && (
-          <div className="p-3 border-t border-gray-200">
-            <button
-              onClick={handleLoadMore}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium w-full text-center cursor-pointer"
-            >
-              알림 더보기
-            </button>
-          </div>
-        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

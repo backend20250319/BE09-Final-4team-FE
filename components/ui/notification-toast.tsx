@@ -78,12 +78,14 @@ export function NotificationToastManager() {
       // 표시한 알림 ID 기록
       shownToastIds.current.add(notification.notificationId);
 
-      const handleToastClick = () => {
+      const handleToastClick = (toastId: string | number) => {
         console.log('토스트 클릭됨:', notification);
-        // 알림 읽음 처리
+        // 알림 읽음 처리 (실제 알림 ID 사용)
         markAsRead(notification.notificationId);
         // 토스트에서 즉시 제거
         removeToast(notification.notificationId);
+        // 해당 토스트만 닫기
+        toast.dismiss(toastId);
         // 해당 페이지로 이동
         if (notification.type === 'ANNOUNCEMENT') {
           // 현재 공지사항 페이지에 있으면 해시만 변경하고 hashchange 이벤트 발생
@@ -98,10 +100,10 @@ export function NotificationToastManager() {
       };
 
       // 토스트 표시
-      toast(
+      const toastId = toast(
         <div 
           className="flex items-start gap-3 w-full cursor-pointer hover:bg-gray-50 p-2 rounded"
-          onClick={handleToastClick}
+          onClick={() => handleToastClick(toastId)}
         >
           <div className="flex-shrink-0 mt-0.5">
             {icon}

@@ -139,7 +139,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   }, [handleNewNotification]);
 
   // 알림 읽음 처리
-  const markAsRead = useCallback((notificationId: number) => {
+  const markAsRead = useCallback(async (notificationId: number) => {
+    try {
+      // API 호출로 서버에 읽음 처리 전송
+      const { communicationApi } = await import('@/lib/services/communication');
+      await communicationApi.notifications.markAsRead(notificationId);
+    } catch (error) {
+      console.error('알림 읽음 처리 API 실패:', error);
+    }
+
     // 최근 알림에서 읽음 처리
     setRecentNotifications((prev) =>
       prev.map((notification) =>
@@ -154,8 +162,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       prev.filter((notification) => notification.notificationId !== notificationId)
     );
 
-    // TODO: API 호출로 서버에 읽음 처리 전송
-    // await notificationApi.markAsRead(notificationId);
+    // 읽지 않은 알림 상태 새로고침
+    setTimeout(() => refreshUnreadStatus(), 100);
   }, []);
 
   // 토스트 제거
@@ -168,17 +176,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   // 읽지 않은 알림 상태 새로고침
   const refreshUnreadStatus = useCallback(async () => {
     try {
-      // TODO: API 호출로 읽지 않은 알림 여부 확인
-      // const response = await notificationApi.hasUnreadNotifications();
-      // setHasUnreadNotifications(response.data || false);
-
-      // 임시로 최근 알림에서 읽지 않은 것이 있는지 확인
+      // API 호출로 읽지 않은 알림 여부 확인
+      const { communicationApi } = await import('@/lib/services/communication');
+      const response = await communicationApi.notifications.hasUnreadNotifications();
+      setHasUnreadNotifications(response.data || false);
+    } catch (error) {
+      console.error("읽지 않은 알림 상태 확인 실패:", error);
+      // API 실패 시 로컬 상태로 fallback
       const hasUnread = recentNotifications.some(
         (notification) => !notification.isRead
       );
       setHasUnreadNotifications(hasUnread);
-    } catch (error) {
-      console.error("읽지 않은 알림 상태 확인 실패:", error);
     }
   }, [recentNotifications]);
 
