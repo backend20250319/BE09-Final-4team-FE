@@ -32,6 +32,7 @@ import { getStatusText } from "../utils"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "../hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
 import { getRelativeTime } from "@/lib/utils/datetime"
+import { TemplateIcon } from "./common/TemplateIcon"
 
 interface ApprovalModalProps {
   isOpen: boolean
@@ -57,9 +58,10 @@ function ApprovalHeader({ displayData, documentDetail, isLoading }: {
 
   return (
     <div className="flex items-center gap-5">
-      <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 bg-blue-500">
-        <FileText className="w-6 h-6 text-white" />
-      </div>
+      <TemplateIcon
+        icon={documentDetail?.template?.icon || displayData?.template?.icon}
+        color={documentDetail?.template?.color || displayData?.template?.color}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">
           <h2 className={`${typography.h3} text-gray-800 truncate`}>
