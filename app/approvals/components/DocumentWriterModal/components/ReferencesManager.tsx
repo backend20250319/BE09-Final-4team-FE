@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useCallback, useMemo } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,14 +8,14 @@ import { X } from "lucide-react"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { ReferencesManagerProps, LocalReference } from "../types"
 
-export function ReferencesManager({
+const ReferencesManagerComponent = ({
   references,
   onReferencesChange,
   availableUsers
-}: ReferencesManagerProps) {
+}: ReferencesManagerProps) => {
   const [selectedReference, setSelectedReference] = useState("")
   
-  const addReference = (user: UserResponseDto) => {
+  const addReference = useCallback((user: UserResponseDto) => {
     if (references.some(ref => ref.id === user.id)) {
       return
     }
@@ -27,11 +27,17 @@ export function ReferencesManager({
       position: user.position?.name || ""
     }
     onReferencesChange([...references, reference])
-  }
+  }, [references, onReferencesChange])
 
-  const removeReference = (referenceId: number) => {
+  const removeReference = useCallback((referenceId: number) => {
     onReferencesChange(references.filter(ref => ref.id !== referenceId))
-  }
+  }, [references, onReferencesChange])
+
+  const availableReferences = useMemo(() => {
+    return availableUsers.filter(user =>
+      !references.some(ref => ref.id === user.id)
+    )
+  }, [availableUsers, references])
 
   return (
     <div className="space-y-4">
@@ -64,50 +70,53 @@ export function ReferencesManager({
       </div>
 
       {/* 참조자 추가 */}
-      {(() => {
-        const availableReferences = availableUsers.filter(user =>
-          !references.some(ref => ref.id === user.id)
-        );
-
-        return availableReferences.length > 0 ? (
-          <Select
-            value={selectedReference}
-            onValueChange={(userId) => {
-              const user = availableUsers.find(u => u.id === Number(userId))
-              if (user) {
-                addReference(user)
-                setSelectedReference("")
-              }
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="참조자 추가" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableReferences.map((user) => (
-                <SelectItem key={user.id} value={user.id.toString()}>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src={user.profileImageUrl} alt={user.name} />
-                      <AvatarFallback className="text-xs">
-                        {user.name?.charAt(0) || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-gray-500">{user.position?.name || ""}</p>
-                    </div>
+      {availableReferences.length > 0 ? (
+        <Select
+          value={selectedReference}
+          onValueChange={(userId) => {
+            const user = availableUsers.find(u => u.id === Number(userId))
+            if (user) {
+              addReference(user)
+              setSelectedReference("")
+            }
+          }}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="참조자 추가" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableReferences.map((user) => (
+              <SelectItem key={user.id} value={user.id.toString()}>
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={user.profileImageUrl} alt={user.name} />
+                    <AvatarFallback className="text-xs">
+                      {user.name?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-gray-500">{user.position?.name || ""}</p>
                   </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <div className="w-full p-3 text-center text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
-            추가할 수 있는 참조자가 없습니다
-          </div>
-        )
-      })()}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <div className="w-full p-3 text-center text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
+          추가할 수 있는 참조자가 없습니다
+        </div>
+      )}
     </div>
   )
 }
+
+// React.memo로 컴포넌트 최적화
+export const ReferencesManager = memo(ReferencesManagerComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.references === nextProps.references &&
+    prevProps.availableUsers === nextProps.availableUsers &&
+    prevProps.onReferencesChange === nextProps.onReferencesChange
+  )
+})

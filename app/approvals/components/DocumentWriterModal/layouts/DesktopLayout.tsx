@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -17,7 +18,7 @@ import { ReferenceFilesManager } from "../components/ReferenceFilesManager"
 import { FormFieldRenderer } from "../components/FormFieldRenderer"
 import { DocumentWriterLayoutProps } from "../types"
 
-export function DesktopLayout({
+const DesktopLayoutComponent = ({
   formTemplate,
   content,
   setContent,
@@ -38,14 +39,17 @@ export function DesktopLayout({
   onSubmit,
   onDelete,
   isDeleting,
-  setShowDeleteConfirm
+  setShowDeleteConfirm,
+  isCreating,
+  isUpdating,
+  isSubmittingDocument,
+  isDeletingDocument
 }: DocumentWriterLayoutProps & {
   isCreating: boolean
   isUpdating: boolean
   isSubmittingDocument: boolean
   isDeletingDocument: boolean
-}) {
-  const { isCreating, isUpdating, isSubmittingDocument, isDeletingDocument } = arguments[0] as any
+}) => {
 
   return (
     <div className="hidden lg:flex flex-1 overflow-hidden gap-6 p-6 pt-4 min-h-0">
@@ -220,3 +224,6 @@ export function DesktopLayout({
     </div>
   )
 }
+
+// React.memo로 컴포넌트 최적화
+export const DesktopLayout = memo(DesktopLayoutComponent)

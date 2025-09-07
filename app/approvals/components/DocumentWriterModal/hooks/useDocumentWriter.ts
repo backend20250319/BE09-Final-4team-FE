@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react"
+import { useEffect, useReducer, useCallback, useMemo } from "react"
 import { 
   TemplateResponse,
   DocumentFieldValueRequest,
@@ -12,9 +12,9 @@ import {
 } from "@/lib/services/approval/types"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { userApi } from "@/lib/services/user/api"
-import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "./useApproval"
+import { useCreateDocument, useUpdateDocument, useSubmitDocument, useDocument, useDeleteDocument } from "../../../hooks/useApproval"
 import { Attachment } from "@/components/ui/attachments-manager"
-import { DocumentWriterState, DocumentWriterAction, LocalApprovalStage, LocalReference } from "../components/DocumentWriterModal/types"
+import { DocumentWriterState, DocumentWriterAction, LocalApprovalStage, LocalReference } from "../types"
 
 // 초기 상태 정의
 const initialState: DocumentWriterState = {
@@ -41,30 +41,43 @@ const initialState: DocumentWriterState = {
 function documentWriterReducer(state: DocumentWriterState, action: DocumentWriterAction): DocumentWriterState {
   switch (action.type) {
     case 'SET_CONTENT':
+      if (state.content === action.payload) return state
       return { ...state, content: action.payload }
     case 'SET_ATTACHMENTS':
+      if (state.attachments === action.payload) return state
       return { ...state, attachments: action.payload }
     case 'SET_APPROVAL_STAGES':
+      if (state.approvalStages === action.payload) return state
       return { ...state, approvalStages: action.payload }
     case 'SET_REFERENCES':
+      if (state.references === action.payload) return state
       return { ...state, references: action.payload }
     case 'SET_FORM_FIELD_VALUES':
+      if (state.formFieldValues === action.payload) return state
       return { ...state, formFieldValues: action.payload }
     case 'SET_IS_SUBMITTING':
+      if (state.isSubmitting === action.payload) return state
       return { ...state, isSubmitting: action.payload }
     case 'SET_AVAILABLE_USERS':
+      if (state.availableUsers === action.payload) return state
       return { ...state, availableUsers: action.payload }
     case 'SET_USERS_LOADING':
+      if (state.usersLoading === action.payload) return state
       return { ...state, usersLoading: action.payload }
     case 'SET_ERROR':
+      if (state.error === action.payload) return state
       return { ...state, error: action.payload }
     case 'SET_CURRENT_DRAFT_ID':
+      if (state.currentDraftId === action.payload) return state
       return { ...state, currentDraftId: action.payload }
     case 'SET_IS_DRAFT':
+      if (state.isDraft === action.payload) return state
       return { ...state, isDraft: action.payload }
     case 'SET_IS_DELETING':
+      if (state.isDeleting === action.payload) return state
       return { ...state, isDeleting: action.payload }
     case 'SET_SHOW_DELETE_CONFIRM':
+      if (state.showDeleteConfirm === action.payload) return state
       return { ...state, showDeleteConfirm: action.payload }
     case 'RESET_STATE':
       return initialState
@@ -198,7 +211,7 @@ export function useDocumentWriter(
   }, [isOpen])
 
   // 임시저장 처리
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = useCallback(async () => {
     if (!formTemplate) return
 
     dispatch({ type: 'SET_IS_SUBMITTING', payload: true })
@@ -266,10 +279,10 @@ export function useDocumentWriter(
     } finally {
       dispatch({ type: 'SET_IS_SUBMITTING', payload: false })
     }
-  }
+  }, [formTemplate, state.formFieldValues, state.approvalStages, state.references, state.attachments, state.currentDraftId, state.content, updateDocument, createDocument])
 
   // 문서 삭제
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!state.currentDraftId) return
 
     dispatch({ type: 'SET_IS_DELETING', payload: true })
@@ -287,10 +300,10 @@ export function useDocumentWriter(
       dispatch({ type: 'SET_IS_DELETING', payload: false })
       dispatch({ type: 'SET_SHOW_DELETE_CONFIRM', payload: false })
     }
-  }
+  }, [state.currentDraftId, deleteDocument])
 
   // 제출 처리
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!formTemplate) return
 
     // 유효성 검증
@@ -380,13 +393,9 @@ export function useDocumentWriter(
     } finally {
       dispatch({ type: 'SET_IS_SUBMITTING', payload: false })
     }
-  }
+  }, [formTemplate, state.content, state.approvalStages, state.formFieldValues, state.attachments, state.currentDraftId, submitDocument, createDocument])
 
-  return {
-    // 상태
-    ...state,
-    
-    // 액션
+  const setters = useMemo(() => ({
     setContent: (content: string) => dispatch({ type: 'SET_CONTENT', payload: content }),
     setAttachments: (attachments: Attachment[]) => dispatch({ type: 'SET_ATTACHMENTS', payload: attachments }),
     setApprovalStages: (stages: LocalApprovalStage[]) => dispatch({ type: 'SET_APPROVAL_STAGES', payload: stages }),
@@ -398,7 +407,15 @@ export function useDocumentWriter(
         dispatch({ type: 'SET_FORM_FIELD_VALUES', payload: values })
       }
     },
-    setShowDeleteConfirm: (show: boolean) => dispatch({ type: 'SET_SHOW_DELETE_CONFIRM', payload: show }),
+    setShowDeleteConfirm: (show: boolean) => dispatch({ type: 'SET_SHOW_DELETE_CONFIRM', payload: show })
+  }), [state.formFieldValues])
+
+  return {
+    // 상태
+    ...state,
+    
+    // 액션
+    ...setters,
     
     // 핸들러
     handleSaveDraft,

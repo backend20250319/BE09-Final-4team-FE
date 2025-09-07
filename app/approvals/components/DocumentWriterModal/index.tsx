@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react"
@@ -17,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { useDocumentWriter } from "../../hooks/useDocumentWriter"
+import { useDocumentWriter } from "./hooks/useDocumentWriter"
 import { DesktopLayout } from "./layouts/DesktopLayout"
 import { MobileLayout } from "./layouts/MobileLayout"
 import { DocumentWriterModalProps } from "./types"
@@ -119,47 +120,66 @@ export function DocumentWriterModal({
             </div>
           )}
 
-          {/* 공통 props */}
-          {(() => {
-            const commonProps = {
-              formTemplate,
-              content,
-              setContent,
-              attachments,
-              setAttachments,
-              approvalStages,
-              setApprovalStages,
-              references,
-              setReferences,
-              formFieldValues,
-              setFormFieldValues,
-              availableUsers,
-              usersLoading,
-              isSubmitting,
-              currentDraftId,
-              error,
-              onSaveDraft: handleSaveDraft,
-              onSubmit,
-              onDelete,
-              isDeleting,
-              setShowDeleteConfirm,
-              // 추가 props
-              isCreating,
-              isUpdating,
-              isSubmittingDocument,
-              isDeletingDocument
-            }
-
-            return (
-              <>
-                {/* 데스크탑 레이아웃 */}
-                <DesktopLayout {...commonProps} />
-                
-                {/* 모바일 레이아웃 */}
-                <MobileLayout {...commonProps} />
-              </>
-            )
-          })()}
+          {/* 레이아웃 컴포넌트 */}
+          <>
+            {/* 데스크탑 레이아웃 */}
+            <DesktopLayout 
+              formTemplate={formTemplate}
+              content={content}
+              setContent={setContent}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              approvalStages={approvalStages}
+              setApprovalStages={setApprovalStages}
+              references={references}
+              setReferences={setReferences}
+              formFieldValues={formFieldValues}
+              setFormFieldValues={setFormFieldValues}
+              availableUsers={availableUsers}
+              usersLoading={usersLoading}
+              isSubmitting={isSubmitting}
+              currentDraftId={currentDraftId}
+              error={error}
+              onSaveDraft={handleSaveDraft}
+              onSubmit={onSubmit}
+              onDelete={onDelete}
+              isDeleting={isDeleting}
+              setShowDeleteConfirm={setShowDeleteConfirm}
+              isCreating={isCreating}
+              isUpdating={isUpdating}
+              isSubmittingDocument={isSubmittingDocument}
+              isDeletingDocument={isDeletingDocument}
+            />
+            
+            {/* 모바일 레이아웃 */}
+            <MobileLayout 
+              formTemplate={formTemplate}
+              content={content}
+              setContent={setContent}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              approvalStages={approvalStages}
+              setApprovalStages={setApprovalStages}
+              references={references}
+              setReferences={setReferences}
+              formFieldValues={formFieldValues}
+              setFormFieldValues={setFormFieldValues}
+              availableUsers={availableUsers}
+              usersLoading={usersLoading}
+              isSubmitting={isSubmitting}
+              currentDraftId={currentDraftId}
+              error={error}
+              onSaveDraft={handleSaveDraft}
+              onSubmit={onSubmit}
+              onDelete={onDelete}
+              isDeleting={isDeleting}
+              setShowDeleteConfirm={setShowDeleteConfirm}
+              isCreating={isCreating}
+              isUpdating={isUpdating}
+              isSubmittingDocument={isSubmittingDocument}
+              isDeletingDocument={isDeletingDocument}
+            />
+          </>
         </DialogContent>
 
         {/* 삭제 확인 다이얼로그 */}

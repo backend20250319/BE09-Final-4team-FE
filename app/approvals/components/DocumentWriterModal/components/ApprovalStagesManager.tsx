@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useCallback } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -8,14 +8,14 @@ import { Plus, Trash2, X } from "lucide-react"
 import { UserResponseDto } from "@/lib/services/user/types"
 import { ApprovalStagesManagerProps, LocalApprovalStage } from "../types"
 
-export function ApprovalStagesManager({
+const ApprovalStagesManagerComponent = ({
   stages,
   onStagesChange,
   availableUsers
-}: ApprovalStagesManagerProps) {
+}: ApprovalStagesManagerProps) => {
   const [selectedApprover, setSelectedApprover] = useState<{ [stageId: string]: string }>({})
   
-  const addStage = () => {
+  const addStage = useCallback(() => {
     if (stages.length >= 5) return
     const newStage: LocalApprovalStage = {
       id: `stage-${Date.now()}`,
@@ -23,9 +23,9 @@ export function ApprovalStagesManager({
       approvers: []
     }
     onStagesChange([...stages, newStage])
-  }
+  }, [stages, onStagesChange])
 
-  const removeStage = (stageId: string) => {
+  const removeStage = useCallback((stageId: string) => {
     const filteredStages = stages.filter(stage => stage.id !== stageId)
     // 삭제 후 남은 단계들의 이름을 순서대로 재정렬
     const reorderedStages = filteredStages.map((stage, index) => ({
@@ -33,23 +33,23 @@ export function ApprovalStagesManager({
       name: `${index + 1}단계`
     }))
     onStagesChange(reorderedStages)
-  }
+  }, [stages, onStagesChange])
 
-  const addApprover = (stageId: string, user: UserResponseDto) => {
+  const addApprover = useCallback((stageId: string, user: UserResponseDto) => {
     onStagesChange(stages.map(stage =>
       stage.id === stageId
         ? { ...stage, approvers: [...stage.approvers, user] }
         : stage
     ))
-  }
+  }, [stages, onStagesChange])
 
-  const removeApprover = (stageId: string, userId: number) => {
+  const removeApprover = useCallback((stageId: string, userId: number) => {
     onStagesChange(stages.map(stage =>
       stage.id === stageId
         ? { ...stage, approvers: stage.approvers.filter(approver => approver.id !== userId) }
         : stage
     ))
-  }
+  }, [stages, onStagesChange])
 
   return (
     <div className="space-y-4">
@@ -158,3 +158,12 @@ export function ApprovalStagesManager({
     </div>
   )
 }
+
+// React.memo로 컴포넌트 최적화
+export const ApprovalStagesManager = memo(ApprovalStagesManagerComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.stages === nextProps.stages &&
+    prevProps.availableUsers === nextProps.availableUsers &&
+    prevProps.onStagesChange === nextProps.onStagesChange
+  )
+})

@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useCallback, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -13,41 +14,41 @@ interface FormFieldRendererProps {
   onChange: (value: any) => void
 }
 
-export function FormFieldRenderer({
+const FormFieldRendererComponent = ({
   field,
   value,
   onChange
-}: FormFieldRendererProps) {
-  const handleMultiSelectChange = (optionValue: string, checked: boolean) => {
+}: FormFieldRendererProps) => {
+  const handleMultiSelectChange = useCallback((optionValue: string, checked: boolean) => {
     const currentValues = Array.isArray(value) ? value : []
     if (checked) {
       onChange([...currentValues, optionValue])
     } else {
       onChange(currentValues.filter((v: string) => v !== optionValue))
     }
-  }
+  }, [value, onChange])
 
-  const formatMoney = (value: string) => {
+  const formatMoney = useCallback((value: string) => {
     const number = value.replace(/[^\d]/g, '')
     return number.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-  }
+  }, [])
 
-  const handleMoneyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMoneyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatMoney(e.target.value)
     onChange(formatted)
-  }
+  }, [formatMoney, onChange])
 
   // 옵션 파싱 (API에서는 string으로 저장됨)
-  const parseOptions = (optionsString?: string): string[] => {
+  const parseOptions = useCallback((optionsString?: string): string[] => {
     if (!optionsString) return []
     try {
       return JSON.parse(optionsString)
     } catch {
       return optionsString.split(',').map(opt => opt.trim()).filter(opt => opt.length > 0)
     }
-  }
+  }, [])
 
-  const options = parseOptions(field.options)
+  const options = useMemo(() => parseOptions(field.options), [field.options, parseOptions])
 
   switch (field.fieldType) {
     case FieldType.TEXT:
@@ -143,3 +144,12 @@ export function FormFieldRenderer({
       return null
   }
 }
+
+// React.memo로 컴포넌트 최적화
+export const FormFieldRenderer = memo(FormFieldRendererComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.field === nextProps.field &&
+    prevProps.value === nextProps.value &&
+    prevProps.onChange === nextProps.onChange
+  )
+})

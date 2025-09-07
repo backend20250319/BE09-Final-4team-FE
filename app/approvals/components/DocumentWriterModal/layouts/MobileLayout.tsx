@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -16,7 +17,7 @@ import { ReferenceFilesManager } from "../components/ReferenceFilesManager"
 import { FormFieldRenderer } from "../components/FormFieldRenderer"
 import { DocumentWriterLayoutProps } from "../types"
 
-export function MobileLayout({
+const MobileLayoutComponent = ({
   formTemplate,
   content,
   setContent,
@@ -37,14 +38,17 @@ export function MobileLayout({
   onSubmit,
   onDelete,
   isDeleting,
-  setShowDeleteConfirm
+  setShowDeleteConfirm,
+  isCreating,
+  isUpdating,
+  isSubmittingDocument,
+  isDeletingDocument
 }: DocumentWriterLayoutProps & {
   isCreating: boolean
   isUpdating: boolean
   isSubmittingDocument: boolean
   isDeletingDocument: boolean
-}) {
-  const { isCreating, isUpdating, isSubmittingDocument, isDeletingDocument } = arguments[0] as any
+}) => {
 
   return (
     <div className="lg:hidden flex-1 overflow-y-auto min-h-0">
@@ -211,3 +215,6 @@ export function MobileLayout({
     </div>
   )
 }
+
+// React.memo로 컴포넌트 최적화
+export const MobileLayout = memo(MobileLayoutComponent)
