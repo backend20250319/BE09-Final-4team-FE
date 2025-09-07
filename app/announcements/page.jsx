@@ -75,6 +75,9 @@ export default function AnnouncementsPage() {
   
   // 삭제 확인 다이얼로그 상태
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // URL fragment 로딩 상태
+  const [fragmentLoading, setFragmentLoading] = useState(false);
 
   // 데이터 요청 함수
   const loadData = async (page, search) => {
@@ -92,40 +95,69 @@ export default function AnnouncementsPage() {
     }
   }
 
-  // 인증 상태 체크 및 데이터 로드
+  // 데이터 로드
   useEffect(() => {
-    if (authLoading) return; // 인증 상태 로딩 중이면 대기
-    
-    if (!isLoggedIn) {
-      router.push('/login'); // 로그인되지 않으면 로그인 페이지로 이동
-      return;
-    }
-    
-    // 로그인된 상태에서만 데이터 요청
     loadData(page, searchTerm)
-  }, [page, searchTerm, isLoggedIn, authLoading, router])
+  }, [page, searchTerm])
   
   // URL fragment에서 id를 감지하여 모달 자동 열기
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleHashChange = async () => {
       const hash = window.location.hash.slice(1); // # 제거
       
-      if (hash && announcements.length > 0) {
-        // ID에 해당하는 공지사항 찾기
-        const targetAnnouncement = announcements.find(
-          announcement => announcement.id === parseInt(hash)
+      if (hash && !isNaN(hash)) {
+        const announcementId = parseInt(hash);
+        console.log('URL fragment 감지:', hash, '-> ID:', announcementId);
+        
+        // 현재 로드된 공지사항 목록에서 먼저 찾기
+        let targetAnnouncement = announcements.find(
+          announcement => announcement.id === announcementId
         );
         
+        // 목록에서 찾지 못했으면 API에서 직접 가져오기
+        if (!targetAnnouncement) {
+          setFragmentLoading(true); // 로딩 시작
+          console.log('🔄 API에서 직접 조회 시작:', announcementId);
+          
+          try {
+            const response = await communicationApi.announcements.getAnnouncement(announcementId);
+            targetAnnouncement = response.data; // ApiResult에서 data 추출
+            console.log('✅ API에서 가져온 공지사항:', targetAnnouncement);
+          } catch (error) {
+            console.error('❌ 공지사항 조회 실패:', error);
+            toast.error('존재하지 않는 공지사항입니다.');
+            setFragmentLoading(false);
+            // 존재하지 않는 공지사항인 경우 hash 제거
+            window.history.replaceState(null, null, '/announcements');
+            return;
+          } finally {
+            setFragmentLoading(false); // 로딩 종료
+          }
+        }
+        
         if (targetAnnouncement) {
-          console.log('URL fragment로 공지사항 열기:', targetAnnouncement);
-          setSelectedAnnouncement(targetAnnouncement);
-          setIsModalOpen(true);
+          console.log('🎯 공지사항 모달 열기 시도:', targetAnnouncement);
+          
+          // 강제로 이전 모달 상태 초기화
+          setSelectedAnnouncement(null);
+          setIsModalOpen(false);
+          
+          // 짧은 딜레이 후 새 모달 열기 (React 상태 업데이트 보장)
+          setTimeout(() => {
+            setSelectedAnnouncement(targetAnnouncement);
+            setIsModalOpen(true);
+            console.log('✅ 모달 열림 완료');
+          }, 100); // 딜레이를 좀 더 길게 설정
+        } else {
+          console.log('❌ 해당 ID의 공지사항을 찾을 수 없음:', announcementId);
         }
       }
     };
     
-    // 초기 로드 시 체크
-    handleHashChange();
+    // 페이지가 로딩 중이 아닐 때만 해시 체크
+    if (!loading && !authLoading) {
+      handleHashChange();
+    }
     
     // hashchange 이벤트 리스너 추가
     window.addEventListener('hashchange', handleHashChange);
@@ -133,7 +165,7 @@ export default function AnnouncementsPage() {
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
-  }, [announcements]);
+  }, [announcements, loading, authLoading]); // loading, authLoading 의존성 추가
 
   // 검색 아이콘 클릭 핸들러
   const handleSearchClick = () => {
@@ -214,24 +246,6 @@ export default function AnnouncementsPage() {
     router.push("/announcements/write")
   }
 
-  // 인증 로딩 중이면 로딩 화면 표시
-  if (authLoading) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Spinner size="xl" className="mx-auto mb-4" />
-            <p className="text-gray-600">로딩 중...</p>
-          </div>
-        </div>
-      </MainLayout>
-    );
-  }
-
-  // 로그인되지 않은 상태면 null 반환 (리다이렉트 처리됨)
-  if (!isLoggedIn) {
-    return null;
-  }
 
   return (
     <MainLayout requireAuth={true}>
@@ -361,6 +375,16 @@ export default function AnnouncementsPage() {
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      {/* Fragment 로딩 오버레이 */}
+      {fragmentLoading && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center gap-3">
+            <Spinner size="lg" />
+            <span className="text-gray-700">공지사항을 불러오는 중...</span>
+          </div>
+        </div>
+      )}
 
       {/* 삭제 확인 다이얼로그 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

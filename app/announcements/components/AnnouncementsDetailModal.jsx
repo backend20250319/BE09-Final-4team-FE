@@ -153,6 +153,9 @@ export default function AnnouncementsDetailModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>공지사항 불러오는 중</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-gray-500 text-lg py-8">불러오는 중...</div>
         </DialogContent>
       </Dialog>
@@ -163,6 +166,9 @@ export default function AnnouncementsDetailModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>오류 발생</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-red-500 text-lg py-8">{error || "데이터가 없습니다."}</div>
         </DialogContent>
       </Dialog>
