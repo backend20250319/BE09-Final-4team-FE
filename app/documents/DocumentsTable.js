@@ -149,7 +149,7 @@ export default function DocumentsTable() {
 
   const handleDeleteConfirm = async () => {
     if (!docToDelete) return;
-    
+
     try {
       await communicationApi.archives.deleteArchive(docToDelete.id);
       setDocuments((prev) => prev.filter((d) => d.id !== docToDelete.id));
@@ -378,9 +378,14 @@ export default function DocumentsTable() {
               문서 삭제
             </AlertDialogTitle>
             <AlertDialogDescription>
-              <span className="font-medium text-gray-900">"{docToDelete?.title}"</span> 문서를 삭제하시겠습니까?
+              <span className="font-medium text-gray-900">
+                "{docToDelete?.title}"
+              </span>{" "}
+              문서를 삭제하시겠습니까?
               <br />
-              <span className="text-red-600 font-medium">삭제된 문서는 복구할 수 없습니다.</span>
+              <span className="text-red-600 font-medium">
+                삭제된 문서는 복구할 수 없습니다.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
