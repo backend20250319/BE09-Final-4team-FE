@@ -20,10 +20,13 @@ import {
   UserWorkPolicyDto,
   ColleagueScheduleResponseDto,
   WeeklyWorkDetail,
+  EmployeeLeaveBalanceResponseDto,
+  EmployeeLeaveBalanceSummaryDto,
   ApiResult,
   // Enums
   AttendanceStatus,
   WorkStatus,
+  LeaveType,
 } from "./types";
 
 // Attendance API
@@ -479,5 +482,103 @@ export const workMonitorApi = {
       console.error("Failed to update today work monitor data:", error);
       throw error;
     }
+  },
+};
+
+// Employee Leave Balance API
+export const employeeLeaveBalanceApi = {
+  // 연차 자동 부여
+  grantAnnualLeave: async (
+    employeeId: number,
+    baseDate?: string
+  ): Promise<EmployeeLeaveBalanceResponseDto[]> => {
+    const params = baseDate ? new URLSearchParams({ baseDate }) : "";
+    const response = await apiClient.post<
+      ApiResult<EmployeeLeaveBalanceResponseDto[]>
+    >(
+      `/api/leave-balance/grant-annual/${employeeId}${
+        params ? `?${params}` : ""
+      }`
+    );
+    return response.data.data;
+  },
+
+  // 특정 타입 잔여 연차 조회
+  getRemainingLeave: async (
+    employeeId: number,
+    leaveType: LeaveType
+  ): Promise<number> => {
+    const params = new URLSearchParams({ leaveType });
+    const response = await apiClient.get<ApiResult<number>>(
+      `/api/leave-balance/remaining/${employeeId}?${params}`
+    );
+    return response.data.data;
+  },
+
+  // 전체 잔여 연차 조회
+  getTotalRemainingLeave: async (employeeId: number): Promise<number> => {
+    const response = await apiClient.get<ApiResult<number>>(
+      `/api/leave-balance/remaining-total/${employeeId}`
+    );
+    return response.data.data;
+  },
+
+  // 연차 잔액 상세 조회
+  getLeaveBalances: async (
+    employeeId: number
+  ): Promise<EmployeeLeaveBalanceResponseDto[]> => {
+    const response = await apiClient.get<
+      ApiResult<EmployeeLeaveBalanceResponseDto[]>
+    >(`/api/leave-balance/details/${employeeId}`);
+    return response.data.data;
+  },
+
+  // 연차 잔액 요약 조회
+  getLeaveBalanceSummary: async (
+    employeeId: number
+  ): Promise<EmployeeLeaveBalanceSummaryDto> => {
+    const response = await apiClient.get<
+      ApiResult<EmployeeLeaveBalanceSummaryDto>
+    >(`/api/leave-balance/summary/${employeeId}`);
+    return response.data.data;
+  },
+
+  // 연차 초기화 및 재부여
+  resetAndGrantAnnualLeave: async (
+    employeeId: number,
+    newGrantDate?: string
+  ): Promise<EmployeeLeaveBalanceResponseDto[]> => {
+    const params = newGrantDate ? new URLSearchParams({ newGrantDate }) : "";
+    const response = await apiClient.post<
+      ApiResult<EmployeeLeaveBalanceResponseDto[]>
+    >(`/api/leave-balance/reset/${employeeId}${params ? `?${params}` : ""}`);
+    return response.data.data;
+  },
+
+  // 연차 복구
+  restoreLeave: async (
+    employeeId: number,
+    leaveType: LeaveType,
+    days: number
+  ): Promise<string> => {
+    const params = new URLSearchParams({
+      leaveType,
+      days: days.toString(),
+    });
+    const response = await apiClient.post<ApiResult<string>>(
+      `/api/leave-balance/restore/${employeeId}?${params}`
+    );
+    return response.data.data;
+  },
+
+  // 전체 직원 연차 초기화
+  resetAllEmployeesAnnualLeave: async (
+    newGrantDate: string
+  ): Promise<string> => {
+    const params = new URLSearchParams({ newGrantDate });
+    const response = await apiClient.post<ApiResult<string>>(
+      `/api/leave-balance/reset-all?${params}`
+    );
+    return response.data.data;
   },
 };
