@@ -218,14 +218,16 @@ export function useDocumentWriter(
     dispatch({ type: 'SET_ERROR', payload: null })
     
     try {
-      const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues).map(([fieldName, fieldValue]) => {
-        const templateField = formTemplate.fields?.find(f => f.name === fieldName)
-        return {
-          fieldName,
-          fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
-          templateFieldId: templateField?.id
-        }
-      })
+      const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues)
+        .map(([fieldName, fieldValue]) => {
+          const templateField = formTemplate.fields?.find(f => f.name === fieldName)
+          if (!templateField?.id) return null // templateFieldId가 없으면 제외
+          return {
+            templateFieldId: templateField.id,
+            fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue)
+          }
+        })
+        .filter(Boolean) as DocumentFieldValueRequest[]
 
       const approvalStageRequests: ApprovalStageRequest[] = state.approvalStages.map((stage, index) => ({
         stageOrder: index + 1,
@@ -345,14 +347,16 @@ export function useDocumentWriter(
         return true
       } else {
         // 새 문서 생성 후 바로 제출
-        const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues).map(([fieldName, fieldValue]) => {
-          const templateField = formTemplate.fields?.find(f => f.name === fieldName)
-          return {
-            fieldName,
-            fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue),
-            templateFieldId: templateField?.id
-          }
-        })
+        const fieldValues: DocumentFieldValueRequest[] = Object.entries(state.formFieldValues)
+          .map(([fieldName, fieldValue]) => {
+            const templateField = formTemplate.fields?.find(f => f.name === fieldName)
+            if (!templateField?.id) return null // templateFieldId가 없으면 제외
+            return {
+              templateFieldId: templateField.id,
+              fieldValue: Array.isArray(fieldValue) ? JSON.stringify(fieldValue) : String(fieldValue)
+            }
+          })
+          .filter(Boolean) as DocumentFieldValueRequest[]
 
         const approvalStageRequests: ApprovalStageRequest[] = state.approvalStages.map((stage, index) => ({
           stageOrder: index + 1,

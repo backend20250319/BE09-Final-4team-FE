@@ -57,8 +57,8 @@ const MobileLayoutComponent = ({
         {formTemplate.fields && formTemplate.fields.length > 0 && (
           <CollapsibleSection title="양식 항목" defaultOpen={true}>
             <div className="space-y-4">
-              {formTemplate.fields.map((field) => (
-                <div key={field.name} className="space-y-2">
+              {formTemplate.fields.map((field, index) => (
+                <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
                     {field.name}
                     {field.required && <span className="text-red-500 ml-1">*</span>}

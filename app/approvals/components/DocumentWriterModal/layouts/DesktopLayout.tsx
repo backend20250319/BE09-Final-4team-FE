@@ -59,8 +59,8 @@ const DesktopLayoutComponent = ({
         {formTemplate.fields && formTemplate.fields.length > 0 && (
           <div className="space-y-4 mb-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {formTemplate.fields.map((field) => (
-                <div key={field.name} className="space-y-2">
+              {formTemplate.fields.map((field, index) => (
+                <div key={field.id || `field-${index}-${field.name}`} className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
                     {field.name}
                     {field.required && <span className="text-red-500 ml-1">*</span>}

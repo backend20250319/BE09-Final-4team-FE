@@ -216,13 +216,11 @@ export interface DocumentFieldValueResponse {
   id: number
   fieldName: string
   fieldValue?: string
-  templateField: TemplateFieldResponse
 }
 
 export interface DocumentFieldValueRequest {
-  fieldName: string
+  templateFieldId: number
   fieldValue?: string
-  templateFieldId?: number
 }
 
 export interface DocumentActivityResponse {
