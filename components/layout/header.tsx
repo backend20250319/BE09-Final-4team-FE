@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -52,6 +53,7 @@ export function Header({
   isMobile = false
 }: HeaderProps) {
   const { user, logout, isAdmin } = useAuth()
+  const router = useRouter()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
 
@@ -108,6 +110,27 @@ export function Header({
 
   const handleNotificationClick = (notification: any) => {
     console.log('알림 클릭:', notification)
+    
+    // 알림 타입별 라우팅
+    switch (notification.type) {
+      case "ANNOUNCEMENT":
+        // 현재 공지사항 페이지에 있으면 해시만 변경하고 hashchange 이벤트 발생
+        if (window.location.pathname === '/announcements') {
+          window.location.hash = `#${notification.referenceId}`;
+        } else {
+          router.push(`/announcements#${notification.referenceId}`);
+        }
+        break;
+      case "APPROVAL_REQUEST":
+      case "APPROVAL_APPROVED":
+      case "APPROVAL_REJECTED":
+      case "APPROVAL_REFERENCE":
+        // TODO: 결재 페이지 구현 시 실제 페이지로 이동
+        console.log("결재 관련 알림:", notification);
+        break;
+      default:
+        console.warn("알 수 없는 알림 타입:", notification.type);
+    }
   }
 
   const handleViewAllNotifications = () => {

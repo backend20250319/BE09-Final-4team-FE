@@ -10,6 +10,7 @@ import {
 } from "./dropdown-menu";
 import { communicationApi } from "@/lib/services/communication";
 import { useRouter } from "next/navigation";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 interface Notification {
   id: number;
@@ -57,6 +58,7 @@ export function NotificationsDropdown({
   onNotificationClick,
 }: NotificationsDropdownProps) {
   const router = useRouter();
+  const { hasUnreadNotifications: contextHasUnread, refreshUnreadStatus } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [notificationsList, setNotificationsList] = useState<Notification[]>(
     []
@@ -80,9 +82,15 @@ export function NotificationsDropdown({
       );
       const newNotifications = response.data || [];
 
-      setNotificationsList((prev) =>
-        reset ? newNotifications : [...prev, ...newNotifications]
-      );
+      setNotificationsList((prev) => {
+        const updatedList = reset ? newNotifications : [...prev, ...newNotifications];
+        
+        // 알림 목록 업데이트 후 안읽은 알림 상태 확인
+        const hasUnread = updatedList.some(n => !n.read);
+        setHasUnreadNotifications(hasUnread);
+        
+        return updatedList;
+      });
 
       if (newNotifications.length > 0) {
         setLastId(newNotifications[newNotifications.length - 1].id);
@@ -99,11 +107,23 @@ export function NotificationsDropdown({
   // 읽지 않은 알림 체크
   const checkUnreadNotifications = async () => {
     try {
-      const response =
-        await communicationApi.notifications.hasUnreadNotifications();
-      setHasUnreadNotifications(response.data || false);
-    } catch (error) {
+      // 먼저 알림 목록을 로드한 후 읽지 않은 알림 확인
+      if (notificationsList.length === 0) {
+        console.log('🔍 Loading notifications to check unread status...');
+        await loadNotifications(true); // 처음 로드
+      }
+      
+      // 로컬 알림 목록에서 읽지 않은 것이 있는지 확인
+      const hasUnread = notificationsList.some(n => !n.read);
+      console.log('📊 Unread notifications check:', hasUnread, 'total:', notificationsList.length);
+      setHasUnreadNotifications(hasUnread);
+      
+      // TODO: 백엔드 hasUnreadNotifications API가 준비되면 활성화
+      // const response = await communicationApi.notifications.hasUnreadNotifications();
+      // setHasUnreadNotifications(response.data || false);
+    } catch (error: any) {
       console.error("읽지 않은 알림 체크 실패:", error);
+      setHasUnreadNotifications(false);
     }
   };
 
@@ -113,12 +133,18 @@ export function NotificationsDropdown({
       await communicationApi.notifications.markAsRead(notificationId);
 
       // 로컬 상태 업데이트
-      setNotificationsList((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
-      );
+      setNotificationsList((prev) => {
+        const updatedList = prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n));
+        
+        // 업데이트된 목록에서 안읽은 알림 상태 확인
+        const hasUnread = updatedList.some(n => !n.read);
+        setHasUnreadNotifications(hasUnread);
+        
+        return updatedList;
+      });
 
-      // 읽지 않은 알림 상태 재체크
-      await checkUnreadNotifications();
+      // 컨텍스트 상태도 새로고침
+      await refreshUnreadStatus();
     } catch (error) {
       console.error("알림 읽음 처리 실패:", error);
     }
@@ -127,22 +153,23 @@ export function NotificationsDropdown({
   const displayNotifications =
     notifications.length > 0 ? notifications : notificationsList;
 
-  const getTypeColor = (type: Notification["type"]) => {
-    switch (type) {
-      case "ANNOUNCEMENT":
-        return "bg-blue-500";
-      case "APPROVAL_REQUEST":
-        return "bg-yellow-400";
-      case "APPROVAL_REJECTED":
-        return "bg-red-600";
-      case "APPROVAL_APPROVED":
-        return "bg-green-500";
-      case "APPROVAL_REFERENCE":
-        return "bg-purple-500";
-      default:
-        return "bg-gray-400";
-    }
-  };
+  // 이 함수는 더 이상 사용되지 않음 (왼쪽 컬러 동그라미 제거됨)
+  // const getTypeColor = (type: Notification["type"]) => {
+  //   switch (type) {
+  //     case "ANNOUNCEMENT":
+  //       return "bg-blue-500";
+  //     case "APPROVAL_REQUEST":
+  //       return "bg-yellow-400";
+  //     case "APPROVAL_REJECTED":
+  //       return "bg-red-600";
+  //     case "APPROVAL_APPROVED":
+  //       return "bg-green-500";
+  //     case "APPROVAL_REFERENCE":
+  //       return "bg-purple-500";
+  //     default:
+  //       return "bg-gray-400";
+  //   }
+  // };
 
   const handleNotificationClick = async (notification: Notification) => {
     // 읽지 않은 알림인 경우 읽음 처리
@@ -153,13 +180,19 @@ export function NotificationsDropdown({
     // 알림 타입별 라우팅
     switch (notification.type) {
       case "ANNOUNCEMENT":
-        router.push(`/announcements#${notification.referenceId}`);
+        // 현재 공지사항 페이지에 있으면 해시만 변경하고 hashchange 이벤트 발생
+        if (window.location.pathname === '/announcements') {
+          window.location.hash = `#${notification.referenceId}`;
+        } else {
+          router.push(`/announcements#${notification.referenceId}`);
+        }
         break;
       case "APPROVAL_REQUEST":
       case "APPROVAL_APPROVED":
       case "APPROVAL_REJECTED":
       case "APPROVAL_REFERENCE":
-        alert("결재 관련 알림입니다. 결재 페이지로 이동합니다.");
+        // TODO: 결재 페이지 구현 시 실제 페이지로 이동
+        console.log("결재 관련 알림:", notification);
         break;
       default:
         console.warn("알 수 없는 알림 타입:", notification.type);
@@ -189,6 +222,11 @@ export function NotificationsDropdown({
   useEffect(() => {
     checkUnreadNotifications();
   }, []);
+
+  // 컨텍스트의 읽지 않은 알림 상태 동기화
+  useEffect(() => {
+    setHasUnreadNotifications(contextHasUnread);
+  }, [contextHasUnread]);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={handleDropdownOpen}>
@@ -234,15 +272,10 @@ export function NotificationsDropdown({
               onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex items-start gap-3">
-                <div
-                  className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${getTypeColor(
-                    notification.type
-                  )}`}
-                ></div>
                 <div className="flex-1">
                   <p
                     className={`text-sm font-medium ${
-                      notification.read ? "text-gray-600" : "text-gray-900"
+                      notification.read ? "text-gray-400" : "text-gray-900"
                     }`}
                   >
                     {notification.content}
