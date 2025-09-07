@@ -27,7 +27,7 @@ import {
   FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, UserRole, DocumentFieldValueResponse, FieldType } from "@/lib/services/approval/types"
+import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, DocumentRole, DocumentFieldValueResponse, FieldType, DocumentBase } from "@/lib/services/approval/types"
 import { getStatusText } from "../utils"
 import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "../hooks/useApproval"
 import { Separator } from "@/components/ui/separator"
@@ -42,35 +42,28 @@ interface ApprovalModalProps {
 }
 
 // 서브 컴포넌트들
-function ApprovalHeader({ displayData, documentDetail, isLoading }: { 
-  displayData: any
-  documentDetail: any
-  isLoading: boolean
+function ApprovalHeader({ document }: { 
+  document: DocumentSummaryResponse | DocumentResponse
 }) {
-  if (!displayData) return null
-
-  const StatusIcon = getStatusIcon(displayData.status, displayData.userRole === "APPROVER")
-  const statusBgColor = getStatusColor(displayData.status, displayData.userRole === "APPROVER")
-  const statusTextColor = getStatusTextColor(displayData.status, displayData.userRole === "APPROVER")
-
-  // 템플릿 제목은 DocumentSummary의 templateTitle 또는 DocumentDetail의 template.title 사용
-  const templateTitle = displayData.templateTitle || documentDetail?.template?.title || "문서"
+  const StatusIcon = getStatusIcon(document.status, document.myRole === "APPROVER")
+  const statusBgColor = getStatusColor(document.status, document.myRole === "APPROVER")
+  const statusTextColor = getStatusTextColor(document.status, document.myRole === "APPROVER")
 
   return (
     <div className="flex items-center gap-5">
       <TemplateIcon
-        icon={documentDetail?.template?.icon || displayData?.template?.icon}
-        color={documentDetail?.template?.color || displayData?.template?.color}
+        icon={document.template.icon}
+        color={document.template.color}
       />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">
           <h2 className={`${typography.h3} text-gray-800 truncate`}>
-            {templateTitle}
+            {document.template.title}
           </h2>
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-sm border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
             <StatusIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{getStatusText(displayData.status as DocumentStatus, displayData.userRole as UserRole)}</span>
-            <span className="sm:hidden">{getStatusText(displayData.status as DocumentStatus, displayData.userRole as UserRole).replace('승인 필요', '승인').replace('진행중', '진행')}</span>
+            <span className="hidden sm:inline">{getStatusText(document.status, document.myRole)}</span>
+            <span className="sm:hidden">{getStatusText(document.status, document.myRole)}</span>
           </div>
         </div>
       </div>
@@ -78,8 +71,8 @@ function ApprovalHeader({ displayData, documentDetail, isLoading }: {
   )
 }
 
-function ApprovalInfo({ displayData }: { displayData: any }) {
-  if (!displayData) return null
+function ApprovalInfo({ document }: { document: DocumentBase }) {
+  if (!document) return null
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -98,7 +91,7 @@ function ApprovalInfo({ displayData }: { displayData: any }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 font-medium">신청자</p>
-          <p className="text-sm font-semibold text-gray-800 truncate">{displayData.author?.name || "알 수 없음"}</p>
+          <p className="text-sm font-semibold text-gray-800 truncate">{document.author?.name || "알 수 없음"}</p>
         </div>
       </div>
 
@@ -108,7 +101,7 @@ function ApprovalInfo({ displayData }: { displayData: any }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 font-medium">신청일</p>
-          <p className="text-sm font-semibold text-gray-800">{formatDate(displayData.submittedAt || displayData.createdAt)}</p>
+          <p className="text-sm font-semibold text-gray-800">{formatDate(document.submittedAt || document.createdAt)}</p>
         </div>
       </div>
     </div>
@@ -501,10 +494,9 @@ export function ApprovalModal({
   const rejectMutation = useRejectDocument()
   const commentMutation = useCreateComment()
 
-  if (!documentSummary && !documentDetail) return null
-
   // DocumentSummary와 DocumentDetail을 조합해서 표시할 데이터 생성
-  const displayData = documentDetail || documentSummary
+  const document = documentDetail || documentSummary
+  if (!document) return null
 
   const getCurrentStage = () => {
     if (!documentDetail?.approvalStages) return null
@@ -515,8 +507,8 @@ export function ApprovalModal({
 
   const canApprove = () => {
     // 승인 권한 체크: APPROVER 역할이면서 문서 상태가 IN_PROGRESS여야 함
-    const hasApproverRole = documentSummary?.userRole === "APPROVER" || documentDetail?.userRole === "APPROVER"
-    const isApprovableStatus = displayData?.status === "IN_PROGRESS"
+    const hasApproverRole = documentSummary?.myRole === "APPROVER" || documentDetail?.myRole === "APPROVER"
+    const isApprovableStatus = document.status === "IN_PROGRESS"
     return hasApproverRole && isApprovableStatus
   }
 
@@ -525,10 +517,10 @@ export function ApprovalModal({
   }
 
   const handleApprove = async () => {
-    if (!displayData?.id) return
+    if (!document.id) return
     try {
       await approveMutation.mutateAsync({
-        id: displayData.id,
+        id: document.id,
         request: { reason: "" } // 승인 사유는 선택사항
       })
       onClose()
@@ -538,10 +530,10 @@ export function ApprovalModal({
   }
 
   const handleReject = async () => {
-    if (!displayData?.id) return
+    if (!document.id) return
     try {
       await rejectMutation.mutateAsync({
-        id: displayData.id,
+        id: document.id,
         request: { reason: "" } // 반려 사유는 선택사항
       })
       onClose()
@@ -551,10 +543,10 @@ export function ApprovalModal({
   }
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !displayData?.id) return
+    if (!newComment.trim() || !document.id) return
     try {
       await commentMutation.mutateAsync({
-        documentId: displayData.id,
+        documentId: document.id,
         request: { content: newComment }
       })
       setNewComment("")
@@ -611,7 +603,7 @@ export function ApprovalModal({
         <DialogContent className="!max-w-5xl !w-[95vw] max-h-[90vh] flex flex-col p-0 sm:p-6">
           <DialogHeader className="pb-4 px-4 sm:px-0">
             <DialogTitle>
-              <ApprovalHeader displayData={displayData} documentDetail={documentDetail} isLoading={isLoading} />
+              <ApprovalHeader document={document} />
             </DialogTitle>
           </DialogHeader>
 
@@ -619,7 +611,7 @@ export function ApprovalModal({
           <div className="hidden lg:flex flex-1 overflow-hidden gap-4">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 pl-2">
-              <ApprovalInfo displayData={displayData} />
+              <ApprovalInfo document={document} />
 
               {/* 양식 필드 */}
               {isLoading && !documentDetail ? (
@@ -635,7 +627,7 @@ export function ApprovalModal({
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                    {displayData?.content || '내용이 없습니다.'}
+                    {document.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>
@@ -716,7 +708,7 @@ export function ApprovalModal({
           {/* 모바일 레이아웃 */}
           <div className="lg:hidden flex-1 overflow-y-auto">
             <div className="space-y-3 p-3">
-              <ApprovalInfo displayData={displayData} />
+              <ApprovalInfo document={document} />
 
               {/* 양식 필드 */}
               {documentDetail?.fieldValues && (
@@ -727,7 +719,7 @@ export function ApprovalModal({
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                    {displayData?.content || '내용이 없습니다.'}
+                    {document.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>

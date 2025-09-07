@@ -11,7 +11,7 @@ import { TemplateManagementModal } from "./components/TemplateManagementModal"
 import { DocumentWriterModal } from "./components/DocumentWriterModal"
 import { colors, typography } from "@/lib/design-tokens"
 import { useDocuments } from "./hooks/useApproval"
-import { DocumentSummaryResponse, DocumentStatus, UserRole, TemplateSummaryResponse, TemplateResponse } from "@/lib/services/approval/types"
+import { DocumentSummaryResponse, DocumentStatus, DocumentRole, TemplateSummaryResponse, TemplateResponse } from "@/lib/services/approval/types"
 import { getStatusText } from "./utils"
 import { TemplateIcon } from "./components/common/TemplateIcon"
 import {
@@ -60,11 +60,11 @@ export default function ApprovalsPage() {
   // 문서를 상태와 사용자 역할에 따라 분류
   const myPendingDocuments = documents.filter((doc: DocumentSummaryResponse) =>
     doc.status === DocumentStatus.IN_PROGRESS && 
-    doc.userRole === UserRole.APPROVER
+    doc.myRole === DocumentRole.APPROVER
   )
   const inProgressDocuments = documents.filter((doc: DocumentSummaryResponse) =>
     doc.status === DocumentStatus.IN_PROGRESS && 
-    doc.userRole !== UserRole.APPROVER
+    doc.myRole !== DocumentRole.APPROVER
   )
   // 진행중 및 완료된 문서
   const inProgressData = [...myPendingDocuments, ...inProgressDocuments]
@@ -72,13 +72,13 @@ export default function ApprovalsPage() {
     doc.status === DocumentStatus.APPROVED || doc.status === DocumentStatus.REJECTED
   )
 
-  const getStatusIcon = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusIcon = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return FileText
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
-        return userRole === UserRole.APPROVER ? AlertCircle : Clock
+        return myRole === DocumentRole.APPROVER ? AlertCircle : Clock
       case DocumentStatus.APPROVED:
         return CheckCircle
       case DocumentStatus.REJECTED:
@@ -88,13 +88,13 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusBgColor = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusBgColor = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.bg
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
-        return userRole === UserRole.APPROVER ? colors.status.warning.bg : colors.status.info.bg
+        return myRole === DocumentRole.APPROVER ? colors.status.warning.bg : colors.status.info.bg
       case DocumentStatus.APPROVED:
         return colors.status.success.bg
       case DocumentStatus.REJECTED:
@@ -104,13 +104,13 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusTextColor = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusTextColor = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.text
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
-        return userRole === UserRole.APPROVER ? colors.status.warning.text : colors.status.info.text
+        return myRole === DocumentRole.APPROVER ? colors.status.warning.text : colors.status.info.text
       case DocumentStatus.APPROVED:
         return colors.status.success.text
       case DocumentStatus.REJECTED:
@@ -153,9 +153,9 @@ export default function ApprovalsPage() {
 
 
   const renderDocumentCard = (document: DocumentSummaryResponse) => {
-    const StatusIcon = getStatusIcon(document.status, document.userRole)
-    const statusBgColor = getStatusBgColor(document.status, document.userRole)
-    const statusTextColor = getStatusTextColor(document.status, document.userRole)
+    const StatusIcon = getStatusIcon(document.status, document.myRole)
+    const statusBgColor = getStatusBgColor(document.status, document.myRole)
+    const statusTextColor = getStatusTextColor(document.status, document.myRole)
 
     // 날짜 포맷팅
     const formatDate = (dateString: string) => {
@@ -190,7 +190,7 @@ export default function ApprovalsPage() {
               </div>
               <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
                 <StatusIcon className="w-3 h-3" />
-                {getStatusText(document.status, document.userRole)}
+                {getStatusText(document.status, document.myRole)}
               </div>
             </div>
             <div className="flex items-center gap-3">

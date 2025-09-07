@@ -38,7 +38,7 @@ export enum FieldType {
   MULTISELECT = 'MULTISELECT'
 }
 
-export enum UserRole {
+export enum DocumentRole {
   AUTHOR = 'AUTHOR',
   APPROVER = 'APPROVER',
   REFERENCE = 'REFERENCE',
@@ -241,13 +241,20 @@ export interface DocumentCommentResponse {
   updatedAt: string
 }
 
-export interface DocumentResponse {
+export interface DocumentBase {
   id: number
   content?: string
   status: DocumentStatus
   author: UserProfile
   currentStage?: number
-  userRole: UserRole
+  myRole: DocumentRole
+  createdAt: string
+  updatedAt: string
+  submittedAt?: string
+  approvedAt?: string
+}
+
+export interface DocumentResponse extends DocumentBase {
   template: TemplateResponse
   fieldValues: DocumentFieldValueResponse[]
   approvalStages: ApprovalStageResponse[]
@@ -255,25 +262,11 @@ export interface DocumentResponse {
   activities: DocumentActivityResponse[]
   comments: DocumentCommentResponse[]
   attachments: AttachmentInfoResponse[]
-  createdAt: string
-  updatedAt: string
-  submittedAt?: string
-  approvedAt?: string
 }
 
-export interface DocumentSummaryResponse {
-  id: number
-  content?: string
-  status: DocumentStatus
-  author: UserProfile
+export interface DocumentSummaryResponse extends DocumentBase {
   template: TemplateSummaryResponse
-  currentStage?: number
   totalStages: number
-  userRole: UserRole
-  createdAt: string
-  updatedAt: string
-  submittedAt?: string
-  approvedAt?: string
 }
 
 export interface CreateDocumentRequest {
