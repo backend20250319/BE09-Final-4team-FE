@@ -61,6 +61,13 @@ export enum AttachmentUsageType {
   REQUIRED = 'REQUIRED'
 }
 
+// 내 승인 정보 타입
+export interface MyApprovalInfo {
+  myApprovalStatus: ApprovalStatus
+  isApprovalRequired: boolean
+  myApprovalStage: number
+}
+
 // 카테고리 관련 타입
 export interface CategoryResponse {
   id: number
@@ -248,6 +255,7 @@ export interface DocumentBase {
   author: UserProfile
   currentStage?: number
   myRole: DocumentRole
+  myApprovalInfo?: MyApprovalInfo
   createdAt: string
   updatedAt: string
   submittedAt?: string
