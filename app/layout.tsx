@@ -4,8 +4,10 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/auth-context";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { NotificationToastManager } from "@/components/ui/notification-toast";
 import GlobalAIChat from "./aichat/GlobalAIChat";
-import { QueryProvider } from '@/providers/query-provider'
+import { QueryProvider } from "@/providers/query-provider";
 
 export const metadata: Metadata = {
   title: "Hermes",
@@ -30,15 +32,19 @@ html {
       <body>
         <QueryProvider>
           <AuthProvider>
-            {children}
+            <NotificationProvider>
+              {children}
+              <NotificationToastManager />
+            </NotificationProvider>
+
             {/* Global AI Chat visible on all pages */}
             {/* @ts-expect-error Server Component import of client component in layout */}
             <div>
-              {/* This wrapper keeps portal-like fixed positioning working */}
               <GlobalAIChat />
             </div>
           </AuthProvider>
         </QueryProvider>
+
         <Toaster position="top-center" richColors closeButton duration={4000} />
       </body>
     </html>
