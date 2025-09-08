@@ -12,8 +12,13 @@ export interface UserProfile {
 // 승인 서비스 특화 열거형
 export enum DocumentStatus {
   DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum ApprovalStatus {
+  PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED'
 }
@@ -33,7 +38,7 @@ export enum FieldType {
   MULTISELECT = 'MULTISELECT'
 }
 
-export enum UserRole {
+export enum DocumentRole {
   AUTHOR = 'AUTHOR',
   APPROVER = 'APPROVER',
   REFERENCE = 'REFERENCE',
@@ -56,25 +61,27 @@ export enum AttachmentUsageType {
   REQUIRED = 'REQUIRED'
 }
 
+// 내 승인 정보 타입
+export interface MyApprovalInfo {
+  myApprovalStatus: ApprovalStatus
+  isApprovalRequired: boolean
+  myApprovalStage: number
+}
+
 // 카테고리 관련 타입
 export interface CategoryResponse {
   id: number
   name: string
-  description?: string
   sortOrder: number
-  createdAt: string
-  updatedAt: string
 }
 
 export interface CreateCategoryRequest {
   name: string
-  description?: string
   sortOrder: number
 }
 
 export interface UpdateCategoryRequest {
   name: string
-  description?: string
   sortOrder: number
 }
 
@@ -103,9 +110,9 @@ export interface ApprovalTargetResponse {
   organizationId?: number
   managerLevel?: number
   isReference: boolean
-  isApproved?: boolean
-  approver?: UserProfile
-  approvedAt?: string
+  approvalStatus?: ApprovalStatus
+  processor?: UserProfile
+  processedAt?: string
 }
 
 export interface ApprovalTargetRequest {
@@ -142,6 +149,7 @@ export interface TemplateResponse {
   id: number
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
@@ -149,7 +157,7 @@ export interface TemplateResponse {
   allowTargetChange: boolean
   isHidden: boolean
   referenceFiles: AttachmentInfoResponse[]
-  category: CategoryResponse
+  category?: CategoryResponse
   fields: TemplateFieldResponse[]
   approvalStages: ApprovalStageResponse[]
   referenceTargets: ApprovalTargetResponse[]
@@ -161,32 +169,34 @@ export interface TemplateSummaryResponse {
   id: number
   title: string
   icon?: string
+  color?: string
   description?: string
   useBody: boolean
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   isHidden: boolean
-  category: CategoryResponse
+  category?: CategoryResponse
   createdAt: string
   updatedAt: string
 }
 
 export interface TemplatesByCategoryResponse {
-  categoryId: number
-  categoryName: string
+  categoryId?: number
+  categoryName?: string
   templates: TemplateSummaryResponse[]
 }
 
 export interface CreateTemplateRequest {
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
-  categoryId: number
+  categoryId?: number
   fields?: TemplateFieldRequest[]
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
@@ -195,13 +205,14 @@ export interface CreateTemplateRequest {
 export interface UpdateTemplateRequest {
   title: string
   icon?: string
+  color?: string
   description?: string
   bodyTemplate?: string
   useBody: boolean
   useAttachment: AttachmentUsageType
   allowTargetChange: boolean
   referenceFiles?: string[]
-  categoryId: number
+  categoryId?: number
   fields?: TemplateFieldRequest[]
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
@@ -211,14 +222,13 @@ export interface UpdateTemplateRequest {
 export interface DocumentFieldValueResponse {
   id: number
   fieldName: string
+  fieldType: FieldType
   fieldValue?: string
-  templateField: TemplateFieldResponse
 }
 
 export interface DocumentFieldValueRequest {
-  fieldName: string
+  templateFieldId: number
   fieldValue?: string
-  templateFieldId?: number
 }
 
 export interface DocumentActivityResponse {
@@ -238,12 +248,21 @@ export interface DocumentCommentResponse {
   updatedAt: string
 }
 
-export interface DocumentResponse {
+export interface DocumentBase {
   id: number
   content?: string
   status: DocumentStatus
   author: UserProfile
   currentStage?: number
+  myRole: DocumentRole
+  myApprovalInfo?: MyApprovalInfo
+  createdAt: string
+  updatedAt: string
+  submittedAt?: string
+  approvedAt?: string
+}
+
+export interface DocumentResponse extends DocumentBase {
   template: TemplateResponse
   fieldValues: DocumentFieldValueResponse[]
   approvalStages: ApprovalStageResponse[]
@@ -251,24 +270,11 @@ export interface DocumentResponse {
   activities: DocumentActivityResponse[]
   comments: DocumentCommentResponse[]
   attachments: AttachmentInfoResponse[]
-  createdAt: string
-  updatedAt: string
-  submittedAt?: string
-  approvedAt?: string
 }
 
-export interface DocumentSummaryResponse {
-  id: number
-  content?: string
-  status: DocumentStatus
-  author: UserProfile
-  templateTitle: string
-  currentStage?: number
+export interface DocumentSummaryResponse extends DocumentBase {
+  template: TemplateSummaryResponse
   totalStages: number
-  userRole: UserRole
-  createdAt: string
-  submittedAt?: string
-  approvedAt?: string
 }
 
 export interface CreateDocumentRequest {
@@ -278,6 +284,7 @@ export interface CreateDocumentRequest {
   approvalStages?: ApprovalStageRequest[]
   referenceTargets?: ApprovalTargetRequest[]
   attachments?: string[]
+  submitImmediately?: boolean
 }
 
 export interface UpdateDocumentRequest {
@@ -308,5 +315,38 @@ export interface GetDocumentsParams {
 
 export interface GetTemplatesParams {
   categoryId?: number
+}
+
+// 벌크 카테고리 관련 타입
+export enum BulkCategoryOperationType {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  DELETE = 'DELETE'
+}
+
+export interface BulkCategoryOperation {
+  type: BulkCategoryOperationType
+  id?: number
+  createRequest?: CreateCategoryRequest
+  updateRequest?: UpdateCategoryRequest
+}
+
+export interface BulkCategoryRequest {
+  operations: BulkCategoryOperation[]
+}
+
+export interface CategoryOperationResult {
+  operationType: string
+  categoryId?: number
+  category?: CategoryResponse
+  success: boolean
+  errorMessage?: string
+}
+
+export interface BulkCategoryResponse {
+  totalOperations: number
+  successfulOperations: number
+  failedOperations: number
+  results: CategoryOperationResult[]
 }
 

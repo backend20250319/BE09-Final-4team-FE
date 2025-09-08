@@ -37,7 +37,12 @@ export const attendanceApi = {
       "/api/attendance/check-in",
       request
     );
-    return response.data.data;
+    const result = response.data;
+    if (!result?.data) {
+      const msg = result?.message || "출근 실패";
+      throw { message: msg, data: result };
+    }
+    return result.data;
   },
 
   // 퇴근 체크아웃
@@ -46,7 +51,12 @@ export const attendanceApi = {
       "/api/attendance/check-out",
       request
     );
-    return response.data.data;
+    const result = response.data;
+    if (!result?.data) {
+      const msg = result?.message || "퇴근 실패";
+      throw { message: msg, data: result };
+    }
+    return result.data;
   },
 
   // 출근 상태 기록
@@ -406,34 +416,82 @@ export const leaveApi = {
 export const workMonitorApi = {
   // 특정 날짜 근무 모니터링 조회
   getWorkMonitorByDate: async (date: string): Promise<WorkMonitorDto> => {
-    const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
-      `/api/work-monitor/${date}`
-    );
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
+        `/api/work-monitor/${date}`
+      );
+      console.log("WorkMonitor API Response:", response.data);
+
+      if (response.data.status !== "success" || !response.data.data) {
+        throw new Error(response.data.message || "근무 모니터링 조회 실패");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to fetch work monitor by date:", error);
+      throw error;
+    }
   },
 
   // 오늘 근무 모니터링 조회
   getTodayWorkMonitor: async (): Promise<WorkMonitorDto> => {
-    const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
-      "/api/work-monitor/today"
-    );
-    return response.data.data;
+    try {
+      const response = await apiClient.get<ApiResult<WorkMonitorDto>>(
+        "/api/work-monitor/today"
+      );
+      console.log("Today WorkMonitor API Response:", response.data);
+
+      if (response.data.status !== "success" || !response.data.data) {
+        throw new Error(
+          response.data.message || "오늘 근무 모니터링 조회 실패"
+        );
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to fetch today work monitor:", error);
+      throw error;
+    }
   },
 
   // 특정 날짜 근무 모니터링 데이터 갱신
   updateWorkMonitorData: async (date: string): Promise<WorkMonitorDto> => {
-    const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
-      `/api/work-monitor/update/${date}`
-    );
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
+        `/api/work-monitor/update/${date}`
+      );
+      console.log("Update WorkMonitor API Response:", response.data);
+
+      if (response.data.status !== "success" || !response.data.data) {
+        throw new Error(response.data.message || "근무 모니터링 갱신 실패");
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to update work monitor data:", error);
+      throw error;
+    }
   },
 
   // 오늘 근무 모니터링 데이터 갱신
   updateTodayWorkMonitorData: async (): Promise<WorkMonitorDto> => {
-    const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
-      "/api/work-monitor/update/today"
-    );
-    return response.data.data;
+    try {
+      const response = await apiClient.post<ApiResult<WorkMonitorDto>>(
+        "/api/work-monitor/update/today"
+      );
+      console.log("Update Today WorkMonitor API Response:", response.data);
+
+      if (response.data.status !== "success" || !response.data.data) {
+        throw new Error(
+          response.data.message || "오늘 근무 모니터링 갱신 실패"
+        );
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to update today work monitor data:", error);
+      throw error;
+    }
   },
 };
 

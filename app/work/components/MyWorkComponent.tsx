@@ -103,6 +103,7 @@ const ScheduleCalendar = dynamic(
 export default function MyWorkComponent(): JSX.Element {
   const { user } = useAuth();
   const [currentWeek, setCurrentWeek] = useState<string>("");
+  const [currentMondayDate, setCurrentMondayDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<WorkEvent[]>([]);
   const [originalEvents, setOriginalEvents] = useState<WorkEvent[]>([]);
   const [weekDates, setWeekDates] = useState<WeekDates>({});
@@ -151,6 +152,7 @@ export default function MyWorkComponent(): JSX.Element {
     const mondayStr = formatDate(monday);
     const sundayStr = formatDate(sunday);
     setCurrentWeek(`${mondayStr} ~ ${sundayStr}`);
+    setCurrentMondayDate(monday); // 현재 주의 월요일 날짜 업데이트
 
     const weekMapping: WeekDates = {};
     for (let i = 0; i < 7; i++) {
@@ -220,6 +222,20 @@ export default function MyWorkComponent(): JSX.Element {
             s.title || s.scheduleType
           );
           const color = SCHEDULE_TYPE_COLOR[s.scheduleType] || "#4FC3F7";
+
+          // CORETIME 스케줄 로깅
+          if (s.scheduleType === "CORETIME") {
+            console.log("CORETIME 스케줄 발견:", {
+              id: s.id,
+              title,
+              scheduleType: s.scheduleType,
+              startDate: s.startDate,
+              startTime: startHHmm,
+              endTime: endHHmm,
+              color,
+            });
+          }
+
           return {
             id: String(s.id),
             title,
@@ -235,6 +251,12 @@ export default function MyWorkComponent(): JSX.Element {
             },
           } as WorkEvent;
         });
+
+        console.log(
+          `로드된 스케줄 수: ${schedules.length}, CORETIME 수: ${
+            schedules.filter((s) => s.scheduleType === "CORETIME").length
+          }`
+        );
         setEvents(mapped);
         setOriginalEvents(mapped);
       } catch (e) {
@@ -313,8 +335,17 @@ export default function MyWorkComponent(): JSX.Element {
       info.revert();
       return;
     }
+
+    const eventId = info.event.id;
+    const originalEvent = events.find((e) => e.id === eventId);
+    if (!originalEvent) {
+      info.revert();
+      return;
+    }
+
+    // Optimistic update
     const updated = events.map((event) =>
-      event.id === info.event.id
+      event.id === eventId
         ? {
             ...event,
             start: info.event.start.toISOString(),
@@ -325,6 +356,63 @@ export default function MyWorkComponent(): JSX.Element {
     );
     setEvents(updated);
     setHasPendingChanges(true);
+
+    // Save to database immediately
+    const isPersisted = !isNaN(Number(eventId));
+    if (!user?.id || !isPersisted) {
+      return;
+    }
+
+    const toHHmmss = (iso: string) => {
+      const d = new Date(iso);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${hh}:${mm}:00`;
+    };
+
+    (async () => {
+      try {
+        const newStart = info.event.start.toISOString();
+        const newEnd = info.event.end
+          ? info.event.end.toISOString()
+          : originalEvent.end;
+        const startDate = newStart.slice(0, 10);
+        const endDate = newEnd.slice(0, 10);
+
+        await workScheduleApi.updateSchedule(Number(user.id), Number(eventId), {
+          title:
+            originalEvent.extendedProps?.originalTitle || originalEvent.title,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(newStart),
+          endTime: toHHmmss(newEnd),
+          scheduleType:
+            (originalEvent.extendedProps?.type as ScheduleType) ||
+            ScheduleType.WORK,
+          color: originalEvent.backgroundColor,
+          isAllDay: !!originalEvent.allDay,
+          isRecurring: false,
+        });
+
+        // Update status to saved
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventId ? { ...e, status: undefined } : e))
+        );
+        setHasPendingChanges(false);
+
+        console.log(`일정 이동 저장 완료: ${eventId}`);
+      } catch (err) {
+        console.error("Failed to save event drop:", err);
+        // Revert the change
+        info.revert();
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventId ? originalEvent : e))
+        );
+        alert("일정 이동 저장에 실패했습니다.");
+        setHasPendingChanges(false);
+      }
+    })();
   };
 
   const handleEventResize = (info: any): void => {
@@ -334,8 +422,17 @@ export default function MyWorkComponent(): JSX.Element {
       info.revert();
       return;
     }
+
+    const eventId = info.event.id;
+    const originalEvent = events.find((e) => e.id === eventId);
+    if (!originalEvent) {
+      info.revert();
+      return;
+    }
+
+    // Optimistic update
     const updated = events.map((event) =>
-      event.id === info.event.id
+      event.id === eventId
         ? {
             ...event,
             start: info.event.start.toISOString(),
@@ -346,6 +443,61 @@ export default function MyWorkComponent(): JSX.Element {
     );
     setEvents(updated);
     setHasPendingChanges(true);
+
+    // Save to database immediately
+    const isPersisted = !isNaN(Number(eventId));
+    if (!user?.id || !isPersisted) {
+      return;
+    }
+
+    const toHHmmss = (iso: string) => {
+      const d = new Date(iso);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${hh}:${mm}:00`;
+    };
+
+    (async () => {
+      try {
+        const newStart = info.event.start.toISOString();
+        const newEnd = info.event.end.toISOString();
+        const startDate = newStart.slice(0, 10);
+        const endDate = newEnd.slice(0, 10);
+
+        await workScheduleApi.updateSchedule(Number(user.id), Number(eventId), {
+          title:
+            originalEvent.extendedProps?.originalTitle || originalEvent.title,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(newStart),
+          endTime: toHHmmss(newEnd),
+          scheduleType:
+            (originalEvent.extendedProps?.type as ScheduleType) ||
+            ScheduleType.WORK,
+          color: originalEvent.backgroundColor,
+          isAllDay: !!originalEvent.allDay,
+          isRecurring: false,
+        });
+
+        // Update status to saved
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventId ? { ...e, status: undefined } : e))
+        );
+        setHasPendingChanges(false);
+
+        console.log(`일정 리사이즈 저장 완료: ${eventId}`);
+      } catch (err) {
+        console.error("Failed to save event resize:", err);
+        // Revert the change
+        info.revert();
+        setEvents((prev) =>
+          prev.map((e) => (e.id === eventId ? originalEvent : e))
+        );
+        alert("일정 크기 변경 저장에 실패했습니다.");
+        setHasPendingChanges(false);
+      }
+    })();
   };
 
   const handleSelect = (selectInfo: any): void => {
@@ -537,10 +689,70 @@ export default function MyWorkComponent(): JSX.Element {
     setHasPendingChanges(false);
   };
 
-  const handleSubmitChanges = (): void => {
+  const handleSubmitChanges = async (): Promise<void> => {
     const pendingEvents = events.filter((e) => e.status === "pending");
     console.log("변경 신청된 일정들:", pendingEvents);
-    setHasPendingChanges(false);
+
+    if (pendingEvents.length === 0) {
+      setHasPendingChanges(false);
+      return;
+    }
+
+    if (!user?.id) {
+      alert("사용자 정보를 확인할 수 없습니다.");
+      return;
+    }
+
+    const toHHmmss = (iso: string) => {
+      const d = new Date(iso);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${hh}:${mm}:00`;
+    };
+
+    try {
+      // 모든 pending 이벤트를 병렬로 처리
+      const updatePromises = pendingEvents.map(async (event) => {
+        const isPersisted = !isNaN(Number(event.id));
+        if (!isPersisted) return;
+
+        const startDate = event.start.slice(0, 10);
+        const endDate = event.end.slice(0, 10);
+
+        return workScheduleApi.updateSchedule(
+          Number(user.id),
+          Number(event.id),
+          {
+            title: event.extendedProps?.originalTitle || event.title,
+            description: undefined,
+            startDate,
+            endDate,
+            startTime: toHHmmss(event.start),
+            endTime: toHHmmss(event.end),
+            scheduleType:
+              (event.extendedProps?.type as ScheduleType) || ScheduleType.WORK,
+            color: event.backgroundColor,
+            isAllDay: !!event.allDay,
+            isRecurring: false,
+          }
+        );
+      });
+
+      await Promise.all(updatePromises);
+
+      // 모든 pending 상태 제거
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.status === "pending" ? { ...e, status: undefined } : e
+        )
+      );
+      setHasPendingChanges(false);
+
+      console.log(`${pendingEvents.length}개 일정 변경사항 저장 완료`);
+    } catch (err) {
+      console.error("Failed to save pending changes:", err);
+      alert("변경사항 저장에 실패했습니다.");
+    }
   };
 
   const handleEventTitleEdit = (eventId: string, newTitle: string): void => {
@@ -864,8 +1076,7 @@ export default function MyWorkComponent(): JSX.Element {
         </div>
         <div className="w-80 flex-shrink-0 -mt-6">
           <GlassCard className="p-4 border-2 border-gray-300 shadow-none">
-            <div className="flex items-center space-x-3 mb-3">
-            </div>
+            <div className="flex items-center space-x-3 mb-3"></div>
             <WorkTimeGauge
               percentage={workTimeSummary.percentage}
               totalHours={workTimeSummary.totalHours}
@@ -888,6 +1099,7 @@ export default function MyWorkComponent(): JSX.Element {
               dayCellDidMount={dayCellDidMountHandler}
               eventContent={eventContent}
               editable={true}
+              currentDate={currentMondayDate}
             />
           )}
         </div>

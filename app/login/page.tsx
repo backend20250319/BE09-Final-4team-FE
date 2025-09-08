@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -15,7 +15,10 @@ import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoggedIn } = useAuth();
+  const redirect = searchParams.get('redirect') || '/';
+  const expired = searchParams.get('expired') === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,12 +26,20 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState('');
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const [isPasswordResetRequired, setIsPasswordResetRequired] = useState(false);
+  const toastShown = useRef(false);
+
+  useEffect(() => {
+    if (expired && !toastShown.current) {
+      toast.error('세션이 만료되었습니다. 다시 로그인해주세요.');
+      toastShown.current = true;
+    }
+  }, [expired]);
 
   useEffect(() => {
     if (isLoggedIn && !isPasswordResetRequired) {
-      router.push('/');
+      router.push(redirect);
     }
-  }, [isLoggedIn, isPasswordResetRequired, router]);
+  }, [isLoggedIn, isPasswordResetRequired, router, redirect]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +78,7 @@ export default function LoginPage() {
         toast.warning('비밀번호를 변경해주세요.');
       } else {
         toast.success('로그인 성공!');
-        router.push('/');
+        router.push(redirect);
       }
     } catch (error: any) {
       console.error('로그인 오류:', error);

@@ -1,20 +1,14 @@
 import React from "react";
 import { createChatBotMessage } from "react-chatbot-kit";
+import apiClient from "@/lib/services/common/api-client";
 
 // Type definitions
 interface ActionProvider {
-  greet: () => void;
-  handleHelp: () => void;
-  handleWeather: () => void;
-  handleTime: () => void;
-  handleThanks: () => void;
-  handleTask: () => void;
-  handleSchedule: () => void;
-  handleMembers: () => void;
-  handleDocuments: () => void;
-  handleVacation: () => void;
-  handleApproval: () => void;
-  handleSettings: () => void;
+  reply: (text: string) => void;
+  handleCommand: (command: {
+    type: string;
+    params?: Record<string, any>;
+  }) => void;
   handleUnknown: () => void;
 }
 
@@ -31,49 +25,37 @@ class MessageParser {
     this.state = state;
   }
 
-  parse(message: string): void {
-    const lowerCase = message.toLowerCase();
+  parse = async (message: string): Promise<void> => {
+    try {
+      const payload = {
+        messages: [
+          { role: "system", content: "당신은 업무 도우미입니다." },
+          { role: "user", content: message },
+        ],
+        allowCommands: true,
+      };
 
-    if (lowerCase.includes("안녕") || lowerCase.includes("hello")) {
-      this.actionProvider.greet();
-    } else if (lowerCase.includes("도움") || lowerCase.includes("help")) {
-      this.actionProvider.handleHelp();
-    } else if (lowerCase.includes("날씨") || lowerCase.includes("weather")) {
-      this.actionProvider.handleWeather();
-    } else if (lowerCase.includes("시간") || lowerCase.includes("time")) {
-      this.actionProvider.handleTime();
-    } else if (lowerCase.includes("감사") || lowerCase.includes("thank")) {
-      this.actionProvider.handleThanks();
-    } else if (
-      lowerCase.includes("작업") ||
-      lowerCase.includes("task") ||
-      lowerCase.includes("업무")
-    ) {
-      this.actionProvider.handleTask();
-    } else if (
-      lowerCase.includes("일정") ||
-      lowerCase.includes("schedule") ||
-      lowerCase.includes("캘린더")
-    ) {
-      this.actionProvider.handleSchedule();
-    } else if (
-      lowerCase.includes("직원") ||
-      lowerCase.includes("member") ||
-      lowerCase.includes("팀원")
-    ) {
-      this.actionProvider.handleMembers();
-    } else if (lowerCase.includes("문서") || lowerCase.includes("document")) {
-      this.actionProvider.handleDocuments();
-    } else if (lowerCase.includes("휴가") || lowerCase.includes("vacation")) {
-      this.actionProvider.handleVacation();
-    } else if (lowerCase.includes("승인") || lowerCase.includes("approval")) {
-      this.actionProvider.handleApproval();
-    } else if (lowerCase.includes("설정") || lowerCase.includes("setting")) {
-      this.actionProvider.handleSettings();
-    } else {
-      this.actionProvider.handleUnknown();
+      const res = await apiClient.post("/api/aichat/chat", payload);
+      const data = res.data?.data;
+
+      if (!data || !data.type) {
+        this.actionProvider.handleUnknown();
+        return;
+      }
+
+      if (data.type === "reply") {
+        this.actionProvider.reply(data.reply || "");
+      } else if (data.type === "command") {
+        this.actionProvider.handleCommand(data.command || {});
+      } else {
+        this.actionProvider.handleUnknown();
+      }
+    } catch (e: any) {
+      this.actionProvider.reply(
+        e?.message || "서버와 통신 중 오류가 발생했어요."
+      );
     }
-  }
+  };
 }
 
 export default MessageParser;
