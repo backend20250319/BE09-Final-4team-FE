@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send, MoreHorizontal } from "lucide-react";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
+import { UserAvatar } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import { communicationApi } from "@/lib/services/communication";
 import { formatDateTime } from "@/lib/utils/date-format";
 import { useAuth } from "@/contexts/auth-context";
 import { attachmentService } from "@/lib/services/attachment/api";
+import { toast } from "sonner";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
@@ -109,7 +111,7 @@ export default function AnnouncementsDetailModal({
       setNewComment("");
     } catch (error) {
       console.error('댓글 작성 실패:', error);
-      alert('댓글 작성에 실패했습니다.');
+      toast.error('댓글 작성에 실패했습니다.');
     }
   };
 
@@ -127,7 +129,7 @@ export default function AnnouncementsDetailModal({
       setOpenDropdownId(null);
     } catch (error) {
       console.error('댓글 삭제 실패:', error);
-      alert('댓글 삭제에 실패했습니다.');
+      toast.error('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -141,7 +143,7 @@ export default function AnnouncementsDetailModal({
       await attachmentService.downloadFile(attachment.id, attachment.name);
     } catch (error) {
       console.error('파일 다운로드 실패:', error);
-      alert('파일 다운로드에 실패했습니다.');
+      toast.error('파일 다운로드에 실패했습니다.');
     }
   };
 
@@ -151,6 +153,9 @@ export default function AnnouncementsDetailModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>공지사항 불러오는 중</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-gray-500 text-lg py-8">불러오는 중...</div>
         </DialogContent>
       </Dialog>
@@ -161,6 +166,9 @@ export default function AnnouncementsDetailModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>오류 발생</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-red-500 text-lg py-8">{error || "데이터가 없습니다."}</div>
         </DialogContent>
       </Dialog>
@@ -252,19 +260,13 @@ export default function AnnouncementsDetailModal({
           <div className="space-y-4">
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 relative">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0">
-                  {comment.userInfo?.profileImageUrl ? (
-                    <img 
-                      src={comment.userInfo.profileImageUrl} 
-                      alt={comment.userInfo.name}
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-gray-400" />
-                    </div>
-                  )}
-                </div>
+                <UserAvatar 
+                  src={comment.userInfo?.profileImageUrl}
+                  alt={comment.userInfo?.name || '사용자'}
+                  fallback={comment.userInfo?.name?.charAt(0)}
+                  size="md"
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Upload, FileText, Eye, Download, Trash2 } from 'lucide-react'
 import { Button } from './button'
 import { attachmentApi } from '@/lib/services/attachment/api'
+import { toast } from 'sonner'
 
 export interface Attachment {
   id: string
@@ -36,14 +37,14 @@ export function AttachmentsManager({
 
     // 파일 개수 제한 확인
     if (attachments.length + files.length > maxFiles) {
-      alert(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
+      toast.error(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
       return
     }
 
     // 파일 크기 제한 확인
     const oversizedFiles = Array.from(files).filter(file => file.size > maxFileSize * 1024 * 1024)
     if (oversizedFiles.length > 0) {
-      alert(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
+      toast.error(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
       return
     }
 
@@ -62,7 +63,7 @@ export function AttachmentsManager({
       onAttachmentsChange([...attachments, ...newAttachments])
     } catch (error) {
       console.error('파일 업로드 실패:', error)
-      alert('파일 업로드에 실패했습니다.')
+      toast.error('파일 업로드에 실패했습니다.')
     } finally {
       setIsUploading(false)
     }
@@ -87,14 +88,14 @@ export function AttachmentsManager({
 
     // 파일 개수 제한 확인
     if (attachments.length + files.length > maxFiles) {
-      alert(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
+      toast.error(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
       return
     }
 
     // 파일 크기 제한 확인
     const oversizedFiles = Array.from(files).filter(file => file.size > maxFileSize * 1024 * 1024)
     if (oversizedFiles.length > 0) {
-      alert(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
+      toast.error(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
       return
     }
 
@@ -113,7 +114,7 @@ export function AttachmentsManager({
       onAttachmentsChange([...attachments, ...newAttachments])
     } catch (error) {
       console.error('파일 업로드 실패:', error)
-      alert('파일 업로드에 실패했습니다.')
+      toast.error('파일 업로드에 실패했습니다.')
     } finally {
       setIsUploading(false)
     }
