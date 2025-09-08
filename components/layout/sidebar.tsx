@@ -6,6 +6,7 @@ import { defaultMenuItems, MenuItem } from "@/lib/navigation";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { getAccessToken } from "@/lib/services/common/api-client";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Home,
   Users,
@@ -51,12 +52,19 @@ export function Sidebar({
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [toggledItems, setToggledItems] = useState<Set<number>>(new Set());
+  const { isAdmin } = useAuth();
 
   const isActive = (href: string) => {
     if (!href) return false;
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  // ✅ 비관리자는 설정 메뉴 숨김
+  const visibleMenuItems = useMemo(() => {
+    if (isAdmin) return defaultMenuItems;
+    return defaultMenuItems.filter((item) => item.href !== "/settings");
+  }, [isAdmin]);
 
   // ✅ 자식(하위 메뉴) 중 현재 경로와 매칭되는 것이 있는지 재귀 검사
   const hasActiveDescendant = (item?: MenuItem): boolean => {
@@ -95,7 +103,7 @@ export function Sidebar({
     } else if (item.href) {
       // 하위 메뉴가 없는 경우: 페이지 이동
       router.push(item.href);
-    onMenuItemClick?.(index);
+      onMenuItemClick?.(index);
       if (isMobile) onClose?.();
     }
   };
@@ -131,7 +139,7 @@ export function Sidebar({
         </div>
         {/* Navigation */}
         <nav className="space-y-2">
-          {defaultMenuItems.map((item, index) => {
+          {visibleMenuItems.map((item, index) => {
             const IconComponent = iconMap[item.icon];
             const active = isActive(item.href || "");
             const hasChildren = !!item.children?.length;
@@ -143,17 +151,17 @@ export function Sidebar({
 
             return (
               <div key={index}>
-              <Button
-                variant={active ? "default" : "ghost"}
-                className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  active
-                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
-                }`}
-                onClick={() => handleMenuClick(item, index)}
-              >
-                <IconComponent className="w-5 h-5 mr-3" />
-                {item.label}
+                <Button
+                  variant={active ? "default" : "ghost"}
+                  className={`w-full justify-start h-12 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                    active
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/80"
+                  }`}
+                  onClick={() => handleMenuClick(item, index)}
+                >
+                  <IconComponent className="w-5 h-5 mr-3" />
+                  {item.label}
                   {hasChildren && (
                     <div className="ml-auto">
                       {isExpanded ? (
@@ -183,7 +191,7 @@ export function Sidebar({
                         >
                           <SubIconComponent className="w-4 h-4 mr-3" />
                           {subItem.label}
-              </Button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -192,13 +200,15 @@ export function Sidebar({
             );
           })}
         </nav>
-        
+
         {/* Access Token Display - Dev only */}
-        {process.env.NODE_ENV === 'development' && (
+        {process.env.NODE_ENV === "development" && (
           <div className="mt-6 p-3 bg-gray-50 rounded-lg border">
-            <div className="text-xs font-medium text-gray-600 mb-1">Access Token:</div>
+            <div className="text-xs font-medium text-gray-600 mb-1">
+              Access Token:
+            </div>
             <div className="text-xs text-gray-800 break-all font-mono">
-              {getAccessToken() ?? 'No token'}
+              {getAccessToken() ?? "No token"}
             </div>
           </div>
         )}

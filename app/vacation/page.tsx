@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { MainLayout } from "@/components/layout/main-layout";
 import StyledPaging from "@/components/paging/styled-paging";
 import { leaveApi } from "@/lib/services/attendance/api";
+import { employeeLeaveBalanceApi } from "@/lib/services/attendance/api";
 import {
   CreateLeaveRequestDto,
   LeaveType,
@@ -61,11 +62,15 @@ export default function VacationPage(): JSX.Element {
   const [selectedVacationType, setSelectedVacationType] =
     useState<string>("기본 연차");
   const [stats, setStats] = useState<VacationStats>({
-    totalDays: 15,
-    usedDays: 12,
-    remainingDays: 3,
-    specialDays: 1,
+    totalDays: 0,
+    usedDays: 0,
+    remainingDays: 0,
+    specialDays: 0,
   });
+
+  const [remainingBasic, setRemainingBasic] = useState<number | null>(null);
+  const [remainingComp, setRemainingComp] = useState<number | null>(null);
+  const [remainingSpecial, setRemainingSpecial] = useState<number | null>(null);
 
   // 페이지네이션 설정
   const itemsPerPage = 5;
@@ -175,11 +180,40 @@ export default function VacationPage(): JSX.Element {
         startDate: "2025.05.10",
         endDate: "오후",
         days: 0.5,
-        reason: "[2025-05-10] 오후 개인 일정",
+        reason: "[2025-05.10] 오후 개인 일정",
         status: "반려됨",
       },
     ]);
   }, []);
+
+  // 남은 연차 불러오기
+  useEffect(() => {
+    const fetchRemaining = async () => {
+      if (!user?.id) return;
+      try {
+        const [basic, comp, special] = await Promise.all([
+          employeeLeaveBalanceApi.getRemainingLeave(
+            user.id,
+            LeaveType.BASIC_ANNUAL
+          ),
+          employeeLeaveBalanceApi.getRemainingLeave(
+            user.id,
+            LeaveType.COMPENSATION_ANNUAL
+          ),
+          employeeLeaveBalanceApi.getRemainingLeave(
+            user.id,
+            LeaveType.SPECIAL_ANNUAL
+          ),
+        ]);
+        setRemainingBasic(basic);
+        setRemainingComp(comp);
+        setRemainingSpecial(special);
+      } catch (e) {
+        console.error("남은 연차 조회 실패:", e);
+      }
+    };
+    fetchRemaining();
+  }, [user?.id]);
 
   useEffect(() => {
     const draft =
@@ -376,12 +410,12 @@ export default function VacationPage(): JSX.Element {
                 <div>
                   <p className="text-sm text-gray-600">기본 연차</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {stats.usedDays}
+                    {remainingBasic ?? "–"}
                     <span className="text-sm font-normal text-gray-500">
+                      {" "}
                       일 남음
                     </span>
                   </p>
-                  <p className="text-xs text-blue-600">3월 사용함</p>
                 </div>
               </div>
             </CardContent>
@@ -399,12 +433,12 @@ export default function VacationPage(): JSX.Element {
                 <div>
                   <p className="text-sm text-gray-600">보상 연차</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    4
+                    {remainingComp ?? "–"}
                     <span className="text-sm font-normal text-gray-500">
+                      {" "}
                       일 남음
                     </span>
                   </p>
-                  <p className="text-xs text-green-600">1월 사용함</p>
                 </div>
               </div>
             </CardContent>
@@ -422,12 +456,12 @@ export default function VacationPage(): JSX.Element {
                 <div>
                   <p className="text-sm text-gray-600">특별 연차</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    1
+                    {remainingSpecial ?? "–"}
                     <span className="text-sm font-normal text-gray-500">
+                      {" "}
                       일 남음
                     </span>
                   </p>
-                  <p className="text-xs text-yellow-600">0월 사용함</p>
                 </div>
               </div>
             </CardContent>

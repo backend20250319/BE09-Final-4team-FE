@@ -37,7 +37,12 @@ export const attendanceApi = {
       "/api/attendance/check-in",
       request
     );
-    return response.data.data;
+    const result = response.data;
+    if (!result?.data) {
+      const msg = result?.message || "출근 실패";
+      throw { message: msg, data: result };
+    }
+    return result.data;
   },
 
   // 퇴근 체크아웃
@@ -46,7 +51,12 @@ export const attendanceApi = {
       "/api/attendance/check-out",
       request
     );
-    return response.data.data;
+    const result = response.data;
+    if (!result?.data) {
+      const msg = result?.message || "퇴근 실패";
+      throw { message: msg, data: result };
+    }
+    return result.data;
   },
 
   // 출근 상태 기록

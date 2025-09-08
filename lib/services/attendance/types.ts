@@ -30,7 +30,6 @@ export enum WorkStatus {
 // 스케줄 타입 열거형
 export enum ScheduleType {
   WORK = "WORK",
-  CORETIME = "CORETIME",
   SICK_LEAVE = "SICK_LEAVE",
   VACATION = "VACATION",
   BUSINESS_TRIP = "BUSINESS_TRIP",
@@ -300,8 +299,8 @@ export interface CreateLeaveRequestDto {
 
 // 근무 모니터링 타입
 export interface WorkMonitorDto {
-  id?: number;
-  date: string; // LocalDate is serialized as string
+  id: number;
+  date: string;
   totalEmployees: number;
   attendanceCount: number;
   lateCount: number;
@@ -415,37 +414,28 @@ export interface WeeklyWorkDetail {
   dailySummaries: DailyWorkSummary[];
 }
 
-// 직원 연차 잔액 응답 타입
-export interface EmployeeLeaveBalanceResponseDto {
-  id: number;
-  employeeId: number;
-  leaveType: LeaveType;
-  leaveTypeName: string;
-  totalLeaveDays: number;
-  usedLeaveDays: number;
-  remainingDays: number;
-  workYears: number;
-  usageRate: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// 직원 연차 잔액 요약 타입
-export interface EmployeeLeaveBalanceSummaryDto {
-  employeeId: number;
-  totalRemainingDays: number;
-  totalUsedDays: number;
-  totalGrantedDays: number;
-  leaveBalances: EmployeeLeaveBalanceResponseDto[];
-  basicAnnualRemaining: number;
-  compensationAnnualRemaining: number;
-  specialAnnualRemaining: number;
-  overallUsageRate: number;
-}
-
 // API 응답 래퍼 타입들
 export interface ApiResult<T> {
   status: string;
   message: string;
   data: T;
+}
+
+// 직원 연차 잔액 응답 타입
+export interface EmployeeLeaveBalanceResponseDto {
+  id: number;
+  employeeId: number;
+  leaveType: LeaveType;
+  grantedDays: number;
+  usedDays: number;
+  remainingDays: number;
+  grantedAt?: string;
+  updatedAt?: string;
+}
+
+// 직원 연차 잔액 요약 타입
+export interface EmployeeLeaveBalanceSummaryDto {
+  totalGrantedDays: number;
+  totalUsedDays: number;
+  totalRemainingDays: number;
 }
