@@ -76,10 +76,45 @@ export default function VacationModal({
   const [showEndTimeDropdown, setShowEndTimeDropdown] =
     useState<boolean>(false);
 
-  // defaultVacationType이 변경될 때 vacationType 상태 업데이트
+  // defaultVacationType 동기화 (드래프트가 없는 일반 케이스)
   useEffect(() => {
-    setVacationType(defaultVacationType);
-  }, [defaultVacationType]);
+    if (!isOpen) {
+      setVacationType(defaultVacationType);
+    }
+  }, [defaultVacationType, isOpen]);
+
+  // 드래프트로 자동 채우기
+  useEffect(() => {
+    if (isOpen && typeof window !== "undefined") {
+      const raw = localStorage.getItem("aichat:vacationDraft");
+      if (raw) {
+        try {
+          const draft = JSON.parse(raw);
+          if (draft.type && typeof draft.type === "string") {
+            setVacationType(draft.type);
+          }
+          const s = draft.startDate || draft.start_date || draft.date;
+          const e = draft.endDate || draft.end_date || draft.toDate || s;
+          if (s) {
+            const sd = new Date(s);
+            setStartDate(sd);
+            if (e) {
+              const ed = new Date(e);
+              setEndDate(ed);
+              updateSelectedDates(sd, ed);
+            } else {
+              setEndDate(sd);
+              updateSelectedDates(sd, sd);
+            }
+          }
+          if (draft.startTime) setStartTime(draft.startTime);
+          if (draft.endTime) setEndTime(draft.endTime);
+          if (draft.reason) setReason(String(draft.reason));
+        } catch {}
+        localStorage.removeItem("aichat:vacationDraft");
+      }
+    }
+  }, [isOpen]);
 
   const defaultVacationTypes: VacationType[] = [
     { value: "기본 연차", label: "기본 연차" },
@@ -192,9 +227,15 @@ export default function VacationModal({
     setShowEndTimeDropdown(false);
   };
 
+  const handleDialogOpenChange = (open: boolean): void => {
+    if (!open) {
+      handleClose();
+    }
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="w-full max-w-lg mx-4 p-4 bg-white/80 backdrop-blur-md border-gray-200/50 rounded-2xl max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-bold text-gray-800">

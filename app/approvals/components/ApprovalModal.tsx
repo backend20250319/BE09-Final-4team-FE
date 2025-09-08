@@ -8,9 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { colors, typography } from "@/lib/design-tokens"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Calendar,
   User,
@@ -19,128 +17,53 @@ import {
   XCircle,
   AlertCircle,
   ArrowRight,
-  MessageSquare,
   Check,
   X,
-  Users,
-  Edit,
-  Plus,
   Send,
-  History,
-  FileEdit,
-  UserPlus,
-  UserMinus,
   Loader2,
   ChevronDown,
   ChevronUp,
   Eye,
+  FileText,
 } from "lucide-react"
 import { AttachmentsSection } from "@/components/ui/attachments-section"
-import { Attachment } from "@/components/ui/attachments-manager"
-import { formTemplates, getIconComponent } from "@/lib/mock-data/form-templates"
-
-// 타입 정의
-export interface User {
-  id: string
-  name: string
-  avatar?: string
-  position?: string
-}
-
-interface TimelineItem {
-  id: string
-  date: string
-  user: User
-  action: string
-  content?: string
-  changes?: Array<{
-    field: string
-    oldValue: string
-    newValue: string
-  }>
-  type?: 'history' | 'comment'
-  uniqueId?: string
-}
-
-interface Approver {
-  userId: string
-  name: string
-  avatar?: string
-  position: string
-  status: 'pending' | 'completed' | 'rejected'
-}
-
-interface ApprovalStage {
-  id: string
-  status: 'pending' | 'current' | 'completed' | 'rejected'
-  approvers: Approver[]
-}
-
-interface Reference {
-  id: string
-  name: string
-  avatar?: string
-  position: string
-}
-
-export interface Approval {
-  id: number
-  formTemplateId: string
-  content: string
-  department: string
-  requester: string
-  date: string
-  status: 'pending' | 'approved' | 'rejected'
-  priority?: 'low' | 'medium' | 'high'
-  isMyApproval?: boolean
-  attachments?: Attachment[]
-  history?: TimelineItem[]
-  comments?: TimelineItem[]
-  approvalStages?: ApprovalStage[]
-  references?: Reference[]
-  formFields?: Record<string, any>
-}
+import { ApprovalStageResponse, ApprovalTargetResponse, DocumentResponse, DocumentSummaryResponse, ApprovalStatus, ActivityType, DocumentStatus, DocumentRole, DocumentFieldValueResponse, FieldType, DocumentBase } from "@/lib/services/approval/types"
+import { getStatusText } from "../utils"
+import { useDocument, useApproveDocument, useRejectDocument, useCreateComment } from "../hooks/useApproval"
+import { Separator } from "@/components/ui/separator"
+import { getRelativeTime } from "@/lib/utils/datetime"
+import { TemplateIcon } from "./common/TemplateIcon"
 
 interface ApprovalModalProps {
   isOpen: boolean
   onClose: () => void
-  approval: Approval | null
-  onApprove?: (approvalId: number, comment?: string) => Promise<void>
-  onReject?: (approvalId: number, comment?: string) => Promise<void>
-  onAddComment?: (approvalId: number, comment: string) => Promise<void>
+  documentSummary: DocumentSummaryResponse | null
+  documentId: number | null
 }
 
 // 서브 컴포넌트들
-function ApprovalHeader({ approval }: { approval: Approval }) {
-  const StatusIcon = getStatusIcon(approval.status, approval.isMyApproval)
-  const statusBgColor = getStatusColor(approval.status, approval.isMyApproval)
-  const statusTextColor = getStatusTextColor(approval.status, approval.isMyApproval)
-
-  // formTemplate 찾기
-  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
-  if (!formTemplate) return null
+function ApprovalHeader({ document }: { 
+  document: DocumentSummaryResponse | DocumentResponse
+}) {
+  const StatusIcon = getStatusIcon(document.status, document.myRole === "APPROVER")
+  const statusBgColor = getStatusColor(document.status, document.myRole === "APPROVER")
+  const statusTextColor = getStatusTextColor(document.status, document.myRole === "APPROVER")
 
   return (
     <div className="flex items-center gap-5">
-      <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ backgroundColor: formTemplate.color }}>
-        {(() => {
-          const IconComponent = typeof formTemplate.icon === 'string' ? getIconComponent(formTemplate.icon) : formTemplate.icon
-          return <IconComponent className="w-6 h-6 text-white" />
-        })()}
-      </div>
+      <TemplateIcon
+        icon={document.template.icon}
+        color={document.template.color}
+      />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className={`${typography.h3} text-gray-800 truncate`}>{formTemplate.title}</h2>
-          {approval.priority === "high" && (
-            <Badge variant="destructive" className="flex items-center gap-1 text-xs">
-              <AlertCircle className="w-3 h-3" />
-              긴급
-            </Badge>
-          )}
+          <h2 className={`${typography.h3} text-gray-800 truncate`}>
+            {document.template.title}
+          </h2>
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-sm border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
             <StatusIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{getStatusText(approval.status, approval.isMyApproval)}</span>
-            <span className="sm:hidden">{getStatusText(approval.status, approval.isMyApproval).replace('승인 필요', '승인').replace('진행중', '진행')}</span>
+            <span className="hidden sm:inline">{getStatusText(document.status, document.myRole)}</span>
+            <span className="sm:hidden">{getStatusText(document.status, document.myRole)}</span>
           </div>
         </div>
       </div>
@@ -148,7 +71,18 @@ function ApprovalHeader({ approval }: { approval: Approval }) {
   )
 }
 
-function ApprovalInfo({ approval }: { approval: Approval }) {
+function ApprovalInfo({ document }: { document: DocumentBase }) {
+  if (!document) return null
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\. /g, '.').replace(/\.$/, '')
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div className="flex items-center gap-3">
@@ -157,7 +91,7 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 font-medium">신청자</p>
-          <p className="text-sm font-semibold text-gray-800 truncate">{approval.requester}</p>
+          <p className="text-sm font-semibold text-gray-800 truncate">{document.author?.name || "알 수 없음"}</p>
         </div>
       </div>
 
@@ -167,7 +101,7 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-gray-500 font-medium">신청일</p>
-          <p className="text-sm font-semibold text-gray-800">{approval.date}</p>
+          <p className="text-sm font-semibold text-gray-800">{formatDate(document.submittedAt || document.createdAt)}</p>
         </div>
       </div>
     </div>
@@ -175,35 +109,34 @@ function ApprovalInfo({ approval }: { approval: Approval }) {
 }
 
 // 필드별 값 표시 컴포넌트
-function FormFieldDisplay({
-  field,
-  value
-}: {
-  field: { name: string; type: string; options?: string[] }
-  value: any
-}) {
+function FormFieldDisplay({ field }: { field: DocumentFieldValueResponse }) {
   const formatValue = () => {
-    if (!value && value !== 0) return '-'
+    const value = field.fieldValue
+    if (!value) return '-'
 
-    switch (field.type) {
-      case 'money':
+    switch (field.fieldType) {
+      case FieldType.MONEY:
         return `${value}원`
-      case 'date':
-        return new Date(value).toLocaleDateString('ko-KR')
-      case 'multiselect':
-        return Array.isArray(value) ? value.join(', ') : value
-
-      case 'select':
-      case 'text':
-      case 'number':
+      case FieldType.DATE:
+        return new Date(value).toLocaleDateString()
+      case FieldType.MULTISELECT:
+        try {
+          const options = JSON.parse(value)
+          return Array.isArray(options) ? options.join(', ') : value
+        } catch {
+          return value
+        }
+      case FieldType.SELECT:
+      case FieldType.TEXT:
+      case FieldType.NUMBER:
       default:
-        return value.toString()
+        return value
     }
   }
 
   return (
     <div className="space-y-1">
-      <p className="text-xs text-gray-500 font-medium">{field.name}</p>
+      <p className="text-xs text-gray-500 font-medium">{field.fieldName}</p>
       <p className="text-sm font-semibold text-gray-800 break-words">
         {formatValue()}
       </p>
@@ -212,29 +145,21 @@ function FormFieldDisplay({
 }
 
 // 양식 필드 섹션 컴포넌트
-function FormFieldsSection({ approval }: { approval: Approval }) {
-  const formTemplate = formTemplates.find(template => template.id === approval.formTemplateId)
-
-  if (!formTemplate?.fields || !approval.formFields) {
+function FormFieldsSection({ documentDetail }: { documentDetail: DocumentResponse | undefined }) {
+  if (!documentDetail?.fieldValues || documentDetail.fieldValues.length === 0) {
     return null
   }
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-        {formTemplate.fields.map((field) => (
-          <FormFieldDisplay
-            key={field.name}
-            field={field}
-            value={approval.formFields![field.name]}
-          />
+        {documentDetail.fieldValues.map((field, index) => (
+          <FormFieldDisplay key={field.id || index} field={field} />
         ))}
       </div>
     </div>
   )
 }
-
-
 
 function TimelineSection({
   timeline,
@@ -251,22 +176,17 @@ function TimelineSection({
   isSubmitting: boolean
   canComment: boolean
 }) {
-  const formatSimpleDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return `${date.getMonth() + 1}월 ${date.getDate()}일`
-  }
-
-  const getHistoryText = (action: string) => {
+  const getHistoryText = (action: ActivityType | string) => {
     switch (action) {
-      case "created": return "문서를 생성"
-      case "updated": return "문서를 수정"
-      case "approved": return "승인"
-      case "rejected": return "반려"
+      case ActivityType.CREATE: return "문서를 생성"
+      case ActivityType.UPDATE: return "문서를 수정"
+      case ActivityType.SUBMIT: return "문서를 제출"
+      case ActivityType.APPROVE: return "승인"
+      case ActivityType.REJECT: return "반려"
+      case ActivityType.MODIFY_APPROVAL: return "승인자를 수정"
+      case ActivityType.COMMENT: return "댓글을 작성"
       case "comment": return "댓글을 작성"
-      case "approver_added": return "승인권자를 추가"
-      case "approver_removed": return "승인권자를 제거"
-      case "file_attached": return "첨부파일을 추가"
-      default: return action
+      default: return String(action)
     }
   }
 
@@ -286,10 +206,10 @@ function TimelineSection({
                 )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="text-xs text-gray-500 cursor-help ml-2">{formatSimpleDate(item.date)}</span>
+                    <span className="text-xs text-gray-500 cursor-help ml-2">{getRelativeTime(item.date)}</span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{item.date}</p>
+                    <p>{new Date(item.date).toLocaleString()}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -352,15 +272,19 @@ function TimelineSection({
   )
 }
 
-function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[], references?: Reference[] }) {
+function ApprovalStagesSection({ documentDetail }: { documentDetail: DocumentResponse }) {
+  if (!documentDetail?.approvalStages) return null
+  
+  const stages = documentDetail.approvalStages
+  const references = documentDetail.referenceTargets
   return (
     <div className="space-y-3">
       <div className="space-y-3">
-        {stages.map((stage, stageIndex) => (
+        {stages.map((stage: ApprovalStageResponse, stageIndex: number) => (
           <div 
             key={stage.id || `stage-${stageIndex}`} 
             className={`p-3 rounded-lg transition-all duration-300 ${
-              stage.status === "current" 
+              !stage.isCompleted && stageIndex === 0
                 ? "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 shadow-md" 
                 : ""
             }`}
@@ -368,74 +292,73 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                  stage.status === "completed" ? "bg-green-100" :
-                  stage.status === "current" ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg" :
-                  stage.status === "pending" ? "bg-yellow-100" : "bg-red-100"
+                  stage.isCompleted ? "bg-green-100" :
+                  !stage.isCompleted && stageIndex === 0 ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-lg" :
+                  "bg-yellow-100"
                 }`}>
-                  {stage.status === "completed" ? (
+                  {stage.isCompleted ? (
                     <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : stage.status === "current" ? (
+                  ) : !stage.isCompleted && stageIndex === 0 ? (
                     <Clock className="w-4 h-4 text-white animate-pulse" />
-                  ) : stage.status === "pending" ? (
-                    <AlertCircle className="w-4 h-4 text-yellow-600" />
                   ) : (
-                    <X className="w-4 h-4 text-red-600" />
+                    <AlertCircle className="w-4 h-4 text-yellow-600" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`font-medium ${stage.status === "current" ? "text-blue-800" : "text-gray-800"}`}>
+                  <p className={`font-medium ${!stage.isCompleted && stageIndex === 0 ? "text-blue-800" : "text-gray-800"}`}>
                     {stageIndex + 1}단계 승인
                     <span className={`text-sm ml-2 font-semibold ${
-                      stage.status === "completed" ? "text-green-600" :
-                      stage.status === "current" ? "text-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" :
-                      stage.status === "pending" ? "text-yellow-600" : "text-red-600"
+                      stage.isCompleted ? "text-green-600" :
+                      !stage.isCompleted && stageIndex === 0 ? "text-blue-600 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" :
+                      "text-yellow-600"
                     }`}>
-                      {stage.status === "completed" ? "완료" :
-                        stage.status === "current" ? "진행중" :
-                          stage.status === "pending" ? "대기중" : "반려됨"}
+                      {stage.isCompleted ? "완료" :
+                        !stage.isCompleted && stageIndex === 0 ? "진행중" : "대기중"}
                     </span>
                   </p>
                 </div>
               </div>
               <div className={`text-sm flex-shrink-0 ${
-                stage.status === "current" ? "text-blue-700 font-medium" : "text-gray-500"
+                !stage.isCompleted && stageIndex === 0 ? "text-blue-700 font-medium" : "text-gray-500"
               }`}>
-                {stage.approvers.filter(a => a.status === "completed").length}/{stage.approvers.length} 승인
+                {stage.approvalTargets?.filter((t: ApprovalTargetResponse) => t.approvalStatus === ApprovalStatus.APPROVED).length || 0}/{stage.approvalTargets?.length || 0} 승인
               </div>
             </div>
 
             <div className="space-y-1">
-              {stage.approvers.map((approver, approverIndex) => (
-                <div key={approver.userId || `approver-${stageIndex}-${approverIndex}`} className="flex items-center justify-between p-2">
+              {stage.approvalTargets?.map((target: ApprovalTargetResponse, targetIndex: number) => (
+                <div key={target.id || `target-${stageIndex}-${targetIndex}`} className="flex items-center justify-between p-2">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar className="w-8 h-8 flex-shrink-0">
-                      <AvatarImage src={approver.avatar} alt={approver.name} />
+                      <AvatarImage src={target.user?.profileImageUrl} alt={target.user?.name} />
                       <AvatarFallback className="text-xs">
-                        {approver.name?.charAt(0) || "U"}
+                        {target.user?.name?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-800 truncate">{approver.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{approver.position}</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">{target.user?.name || "알 수 없음"}</p>
+                      <p className="text-xs text-gray-500 truncate">{target.user?.email || ""}</p>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <div className="flex items-center gap-1 justify-end mb-1">
-                      {approver.status === "completed" ? (
+                      {target.approvalStatus === ApprovalStatus.APPROVED ? (
                         <CheckCircle className="w-3 h-3 text-green-600" />
-                      ) : approver.status === "pending" ? (
-                        <Clock className="w-3 h-3 text-yellow-600" />
-                      ) : (
+                      ) : target.approvalStatus === ApprovalStatus.REJECTED ? (
                         <XCircle className="w-3 h-3 text-red-600" />
+                      ) : (
+                        <Clock className="w-3 h-3 text-yellow-600" />
                       )}
                       <p className="text-xs text-gray-500">
-                        {approver.status === "completed" ? "승인됨" :
-                          approver.status === "pending" ? "대기중" : "반려됨"}
+                        {target.approvalStatus === ApprovalStatus.APPROVED ? "승인됨" :
+                          target.approvalStatus === ApprovalStatus.REJECTED ? "반려됨" : "대기중"}
                       </p>
                     </div>
                   </div>
                 </div>
-              ))}
+              )) || (
+                <div className="text-center py-2 text-gray-500 text-sm">승인자가 없습니다.</div>
+              )}
             </div>
           </div>
         ))}
@@ -455,17 +378,17 @@ function ApprovalStagesSection({ stages, references }: { stages: ApprovalStage[]
             </div>
 
             <div className="space-y-1">
-              {references.map((reference, index) => (
+              {references.map((reference: any, index: number) => (
                 <div key={reference.id || `reference-${index}`} className="flex items-center gap-3 p-2">
                   <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarImage src={reference.avatar} alt={reference.name} />
+                    <AvatarImage src={reference.user?.profileImageUrl} alt={reference.user?.name} />
                     <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
-                      {reference.name?.charAt(0) || "R"}
+                      {reference.user?.name?.charAt(0) || "R"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-800 truncate">{reference.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{reference.position}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{reference.user?.name || "알 수 없음"}</p>
+                    <p className="text-xs text-gray-500 truncate">{reference.user?.email || ""}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
@@ -556,46 +479,37 @@ function getStatusTextColor(status: string, isMyApproval?: boolean) {
   }
 }
 
-function getStatusText(status: string, isMyApproval?: boolean) {
-  switch (status) {
-    case "pending":
-      return isMyApproval ? "승인 필요" : "진행중"
-    case "approved":
-      return "승인됨"
-    case "rejected":
-      return "반려됨"
-    default:
-      return status
-  }
-}
 
 export function ApprovalModal({
   isOpen,
   onClose,
-  approval,
-  onApprove,
-  onReject,
-  onAddComment
+  documentSummary,
+  documentId,
 }: ApprovalModalProps) {
   const [newComment, setNewComment] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (!approval) return null
+  // API 훅들
+  const { data: documentDetail, isLoading, error } = useDocument(documentId)
+  const approveMutation = useApproveDocument()
+  const rejectMutation = useRejectDocument()
+  const commentMutation = useCreateComment()
+
+  // DocumentSummary와 DocumentDetail을 조합해서 표시할 데이터 생성
+  const document = documentDetail || documentSummary
+  if (!document) return null
 
   const getCurrentStage = () => {
-    if (!approval.approvalStages) return null
-    return approval.approvalStages.find((stage) =>
-      stage.status === "pending" || stage.status === "current"
+    if (!documentDetail?.approvalStages) return null
+    return documentDetail.approvalStages.find((stage) =>
+      !stage.isCompleted
     )
   }
 
   const canApprove = () => {
-    const currentStage = getCurrentStage()
-    if (!currentStage) return false
-
-    return currentStage.approvers.some((approver) =>
-      approver.userId === "current-user-id" && approver.status === "pending"
-    )
+    // 승인 권한 체크: APPROVER 역할이면서 문서 상태가 IN_PROGRESS여야 함
+    const hasApproverRole = documentSummary?.myRole === "APPROVER" || documentDetail?.myRole === "APPROVER"
+    const isApprovableStatus = document.status === "IN_PROGRESS"
+    return hasApproverRole && isApprovableStatus
   }
 
   const canComment = () => {
@@ -603,57 +517,85 @@ export function ApprovalModal({
   }
 
   const handleApprove = async () => {
-    if (!onApprove) return
-    setIsSubmitting(true)
+    if (!document.id) return
     try {
-      await onApprove(approval.id)
+      await approveMutation.mutateAsync({
+        id: document.id,
+        request: { reason: "" } // 승인 사유는 선택사항
+      })
       onClose()
     } catch (error) {
       console.error("승인 처리 중 오류:", error)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
   const handleReject = async () => {
-    if (!onReject) return
-    setIsSubmitting(true)
+    if (!document.id) return
     try {
-      await onReject(approval.id)
+      await rejectMutation.mutateAsync({
+        id: document.id,
+        request: { reason: "" } // 반려 사유는 선택사항
+      })
       onClose()
     } catch (error) {
       console.error("반려 처리 중 오류:", error)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
   const handleAddComment = async () => {
-    if (!onAddComment || !newComment.trim()) return
-    setIsSubmitting(true)
+    if (!newComment.trim() || !document.id) return
     try {
-      await onAddComment(approval.id, newComment)
+      await commentMutation.mutateAsync({
+        documentId: document.id,
+        request: { content: newComment }
+      })
       setNewComment("")
     } catch (error) {
       console.error("댓글 작성 중 오류:", error)
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
-  // 히스토리와 댓글을 합친 타임라인 생성
+  // 로딩 상태 체크
+  const isSubmitting = approveMutation.isPending || rejectMutation.isPending || commentMutation.isPending
+
+  // DocumentResponse의 activities와 comments를 타임라인으로 변환
   const timeline = [
-    ...(approval.history || []).map((item, index) => ({
-      ...item,
-      uniqueId: `history-${item.id || index}`
+    ...(documentDetail?.activities || []).map((activity, index) => ({
+      id: activity.id?.toString() || index.toString(),
+      date: activity.createdAt,
+      user: activity.user,
+      action: activity.activityType,
+      content: activity.reason,
+      type: 'history' as const,
+      uniqueId: `activity-${activity.id || index}`
     })),
-    ...(approval.comments || []).map((comment, index) => ({
-      ...comment,
+    ...(documentDetail?.comments || []).map((comment, index) => ({
+      id: comment.id?.toString() || index.toString(),
+      date: comment.createdAt,
+      user: comment.author,
       action: "comment",
+      content: comment.content,
       type: "comment" as const,
       uniqueId: `comment-${comment.id || index}`
     }))
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+  // 에러 처리
+  if (error && !documentSummary) {
+    return (
+      <TooltipProvider>
+        <Dialog open={isOpen} onOpenChange={onClose}>
+          <DialogContent className="!max-w-md !w-[90vw] flex flex-col p-6">
+            <div className="text-center py-12">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <p className="text-red-500 mb-4">문서를 불러오는 중 오류가 발생했습니다.</p>
+              <Button onClick={onClose}>닫기</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <TooltipProvider>
@@ -661,7 +603,7 @@ export function ApprovalModal({
         <DialogContent className="!max-w-5xl !w-[95vw] max-h-[90vh] flex flex-col p-0 sm:p-6">
           <DialogHeader className="pb-4 px-4 sm:px-0">
             <DialogTitle>
-              <ApprovalHeader approval={approval} />
+              <ApprovalHeader document={document} />
             </DialogTitle>
           </DialogHeader>
 
@@ -669,24 +611,31 @@ export function ApprovalModal({
           <div className="hidden lg:flex flex-1 overflow-hidden gap-4">
             {/* 왼쪽 컬럼 - 메인 콘텐츠 */}
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 pl-2">
-              <ApprovalInfo approval={approval} />
+              <ApprovalInfo document={document} />
 
               {/* 양식 필드 */}
-              <FormFieldsSection approval={approval} />
+              {isLoading && !documentDetail ? (
+                <div className="p-4 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ) : (
+                <FormFieldsSection documentDetail={documentDetail} />
+              )}
 
               {/* 상세 내용 */}
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content || '내용이 없습니다.'}
+                    {document.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>
 
               {/* 첨부 파일 */}
-              {approval.attachments && approval.attachments.length > 0 && (
+              {documentDetail?.attachments && documentDetail.attachments.length > 0 && (
                 <>
-                  <AttachmentsSection attachments={approval.attachments} />
+                  <AttachmentsSection attachments={documentDetail.attachments} />
                 </>
               )}
 
@@ -710,13 +659,18 @@ export function ApprovalModal({
             <div className="w-80 flex-shrink-0 flex flex-col p-0">
               <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50 rounded-lg p-2">
                 {/* 승인 단계 정보 (참조자 포함) */}
-                {(approval.approvalStages && approval.approvalStages.length > 0) || (approval.references && approval.references.length > 0) ? (
-                  <ApprovalStagesSection stages={approval.approvalStages || []} references={approval.references} />
+                {isLoading && !documentDetail ? (
+                  <div className="space-y-3">
+                    <div className="h-20 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ) : documentDetail ? (
+                  <ApprovalStagesSection documentDetail={documentDetail} />
                 ) : null}
               </div>
 
               {/* 승인/반려 버튼 */}
-              {approval.status === "pending" && canApprove() && (
+              {canApprove() && (
                 <div className="mt-4">
                   <div className="flex gap-3">
                     <GradientButton
@@ -754,33 +708,33 @@ export function ApprovalModal({
           {/* 모바일 레이아웃 */}
           <div className="lg:hidden flex-1 overflow-y-auto">
             <div className="space-y-3 p-3">
-              <ApprovalInfo approval={approval} />
+              <ApprovalInfo document={document} />
 
               {/* 양식 필드 */}
-              {approval.formFields && (
-                <FormFieldsSection approval={approval} />
+              {documentDetail?.fieldValues && (
+                <FormFieldsSection documentDetail={documentDetail} />
               )}
 
               {/* 상세 내용 */}
               <div className="space-y-2">
                 <div className="p-3">
                   <div className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
-                    {approval.content || '내용이 없습니다.'}
+                    {document.content || '내용이 없습니다.'}
                   </div>
                 </div>
               </div>
 
               {/* 승인 단계 정보 (참조자 포함) */}
-              {(approval.approvalStages && approval.approvalStages.length > 0) || (approval.references && approval.references.length > 0) ? (
+              {documentDetail && (
                 <CollapsibleSection title="승인 단계" defaultOpen={true}>
-                  <ApprovalStagesSection stages={approval.approvalStages || []} references={approval.references} />
+                  <ApprovalStagesSection documentDetail={documentDetail} />
                 </CollapsibleSection>
-              ) : null}
+              )}
 
               {/* 첨부 파일 */}
-              {approval.attachments && approval.attachments.length > 0 && (
+              {documentDetail?.attachments && documentDetail.attachments.length > 0 && (
                 <CollapsibleSection title="첨부파일">
-                  <AttachmentsSection attachments={approval.attachments} />
+                  <AttachmentsSection attachments={documentDetail.attachments} />
                 </CollapsibleSection>
               )}
 
@@ -799,7 +753,7 @@ export function ApprovalModal({
               )}
 
               {/* 승인/반려 버튼 - 모바일에서는 하단 고정 */}
-              {approval.status === "pending" && canApprove() && (
+              {canApprove() && (
                 <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-3 mt-4">
                   <div className="flex gap-3">
                     <GradientButton

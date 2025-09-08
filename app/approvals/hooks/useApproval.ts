@@ -9,6 +9,7 @@ import {
   CreateCommentRequest,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  BulkCategoryRequest,
   CreateTemplateRequest,
   UpdateTemplateRequest
 } from '@/lib/services/approval/types'
@@ -217,6 +218,7 @@ export const useUpdateTemplate = () => {
       queryClient.invalidateQueries({ queryKey: ['template', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['templates'] })
       queryClient.invalidateQueries({ queryKey: ['templates-by-category'] })
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
       toast.success('템플릿이 성공적으로 수정되었습니다.')
     },
     onError: () => {
@@ -324,6 +326,29 @@ export const useDeleteCategory = () => {
     },
     onError: () => {
       toast.error('카테고리 삭제에 실패했습니다.')
+    },
+  })
+}
+
+// 카테고리 벌크 작업
+export const useBulkProcessCategories = () => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: (request: BulkCategoryRequest) => approvalApi.category.bulkProcessCategories(request),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['templates'] })
+      console.log(`총 ${data.totalOperations}개 작업 중 ${data.successfulOperations}개 성공, ${data.failedOperations}개 실패`)
+      
+      if (data.failedOperations > 0) {
+        toast.warning(`일부 분류 편집이 실패했습니다.`)
+      } else {
+        toast.success('분류 편집을 완료했습니다.')
+      }
+    },
+    onError: () => {
+      toast.error('분류 편집에 실패했습니다.')
     },
   })
 }

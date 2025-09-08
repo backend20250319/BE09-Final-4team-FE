@@ -1,6 +1,7 @@
 // Backend ScheduleType(enum) → 한글 라벨 매핑
 export const SCHEDULE_TYPE_LABEL: Record<string, string> = {
   WORK: "근무",
+  CORETIME: "코어타임",
   SICK_LEAVE: "병가",
   VACATION: "휴가",
   BUSINESS_TRIP: "출장",
@@ -13,13 +14,14 @@ export const SCHEDULE_TYPE_LABEL: Record<string, string> = {
 // Backend ScheduleType(enum) → 색상 매핑 (모두 구분 가능한 색상)
 export const SCHEDULE_TYPE_COLOR: Record<string, string> = {
   WORK: "#3B82F6", // 파란색 (기본 근무)
-  SICK_LEAVE: "#EF4444", // 빨간색 (병가)
-  VACATION: "#F59E0B", // 주황색 (휴가)
-  BUSINESS_TRIP: "#8B5CF6", // 보라색 (출장)
-  OUT_OF_OFFICE: "#10B981", // 초록색 (외근)
-  OVERTIME: "#EC4899", // 핑크색 (초과근무)
-  RESTTIME: "#06B6D4", // 청록색 (휴게시간)
-  REMOTE: "#84CC16", // 라임색 (재택)
+  CORETIME: "#28A745", // 진한 초록색 (코어타임)
+  RESTTIME: "#FFC107", // 노란색 (휴게시간)
+  SICK_LEAVE: "#DC3545", // 빨간색 (병가)
+  VACATION: "#FD7E14", // 주황색 (휴가)
+  BUSINESS_TRIP: "#6F42C1", // 보라색 (출장)
+  OUT_OF_OFFICE: "#20C997", // 청록색 (외근)
+  OVERTIME: "#E83E8C", // 핑크색 (초과근무)
+  REMOTE: "#6C757D", // 회색 (재택)
 };
 
 // ScheduleType → 한글 라벨 변환 함수

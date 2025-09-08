@@ -5,76 +5,45 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { GlassCard } from "@/components/ui/glass-card"
 import { GradientButton } from "@/components/ui/gradient-button"
 import { Input } from "@/components/ui/input"
-import { ApprovalModal } from "@/app/approvals/components/approval-modal"
-import { FormSelectionModal } from "@/app/approvals/components/form-selection-modal"
-import { FormManagementModal } from "@/app/approvals/components/form-management-modal"
-import { FormWriterModal } from "@/app/approvals/components/form-writer-modal"
+import { ApprovalModal } from "./components/ApprovalModal"
+import { TemplateSelectionModal } from "./components/TemplateSelectionModal"
+import { TemplateManagementModal } from "./components/TemplateManagementModal"
+import { DocumentWriterModal } from "./components/DocumentWriterModal"
 import { colors, typography } from "@/lib/design-tokens"
-import { useDocuments } from "@/lib/hooks/useApproval"
-import { DocumentSummaryResponse, DocumentStatus, UserRole } from "@/lib/services/approval/types"
-import { FormTemplate } from "@/lib/mock-data/form-templates"
+import { useDocuments } from "./hooks/useApproval"
+import { DocumentSummaryResponse, DocumentStatus, DocumentRole, TemplateSummaryResponse, TemplateResponse } from "@/lib/services/approval/types"
+import { getStatusText } from "./utils"
+import { TemplateIcon } from "./components/common/TemplateIcon"
 import {
   Search,
   Plus,
-  ClipboardList,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
-  User,
   Calendar,
   FileText,
-  ArrowRight,
-  ChevronDown,
-  ChevronRight,
   Settings,
 } from "lucide-react"
-
-// 타입 정의
-/**
- * @deprecated 목 데이터 타입. 삭제 예정
- */
-interface Approval {
-  id: number
-  formTemplateId: string
-  requester: string
-  department: string
-  date: string
-  status: string
-  priority: string
-  content: string
-  isMyApproval: boolean
-  approvalStages: any[]
-  references: any[]
-  history: any[]
-  comments: any[]
-  formFields?: Record<string, any>
-}
 
 export default function ApprovalsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<"inProgress" | "completed">("inProgress")
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    myPending: false,
-    inProgress: false,
-    approved: false,
-    rejected: false,
-  })
-  const [selectedApproval, setSelectedApproval] = useState<Approval | null>(null)
+  const [selectedDocumentSummary, setSelectedDocumentSummary] = useState<DocumentSummaryResponse | null>(null)
+  const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // 결재 신청 관련 상태
   const [isFormSelectionOpen, setIsFormSelectionOpen] = useState(false)
   const [isFormWriterOpen, setIsFormWriterOpen] = useState(false)
-  const [selectedFormTemplate, setSelectedFormTemplate] = useState<FormTemplate | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null)
+  const [selectedTemplateSummary, setSelectedTemplateSummary] = useState<TemplateSummaryResponse | null>(null)
+  const [selectedDraftDocument, setSelectedDraftDocument] = useState<DocumentSummaryResponse | null>(null)
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false)
-
-  // 현재 사용자 정보 (실제로는 인증 시스템에서 가져옴)
-  const currentUser = "김철수"
 
   // API에서 문서 데이터 가져오기
   const statusFilter = activeTab === "inProgress" 
-    ? [DocumentStatus.DRAFT, DocumentStatus.PENDING, DocumentStatus.IN_PROGRESS]
+    ? [DocumentStatus.IN_PROGRESS]
     : [DocumentStatus.APPROVED, DocumentStatus.REJECTED]
 
   const { data: documentsData, isLoading, error } = useDocuments({
@@ -89,31 +58,27 @@ export default function ApprovalsPage() {
   const documents = documentsData?.content || []
 
   // 문서를 상태와 사용자 역할에 따라 분류
-  const draftDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    doc.status === DocumentStatus.DRAFT
-  )
   const myPendingDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    (doc.status === DocumentStatus.PENDING || doc.status === DocumentStatus.IN_PROGRESS) && 
-    doc.userRole === UserRole.APPROVER
+    doc.status === DocumentStatus.IN_PROGRESS && 
+    doc.myRole === DocumentRole.APPROVER
   )
   const inProgressDocuments = documents.filter((doc: DocumentSummaryResponse) =>
-    (doc.status === DocumentStatus.PENDING || doc.status === DocumentStatus.IN_PROGRESS) && 
-    doc.userRole !== UserRole.APPROVER
+    doc.status === DocumentStatus.IN_PROGRESS && 
+    doc.myRole !== DocumentRole.APPROVER
   )
   // 진행중 및 완료된 문서
-  const inProgressData = [...draftDocuments, ...myPendingDocuments, ...inProgressDocuments]
+  const inProgressData = [...myPendingDocuments, ...inProgressDocuments]
   const completedData = documents.filter((doc: DocumentSummaryResponse) => 
     doc.status === DocumentStatus.APPROVED || doc.status === DocumentStatus.REJECTED
   )
 
-  const getStatusIcon = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusIcon = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return FileText
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 AlertCircle, 그렇지 않으면 Clock
-        return userRole === UserRole.APPROVER ? AlertCircle : Clock
+        return myRole === DocumentRole.APPROVER ? AlertCircle : Clock
       case DocumentStatus.APPROVED:
         return CheckCircle
       case DocumentStatus.REJECTED:
@@ -123,14 +88,13 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusBgColor = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusBgColor = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.bg
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
-        return userRole === UserRole.APPROVER ? colors.status.warning.bg : colors.status.info.bg
+        return myRole === DocumentRole.APPROVER ? colors.status.warning.bg : colors.status.info.bg
       case DocumentStatus.APPROVED:
         return colors.status.success.bg
       case DocumentStatus.REJECTED:
@@ -140,14 +104,13 @@ export default function ApprovalsPage() {
     }
   }
 
-  const getStatusTextColor = (status: DocumentStatus, userRole?: UserRole) => {
+  const getStatusTextColor = (status: DocumentStatus, myRole?: DocumentRole) => {
     switch (status) {
       case DocumentStatus.DRAFT:
         return colors.status.info.text
-      case DocumentStatus.PENDING:
       case DocumentStatus.IN_PROGRESS:
         // 내 승인이 필요한 경우 warning, 그렇지 않으면 info
-        return userRole === UserRole.APPROVER ? colors.status.warning.text : colors.status.info.text
+        return myRole === DocumentRole.APPROVER ? colors.status.warning.text : colors.status.info.text
       case DocumentStatus.APPROVED:
         return colors.status.success.text
       case DocumentStatus.REJECTED:
@@ -157,36 +120,10 @@ export default function ApprovalsPage() {
     }
   }
 
-  const toggleSection = (section: string) => {
-    setCollapsedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
-  const handleApprovalClick = (approval: Approval) => {
-    // 모달 기능 임시 비활성화 (나중에 DocumentResponse로 수정 예정)
-    console.log('문서 모달 오픈 대신 로그 출력:', approval)
-    // setSelectedApproval(approval)
-    // setIsModalOpen(true)
-  }
-
-  const handleApprove = async (approvalId: number, comment?: string) => {
-    // 실제로는 API 호출을 통해 승인 처리
-    console.log("승인 처리:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
-  }
-
-  const handleReject = async (approvalId: number, comment?: string) => {
-    // 실제로는 API 호출을 통해 반려 처리
-    console.log("반려 처리:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
-  }
-
-  const handleAddComment = async (approvalId: number, comment: string) => {
-    // 실제로는 API 호출을 통해 댓글 추가
-    console.log("댓글 추가:", { approvalId, comment })
-    // 여기서 상태 업데이트 로직 추가
+  const handleDocumentClick = (document: DocumentSummaryResponse) => {
+    setSelectedDocumentSummary(document)
+    setSelectedDocumentId(document.id)
+    setIsModalOpen(true)
   }
 
   // 결재 신청 관련 핸들러
@@ -198,32 +135,27 @@ export default function ApprovalsPage() {
     setIsFormManagementOpen(true)
   }
 
-  const handleFormSelect = (form: FormTemplate) => {
-    setSelectedFormTemplate(form)
+  const handleFormSelect = (form: TemplateSummaryResponse) => {
+    setSelectedTemplateId(form.id)
+    setSelectedTemplateSummary(form)
+    setSelectedDraftDocument(null) // 새 문서 작성 시 DRAFT 초기화
+    setIsFormSelectionOpen(false)
     setIsFormWriterOpen(true)
   }
 
-  const handleFormSubmit = async (data: {
-    content: string
-    attachments: any[]
-    approvalStages: any[]
-    references: any[]
-    formFields: Record<string, any>
-  }) => {
-    // 실제로는 API 호출을 통해 결재 신청
-    console.log("결재 신청:", {
-      title: selectedFormTemplate?.title || "문서",
-      ...data
-    })
-    // 여기서 상태 업데이트 로직 추가
-    alert("결재가 성공적으로 요청되었습니다.")
+  const handleDraftDocumentSelect = (document: DocumentSummaryResponse) => {
+    setSelectedDraftDocument(document)
+    setSelectedTemplateId(document.template.id)
+    setSelectedTemplateSummary(document.template)
+    setIsFormSelectionOpen(false)
+    setIsFormWriterOpen(true)
   }
 
 
   const renderDocumentCard = (document: DocumentSummaryResponse) => {
-    const StatusIcon = getStatusIcon(document.status, document.userRole)
-    const statusBgColor = getStatusBgColor(document.status, document.userRole)
-    const statusTextColor = getStatusTextColor(document.status, document.userRole)
+    const StatusIcon = getStatusIcon(document.status, document.myRole)
+    const statusBgColor = getStatusBgColor(document.status, document.myRole)
+    const statusTextColor = getStatusTextColor(document.status, document.myRole)
 
     // 날짜 포맷팅
     const formatDate = (dateString: string) => {
@@ -235,39 +167,18 @@ export default function ApprovalsPage() {
       }).replace(/\. /g, '.').replace(/\.$/, '')
     }
 
-    // 상태 표시 텍스트
-    const getStatusText = (status: DocumentStatus, userRole: UserRole) => {
-      switch (status) {
-        case DocumentStatus.DRAFT:
-          return "작성중"
-        case DocumentStatus.PENDING:
-        case DocumentStatus.IN_PROGRESS:
-          return userRole === UserRole.APPROVER ? "승인 필요" : "진행중"
-        case DocumentStatus.APPROVED:
-          return "승인됨"
-        case DocumentStatus.REJECTED:
-          return "반려됨"
-        default:
-          return status
-      }
-    }
 
     return (
       <GlassCard
         key={document.id}
         className="px-6 py-4 hover:shadow-lg transition-shadow cursor-pointer h-full overflow-hidden relative"
-        onClick={() => {
-          // 모달 임시 비활성화 (나중에 수정 예정)
-          console.log('문서 클릭:', document.id)
-        }}
+        onClick={() => handleDocumentClick(document)}
       >
         <div className="flex items-center gap-4 h-full">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
-            style={{ backgroundColor: '#6b7280' }} // 임시 색상 (템플릿 정보 없음)
-          >
-            <FileText className="w-6 h-6 text-white" />
-          </div>
+          <TemplateIcon
+            icon={document.template.icon}
+            color={document.template.color}
+          />
           <div className="flex-1 flex flex-col justify-center h-full">
             <div className="flex items-center gap-3 mb-1 min-w-0">
               <h3 className={`${typography.h3} text-gray-800 truncate flex-shrink-0`}>{document.author.name}</h3>
@@ -279,11 +190,11 @@ export default function ApprovalsPage() {
               </div>
               <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full bg-gradient-to-r ${statusBgColor} ${statusTextColor} font-medium text-xs border ${statusTextColor.replace('text-', 'border-')} border-opacity-30 flex-shrink-0`}>
                 <StatusIcon className="w-3 h-3" />
-                {getStatusText(document.status, document.userRole)}
+                {getStatusText(document.status, document.myRole)}
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.templateTitle}</h4>
+              <h4 className="text-lg font-semibold text-gray-800 min-w-fit truncate">{document.template.title}</h4>
               <p className="text-gray-600 flex-1 truncate">{document.content}</p>
               {/* 승인 진행률 표시 */}
               {document.totalStages > 0 && (
@@ -363,24 +274,6 @@ export default function ApprovalsPage() {
 
       {!isLoading && !error && activeTab === "inProgress" && (
         <div className="space-y-6">
-          {/* 작성중 섹션 */}
-          {draftDocuments.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-gray-600" />
-                  <h2 className="text-lg font-semibold text-gray-700">작성중</h2>
-                </div>
-                <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-sm font-medium">
-                  {draftDocuments.length}건
-                </span>
-              </div>
-              <div className="space-y-4">
-                {draftDocuments.map(renderDocumentCard)}
-              </div>
-            </div>
-          )}
-
           {/* 내 승인 필요 섹션 */}
           {myPendingDocuments.length > 0 && (
             <div className="space-y-4">
@@ -449,36 +342,48 @@ export default function ApprovalsPage() {
       {/* 결재 문서 모달 */}
       <ApprovalModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        approval={selectedApproval as any}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        onAddComment={handleAddComment}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedDocumentSummary(null)
+          setSelectedDocumentId(null)
+        }}
+        documentSummary={selectedDocumentSummary}
+        documentId={selectedDocumentId}
       />
 
       {/* 문서 양식 선택 모달 */}
-      <FormSelectionModal
+      <TemplateSelectionModal
         isOpen={isFormSelectionOpen}
         onClose={() => setIsFormSelectionOpen(false)}
         onSelectForm={handleFormSelect}
+        onSelectDraftDocument={handleDraftDocumentSelect}
       />
 
       {/* 문서 양식 관리 모달 */}
-      <FormManagementModal
+      <TemplateManagementModal
         isOpen={isFormManagementOpen}
         onClose={() => setIsFormManagementOpen(false)}
       />
 
       {/* 문서 작성 모달 */}
-      <FormWriterModal
-        isOpen={isFormWriterOpen}
-        onClose={() => setIsFormWriterOpen(false)}
+      <DocumentWriterModal
+        isOpen={isFormWriterOpen && !!selectedTemplateId}
+        onClose={() => {
+          setIsFormWriterOpen(false)
+          setSelectedDraftDocument(null)
+          setSelectedTemplateId(null)
+          setSelectedTemplateSummary(null)
+        }}
         onBack={() => {
           setIsFormWriterOpen(false)
           setIsFormSelectionOpen(true)
+          setSelectedDraftDocument(null)
+          setSelectedTemplateId(null)
+          setSelectedTemplateSummary(null)
         }}
-        formTemplate={selectedFormTemplate}
-        onSubmit={handleFormSubmit}
+        templateId={selectedTemplateId}
+        templateSummary={selectedTemplateSummary}
+        draftDocumentId={selectedDraftDocument?.id}
       />
     </MainLayout>
   )
