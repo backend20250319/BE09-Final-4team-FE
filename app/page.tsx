@@ -39,6 +39,9 @@ import { toast } from "sonner";
 import { attendanceApi, workMonitorApi } from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKstTime } from "@/lib/utils/datetime";
+import { useNotifications } from "@/contexts/NotificationContext";
+import { communicationApi } from "@/lib/services/communication";
+import { useRef } from "react";
 
 interface Employee {
   id: string;
@@ -67,6 +70,14 @@ interface AttendanceState {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
+  const { recentNotifications, markAsRead } = useNotifications();
+  
+  // 실제 알림 목록 상태 (communication API)
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [lastNotificationId, setLastNotificationId] = useState<number | null>(null);
+  const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
+  const notificationScrollRef = useRef<HTMLDivElement>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [todayAttendance, setTodayAttendance] = useState(0);
@@ -85,6 +96,10 @@ export default function DashboardPage() {
 
   const [newsData, setNewsData] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
+  
+  // 공지사항 상태
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
 
   // 오늘 출근/지각/휴가 수
   const [workMonitor, setWorkMonitor] = useState<{
@@ -188,6 +203,87 @@ export default function DashboardPage() {
     };
     loadNews(); // 컴포넌트 마운트 시 뉴스 로드 함수 호출
   }, []);
+
+  // 알림 목록 로드 함수
+  const loadNotifications = async (reset: boolean = false) => {
+    if (!hasMoreNotifications && !reset) return;
+    
+    try {
+      setNotificationsLoading(true);
+      const params = reset ? {} : lastNotificationId ? { lastId: lastNotificationId } : {};
+      const response = await communicationApi.notifications.getMyNotifications(params);
+      const newNotifications = response.data || [];
+      
+      if (reset) {
+        setNotifications(newNotifications);
+      } else {
+        setNotifications(prev => [...prev, ...newNotifications]);
+      }
+      
+      if (newNotifications.length > 0) {
+        setLastNotificationId(newNotifications[newNotifications.length - 1].id);
+      }
+      setHasMoreNotifications(newNotifications.length >= 20);
+    } catch (error) {
+      console.error("알림 목록 로드 실패:", error);
+      if (reset) setNotifications([]);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  // 초기 알림 목록 로드
+  useEffect(() => {
+    loadNotifications(true);
+  }, []);
+
+  // 공지사항 목록 로드
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      try {
+        setAnnouncementsLoading(true);
+        const data = await communicationApi.announcements.getAllAnnouncements();
+        // 최신 5개 표시
+        setAnnouncements(data.slice(0, 5));
+      } catch (error) {
+        console.error("공지사항 로드 실패:", error);
+        setAnnouncements([]);
+      } finally {
+        setAnnouncementsLoading(false);
+      }
+    };
+
+    loadAnnouncements();
+  }, []);
+
+  // 웹소켓 새 알림이 오면 알림 목록 새로고침
+  useEffect(() => {
+    if (recentNotifications.length > 0) {
+      loadNotifications(true);
+    }
+  }, [recentNotifications]);
+
+  // 알림 스크롤 처리
+  const handleNotificationScroll = () => {
+    const container = notificationScrollRef.current;
+    if (!container || notificationsLoading || !hasMoreNotifications) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5;
+
+    if (isAtBottom) {
+      loadNotifications(false);
+    }
+  };
+
+  // 스크롤 이벤트 리스너
+  useEffect(() => {
+    const container = notificationScrollRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleNotificationScroll);
+      return () => container.removeEventListener('scroll', handleNotificationScroll);
+    }
+  }, [notificationsLoading, hasMoreNotifications]);
 
   // 출근
   const handleCheckIn = async () => {
@@ -300,26 +396,6 @@ export default function DashboardPage() {
       overtime: 2,
     },
 
-    notices: [
-      {
-        title: "2025년 하반기 인사발령",
-        date: "2025.08.01",
-        borderColor: "#007BFF",
-        bgColor: "#EEF6FC",
-      },
-      {
-        title: "여름 휴가 신청 안내",
-        date: "2025.07.30",
-        borderColor: "#00C56B",
-        bgColor: "#E8FFF2",
-      },
-      {
-        title: "사무실 이전 공지",
-        date: "2025.07.28",
-        borderColor: "#8F8F8F",
-        bgColor: "#F9FAFB",
-      },
-    ],
   };
 
   const adminData = {
@@ -386,29 +462,73 @@ export default function DashboardPage() {
     },
   ];
 
-  const notifications = [
-    {
-      id: 1,
-      title: "월말 보고서 제출 안내",
-      content: "7월 월말 보고서를 31일까지 제출해주세요.",
-      time: "2시간 전",
-      unread: true,
-    },
-    {
-      id: 2,
-      title: "새로운 공지사항",
-      content: "8월 팀 워크샵 일정이 확정되었습니다.",
-      time: "4시간 전",
-      unread: true,
-    },
-    {
-      id: 3,
-      title: "시스템 점검 안내",
-      content: "오늘 밤 12시부터 2시간간 시스템 점검이 예정되어 있습니다.",
-      time: "1일 전",
-      unread: false,
-    },
-  ];
+  // 알림 타입별 아이콘과 색상
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'ANNOUNCEMENT':
+        return { icon: Bell, color: 'text-blue-600', bgColor: 'bg-blue-100' };
+      case 'APPROVAL_REQUEST':
+        return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
+      case 'APPROVAL_APPROVED':
+        return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' };
+      case 'APPROVAL_REJECTED':
+        return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' };
+      case 'APPROVAL_REFERENCE':
+        return { icon: FileText, color: 'text-purple-600', bgColor: 'bg-purple-100' };
+      default:
+        return { icon: Bell, color: 'text-gray-600', bgColor: 'bg-gray-100' };
+    }
+  };
+
+  // 상대 시간 계산
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffMs = now.getTime() - past.getTime();
+    
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return "방금 전";
+    
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}분 전`;
+    
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    
+    const days = Math.floor(hours / 24);
+    return `${days}일 전`;
+  };
+
+  // 알림 클릭 처리
+  const handleNotificationClick = async (notification: any) => {
+    try {
+      // 읽음 처리 (API 호출)
+      if (!notification.read) {
+        await communicationApi.notifications.markAsRead(notification.id);
+        // 로컬 상태 업데이트
+        setNotifications(prev => 
+          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        );
+      }
+
+      // 페이지 이동
+      switch (notification.type) {
+        case 'ANNOUNCEMENT':
+          router.push(`/announcements#${notification.referenceId}`);
+          break;
+        case 'APPROVAL_REQUEST':
+        case 'APPROVAL_APPROVED':
+        case 'APPROVAL_REJECTED':
+        case 'APPROVAL_REFERENCE':
+          router.push(`/approvals/${notification.referenceId}`);
+          break;
+        default:
+          console.warn("알 수 없는 알림 타입:", notification.type);
+      }
+    } catch (error) {
+      console.error("알림 클릭 처리 실패:", error);
+    }
+  };
 
   const renderUnifiedDashboard = () => (
     <>
@@ -661,29 +781,61 @@ export default function DashboardPage() {
         <GlassCard
           className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp"
           style={{ animationDelay: "0.9s" }}
-          onClick={() => router.push("/announcements")}
         >
-          <CardHeader className="pb-4">
+          <CardHeader 
+            className="pb-4 cursor-pointer"
+            onClick={() => router.push("/announcements")}
+          >
             <CardTitle className="text-xl font-semibold text-gray-900">
               공지사항
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {employeeData.notices.map((item, index) => (
-              <div
-                key={index}
-                className="p-3 rounded-lg border-l-4"
-                style={{
-                  backgroundColor: item.bgColor,
-                  borderLeftColor: item.borderColor,
-                }}
-              >
-                <div className="flex justify_between items-center">
-                  <h4 className="font-medium text-gray-800">{item.title}</h4>
-                  <span className="text-xs text-gray-500">{item.date}</span>
-                </div>
+            {announcementsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded-lg bg-gray-100 animate-pulse"
+                  >
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : announcements.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                공지사항이 없습니다.
+              </div>
+            ) : (
+              announcements.map((item) => {
+                const announcementDate = new Date(item.createdAt).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit'
+                }).replace(/\. /g, '.').replace(/\.$/, '');
+                
+                return (
+                  <div
+                    key={item.id}
+                    className="p-2.5 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow"
+                    style={{
+                      backgroundColor: "#F9FAFB",
+                      borderLeftColor: "#007BFF",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/announcements#${item.id}`);
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium text-gray-800 text-sm truncate pr-2">{item.title}</h4>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">{announcementDate}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </GlassCard>
       </div>
@@ -772,36 +924,68 @@ export default function DashboardPage() {
             <div className="mb-6">
               <h3 className={`${typography.h3} text-gray-800`}>알림</h3>
             </div>
-            <div className="space-y-4">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 rounded-lg border ${
-                    notification.unread
-                      ? "bg-blue-50/50 border-blue-200"
-                      : "bg-gray-50/50 border-gray-200"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4
-                      className={`font-medium ${
-                        notification.unread ? "text-blue-800" : "text-gray-800"
-                      }`}
-                    >
-                      {notification.title}
-                    </h4>
-                    {notification.unread && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {notification.content}
-                  </p>
-                  <div className="text-xs text-gray-500">
-                    {notification.time}
-                  </div>
+            <div 
+              ref={notificationScrollRef}
+              className="space-y-4 max-h-96 overflow-y-auto pr-2"
+            >
+              {notifications.length === 0 && !notificationsLoading ? (
+                <div className="text-center py-8 text-gray-500">
+                  알림이 없습니다.
                 </div>
-              ))}
+              ) : (
+                <>
+                  {notifications.map((notification) => {
+                    const iconData = getNotificationIcon(notification.type);
+                    const IconComponent = iconData.icon;
+                    
+                    return (
+                      <div
+                        key={notification.id}
+                        className={`p-4 rounded-lg border cursor-pointer hover:shadow-md transition-all ${
+                          !notification.read
+                            ? "bg-blue-50/50 border-blue-200 hover:bg-blue-50"
+                            : "bg-gray-50/30 border-gray-200 opacity-60 hover:opacity-80"
+                        }`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            !notification.read ? iconData.bgColor : 'bg-gray-100'
+                          }`}>
+                            <IconComponent className={`w-5 h-5 ${
+                              !notification.read ? iconData.color : 'text-gray-400'
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <h4
+                                className={`font-medium truncate ${
+                                  !notification.read ? "text-blue-800" : "text-gray-500"
+                                }`}
+                              >
+                                {notification.content}
+                              </h4>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
+                              )}
+                            </div>
+                            <div className={`text-xs ${
+                              !notification.read ? "text-gray-500" : "text-gray-400"
+                            }`}>
+                              {getRelativeTime(notification.createdAt)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {notificationsLoading && (
+                    <div className="flex justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </GlassCard>
         </div>
