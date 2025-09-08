@@ -41,6 +41,7 @@ import PolicyBlock from "./PolicyBlock";
 import EditModal from "../EditModal";
 import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
 import { userApi } from "@/lib/services/user/api";
+import { attendanceApi, employeeLeaveBalanceApi } from "@/lib/services/attendance/api";
 
 interface Props {
   isOpen: boolean;
@@ -72,6 +73,18 @@ export default function ProfileModal({
   const [currentEmployee, setCurrentEmployee] = useState<MemberProfile | null>(employee);
   const [detailInfo, setDetailInfo] = useState<{address?: string, joinDate?: string} | null>(null);
   const [authenticatedImageUrl, setAuthenticatedImageUrl] = useState<string | null>(null);
+
+  const [weeklyWorkData, setWeeklyWorkData] = useState<{
+    weekly: number;
+    dailyAverage: number;
+    overtime: number;
+  }>({ weekly: 0, dailyAverage: 0, overtime: 0 });
+  
+  const [leaveSummaryData, setLeaveSummaryData] = useState<{
+    remaining: number;
+    total: number;
+    used: number;
+  }>({ remaining: 0, total: 0, used: 0 });
 
   const getAuthenticatedImageUrl = async (fileId: string) => {
     try {
@@ -130,6 +143,52 @@ export default function ProfileModal({
     }
   }, [currentEmployee]);
 
+  useEffect(() => {
+    const loadEmployeeData = async () => {
+      if (!employee?.id) return;
+      
+      try {
+        const weeklyDetail = await attendanceApi.getThisWeekAttendance(Number(employee.id));
+        const days = weeklyDetail?.dailySummaries || [];
+        let totalHours = 0;
+        let workedDays = 0;
+        days.forEach((d: any) => {
+          const h = typeof d.workHours === "number" 
+            ? d.workHours 
+            : typeof d.workMinutes === "number" 
+            ? d.workMinutes / 60 
+            : 0;
+          if (h > 0) {
+            totalHours += h;
+            workedDays += 1;
+          }
+        });
+        const dailyAvg = workedDays > 0 ? Math.round((totalHours / workedDays) * 10) / 10 : 0;
+        const overtime = Math.max(0, Math.round((totalHours - 40) * 10) / 10);
+        
+        setWeeklyWorkData({
+          weekly: Math.round(totalHours * 10) / 10,
+          dailyAverage: dailyAvg,
+          overtime,
+        });
+
+        const leaveSummary = await employeeLeaveBalanceApi.getLeaveBalanceSummary(Number(employee.id));
+        const total = leaveSummary?.totalGrantedDays ?? 0;
+        const used = leaveSummary?.totalUsedDays ?? 0;
+        const remaining = leaveSummary?.totalRemainingDays ?? Math.max(0, total - used);
+        
+        setLeaveSummaryData({ remaining, total, used });
+        
+      } catch (error) {
+        console.error('직원 데이터 로드 실패:', error);
+      }
+    };
+
+    if (isOpen && employee?.id) {
+      loadEmployeeData();
+    }
+  }, [isOpen, employee?.id]);
+
   const handleModalOpen = async () => {
     if (employee?.id) {
       try {
@@ -165,7 +224,7 @@ export default function ProfileModal({
           }
         }
       } catch (error) {
-        console.error('프로필 정보 조회 실패:', error);
+        console.error('프로필 정보 로드 실패:', error);
       }
     }
   };
@@ -567,10 +626,7 @@ export default function ProfileModal({
                 <div className="bg-white shadow p-4 rounded-lg border border-gray-200">
                   <div className="text-gray-500 text-sm mb-1">남은 연차</div>
                   <div className="text-2xl font-bold">
-                    {currentEmployee.remainingLeave ||
-                      currentEmployee.remainingLeaveDays ||
-                      12}
-                    일
+                    {leaveSummaryData.remaining}일
                   </div>
                 </div>
 
@@ -579,7 +635,7 @@ export default function ProfileModal({
                     이번 주 근무시간
                   </div>
                   <div className="text-2xl font-bold">
-                    {currentEmployee.weeklyWorkHours || currentEmployee.thisWeekHours || 42}h
+                    {weeklyWorkData.weekly}h
                   </div>
                 </div>
               </div>
