@@ -78,8 +78,8 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
     
-    // 401 에러이고 refresh 요청이 아닌 경우 토큰 갱신 시도
-    if (error.response?.status === 401 && !originalRequest._retry && originalRequest.url !== '/api/auth/refresh') {
+    // 401 에러이고 /api/auth/ 요청이 아닌 경우 토큰 갱신 시도
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.startsWith('/api/auth/')) {
       if (isRefreshing) {
         // 이미 토큰 갱신 중이면 대기열에 추가
         return new Promise((resolve, reject) => {

@@ -3,6 +3,8 @@ import {
   CategoryResponse,
   CreateCategoryRequest,
   UpdateCategoryRequest,
+  BulkCategoryRequest,
+  BulkCategoryResponse,
   TemplateResponse,
   TemplateSummaryResponse,
   TemplatesByCategoryResponse,
@@ -49,6 +51,12 @@ export const categoryApi = {
   // 카테고리 삭제
   deleteCategory: async (id: number): Promise<void> => {
     await apiClient.delete<void>(`/api/approval/categories/${id}`)
+  },
+
+  // 카테고리 벌크 작업
+  bulkProcessCategories: async (request: BulkCategoryRequest): Promise<BulkCategoryResponse> => {
+    const response = await apiClient.post<BulkCategoryResponse>('/api/approval/categories/bulk', request)
+    return response.data
   },
 }
 

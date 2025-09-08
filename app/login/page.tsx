@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -14,18 +14,29 @@ import { authApi } from '@/lib/services/user/api';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoggedIn } = useAuth();
+  const redirect = searchParams.get('redirect') || '/';
+  const expired = searchParams.get('expired') === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const toastShown = useRef(false);
+
+  useEffect(() => {
+    if (expired && !toastShown.current) {
+      toast.error('세션이 만료되었습니다. 다시 로그인해주세요.');
+      toastShown.current = true;
+    }
+  }, [expired]);
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.push('/');
+      router.push(redirect);
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, router, redirect]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +70,7 @@ export default function LoginPage() {
       });
 
       toast.success('로그인 성공!');
-      router.push('/');
+      router.push(redirect);
     } catch (error: any) {
       console.error('로그인 오류:', error);
       const errorMessage = error.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';

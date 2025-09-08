@@ -5,8 +5,8 @@ import { LucideIcon } from "lucide-react";
 import { defaultMenuItems, MenuItem } from "@/lib/navigation";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { getAccessToken } from "@/lib/services/common/api-client";
 import { useAuth } from "@/contexts/auth-context";
+import { getAccessToken, clearAccessToken } from "@/lib/services/common/api-client";
 import {
   Home,
   Users,
@@ -53,6 +53,7 @@ export function Sidebar({
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [toggledItems, setToggledItems] = useState<Set<number>>(new Set());
   const { isAdmin } = useAuth();
+  const [tokenUpdate, setTokenUpdate] = useState(0);
 
   const isActive = (href: string) => {
     if (!href) return false;
@@ -60,20 +61,20 @@ export function Sidebar({
     return pathname.startsWith(href);
   };
 
-  // ✅ 비관리자는 설정 메뉴 숨김
+  // 비관리자는 설정 메뉴 숨김
   const visibleMenuItems = useMemo(() => {
     if (isAdmin) return defaultMenuItems;
     return defaultMenuItems.filter((item) => item.href !== "/settings");
   }, [isAdmin]);
 
-  // ✅ 자식(하위 메뉴) 중 현재 경로와 매칭되는 것이 있는지 재귀 검사
+  // 자식(하위 메뉴) 중 현재 경로와 매칭되는 것이 있는지 재귀 검사
   const hasActiveDescendant = (item?: MenuItem): boolean => {
     if (!item) return false;
     if (item.href && isActive(item.href)) return true;
     return (item.children ?? []).some((c) => hasActiveDescendant(c));
   };
 
-  // ✅ 경로가 바뀔 때, 해당 경로를 포함하는 상위 메뉴를 자동으로 펼침
+  // 경로가 바뀔 때, 해당 경로를 포함하는 상위 메뉴를 자동으로 펼침
   useEffect(() => {
     const autoOpen = new Set<number>();
     defaultMenuItems.forEach((item, i) => {
@@ -144,7 +145,7 @@ export function Sidebar({
             const active = isActive(item.href || "");
             const hasChildren = !!item.children?.length;
 
-            // ✅ “토글로 펼친 상태” 또는 “자식 중 활성 경로가 있는 상태”면 펼침 유지
+            // “토글로 펼친 상태” 또는 “자식 중 활성 경로가 있는 상태”면 펼침 유지
             const isExpanded =
               expandedItems.has(index) ||
               (hasChildren && hasActiveDescendant(item));
@@ -210,6 +211,17 @@ export function Sidebar({
             <div className="text-xs text-gray-800 break-all font-mono">
               {getAccessToken() ?? "No token"}
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 w-full text-xs"
+              onClick={() => {
+                clearAccessToken()
+                setTokenUpdate(prev => prev + 1)
+              }}
+            >
+              Clear Token
+            </Button>
           </div>
         )}
       </div>

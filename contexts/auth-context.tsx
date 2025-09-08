@@ -13,7 +13,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  // loading: boolean
   login: (userData: User, tokens: { accessToken: string; expiresIn: number }) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -26,8 +25,32 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUserState] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const setUser = (user: User | null) => {
+    setUserState(user)
+
+    // Refresh Token 저장 여부 추적
+    if (typeof window !== 'undefined') {
+      if (user !== null) {
+        // Refresh Token은 항상 User Data와 같이 오기 때문에
+        // User Data가 set 되면 Refresh Token도 set된 것으로 간주해도 됨
+        localStorage.setItem('hasRefreshToken', 'true')
+      } else {
+        // 마찬가지로 User Data가 unset되면 Refresh Token도 무효화된 것으로 간주할 수 있음
+        localStorage.removeItem('hasRefreshToken')
+      }
+      // Refresh Token은 HttpOnly 쿠키로 저장되기 때문에 이런 간접적인 방법으로 추적해야 함
+    }
+  }
+
+  const hasRefreshToken = (): boolean => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hasRefreshToken') === 'true'
+    }
+    return false
+  }
 
   const login = (userData: User, tokens: { accessToken: string; expiresIn: number }) => {
     const user: User = {
@@ -95,10 +118,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role
       }
       setUser(user)
+      console.log('인증이 자동으로 갱신되었습니다:', user)
     }
 
     const handleTokenExpired = () => {
       setUser(null)
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname + window.location.search
+        // 로그인 페이지가 아닌 경우에만 redirect 파라미터 추가
+        if (currentPath !== '/login') {
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}&expired=true`
+        } else {
+          window.location.href = '/login'
+        }
+      }
     }
 
     window.addEventListener('auth:token-refreshed', handleTokenRefresh as EventListener)
@@ -114,7 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        if (user === null) {
+        if (user === null && hasRefreshToken()) {
           await refreshUser()
         }
       } catch (error) {
@@ -129,7 +162,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const value: AuthContextType = {
     user,
-    // loading,
     login,
     logout,
     refreshUser

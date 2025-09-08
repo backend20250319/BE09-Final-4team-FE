@@ -36,12 +36,6 @@ html {
               {children}
               <NotificationToastManager />
             </NotificationProvider>
-
-            {/* Global AI Chat visible on all pages */}
-            {/* @ts-expect-error Server Component import of client component in layout */}
-            <div>
-              <GlobalAIChat />
-            </div>
           </AuthProvider>
         </QueryProvider>
 
