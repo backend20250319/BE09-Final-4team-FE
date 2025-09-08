@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { LucideIcon } from "lucide-react";
 import { defaultMenuItems, MenuItem } from "@/lib/navigation";
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
-import { getAccessToken } from "@/lib/services/common/api-client";
+import { useState, useEffect } from "react";
+import { getAccessToken, clearAccessToken } from "@/lib/services/common/api-client";
 import {
   Home,
   Users,
@@ -51,6 +51,7 @@ export function Sidebar({
   const pathname = usePathname();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [toggledItems, setToggledItems] = useState<Set<number>>(new Set());
+  const [tokenUpdate, setTokenUpdate] = useState(0);
 
   const isActive = (href: string) => {
     if (!href) return false;
@@ -200,6 +201,17 @@ export function Sidebar({
             <div className="text-xs text-gray-800 break-all font-mono">
               {getAccessToken() ?? 'No token'}
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 w-full text-xs"
+              onClick={() => {
+                clearAccessToken()
+                setTokenUpdate(prev => prev + 1)
+              }}
+            >
+              Clear Token
+            </Button>
           </div>
         )}
       </div>

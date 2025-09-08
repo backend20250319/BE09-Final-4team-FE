@@ -11,6 +11,7 @@ import {
 import { communicationApi } from "@/lib/services/communication";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { getRelativeTime } from '@/lib/utils/datetime'
 
 interface Notification {
   id: number;
@@ -31,25 +32,6 @@ interface NotificationsDropdownProps {
   hasNewNotifications?: boolean;
   notifications?: Notification[];
   onNotificationClick?: (notification: Notification) => void;
-}
-
-// 상대 시간 계산 함수
-function timeAgo(dateString: string): string {
-  const now = new Date();
-  const past = new Date(dateString);
-  const diffMs = now.getTime() - past.getTime();
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return "방금 전";
-
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}분 전`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-
-  const days = Math.floor(hours / 24);
-  return `${days}일 전`;
 }
 
 export function NotificationsDropdown({
@@ -286,7 +268,7 @@ export function NotificationsDropdown({
                     {notification.content}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {timeAgo(notification.createdAt)}
+                    {getRelativeTime(notification.createdAt)}
                   </p>
                 </div>
                 {!notification.read && (

@@ -3,31 +3,29 @@
 import { Badge } from "@/components/ui/badge"
 import { GlassCard } from "@/components/ui/glass-card"
 import { typography } from "@/lib/design-tokens"
-import { FormTemplate, getIconComponent } from "@/lib/mock-data/form-templates"
+import { TemplateSummaryResponse } from "@/lib/services/approval/types"
 import { EyeOff } from "lucide-react"
 import { ReactNode } from "react"
+import { TemplateIcon } from "./TemplateIcon"
 
-export interface FormTemplatesGridProps<T extends FormTemplate = FormTemplate> {
+export interface TemplatesGridProps<T extends TemplateSummaryResponse = TemplateSummaryResponse> {
   forms: T[]
   onCardClick?: (form: T) => void
-  getCategoryName?: (categoryId: string) => string
   renderOverlay?: (form: T) => ReactNode
 }
 
-export function FormTemplatesGrid<T extends FormTemplate = FormTemplate>({
+export function TemplatesGrid<T extends TemplateSummaryResponse = TemplateSummaryResponse>({
   forms,
   onCardClick,
-  getCategoryName,
   renderOverlay,
-}: FormTemplatesGridProps<T>) {
+}: TemplatesGridProps<T>) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {forms.map((form) => {
-        const IconComponent = typeof form.icon === 'string' ? getIconComponent(form.icon) : form.icon
-        const hidden = (form as any).hidden as boolean | undefined
         return (
           <GlassCard
             key={form.id}
+            hover={false}
             className="relative p-4 hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-blue-200"
             onClick={() => onCardClick?.(form)}
           >
@@ -37,25 +35,23 @@ export function FormTemplatesGrid<T extends FormTemplate = FormTemplate>({
               </div>
             ) : null}
             <div className="flex items-start gap-4">
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0"
-                style={{ backgroundColor: form.color }}
-              >
-                <IconComponent className="w-6 h-6 text-white" />
-              </div>
+              <TemplateIcon
+                icon={form.icon}
+                color={form.color}
+              />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className={`${typography.h4} text-gray-800 truncate`}>{form.title}</h3>
-                  {getCategoryName && form.category && getCategoryName(form.category) ? (
+                  {form.category ? (
                     <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-100">
-                      {getCategoryName(form.category)}
+                      {form.category.name}
                     </Badge>
                   ) : null}
-                  {hidden ? (
+                  {form.isHidden ? (
                     <EyeOff className="w-4 h-4 text-gray-400" />
                   ) : null}
                 </div>
-                <p className="text-sm text-gray-600 line-clamp-2">{form.description}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">{form.description || ''}</p>
               </div>
             </div>
           </GlassCard>
