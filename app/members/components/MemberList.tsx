@@ -214,7 +214,7 @@ export default function MemberList({
                   </h3>
                 </div>
                 <p className="text-sm text-gray-600 truncate">
-                  {employee.position}
+                  {typeof employee.position === 'object' ? employee.position?.name : employee.position}
                 </p>
               </div>
             </div>
@@ -243,7 +243,7 @@ export default function MemberList({
             {employee.job && (
               <div className="flex items-center gap-2 text-gray-600">
                 <Briefcase className="w-4 h-4" />
-                <span>직무: {employee.job}</span>
+                <span>직무: {typeof employee.job === 'object' ? employee.job?.name : employee.job}</span>
               </div>
             )}
           </div>

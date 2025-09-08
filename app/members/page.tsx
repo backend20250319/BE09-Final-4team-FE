@@ -29,6 +29,7 @@ import { OrganizationHierarchyDto } from "@/lib/services/organization/types";
 import { apiClient } from "@/lib/services/common/api-client";
 import { userApi } from "@/lib/services/user/api";
 import { UserResponseDto, UserCreateDto } from "@/lib/services/user/types";
+import { useTitlesFromAPI } from "@/hooks/use-members-derived-data";
 
 interface Employee {
   id: string;
@@ -89,6 +90,14 @@ export default function MembersPage() {
   const [dataLoading, setDataLoading] = useState(false);
   const [orgLoading, setOrgLoading] = useState(false);
   const [isSearchingMembers, setIsSearchingMembers] = useState(false);
+
+  const {
+    ranks,
+    positions,
+    jobs,
+    loading: titleLoading,
+    error: titleError,
+  } = useTitlesFromAPI();
 
   const filteredEmployees = useMemo(() => {
     let filtered = employees;
@@ -356,6 +365,33 @@ export default function MembersPage() {
     let createdUserId: number | null = null;
     
     try {
+      console.log('memberData:', memberData);
+      console.log('ranks:', ranks);
+      console.log('positions:', positions);
+      console.log('jobs:', jobs);
+      
+      // memberData에서 rank, position, job 값 확인
+      console.log('memberData.rank:', memberData.rank);
+      console.log('memberData.position:', memberData.position);
+      console.log('memberData.job:', memberData.job);
+      
+      // rank, position, job의 실제 ID를 찾기 - 이미 객체이므로 직접 ID 사용
+      const rankId = memberData.rank?.id;
+      const positionId = memberData.position?.id;
+      const jobId = memberData.job?.id;
+
+      console.log('찾은 ID들:', { rankId, positionId, jobId });
+      
+      // 각 배열의 첫 번째 요소 구조 확인
+      if (ranks.length > 0) {
+        console.log('첫 번째 rank 구조:', ranks[0]);
+      }
+      if (positions.length > 0) {
+        console.log('첫 번째 position 구조:', positions[0]);
+      }
+      if (jobs.length > 0) {
+        console.log('첫 번째 job 구조:', jobs[0]);
+      }
 
       const newUserData: UserCreateDto = {
         name: memberData.name,
@@ -366,15 +402,19 @@ export default function MembersPage() {
         joinDate: memberData.joinDate,
         isAdmin: Boolean(memberData.isAdmin),
         role: memberData.role,
-        position: memberData.position ? { id: 0, name: memberData.position, sortOrder: 0 } : undefined,
-        job: memberData.job ? { id: 0, name: memberData.job, sortOrder: 0 } : undefined,
-        rank: memberData.rank ? { id: 0, name: memberData.rank, sortOrder: 0 } : undefined,
+        position: positionId ? { id: positionId, name: memberData.position.name, sortOrder: 0 } : undefined,
+        job: jobId ? { id: jobId, name: memberData.job.name, sortOrder: 0 } : undefined,
+        rank: rankId ? { id: rankId, name: memberData.rank.name, sortOrder: 0 } : undefined,
         workPolicyId: memberData.workPolicies?.[0] ? parseInt(memberData.workPolicies[0]) : undefined,
         needsPasswordReset: Boolean(memberData.tempPassword),
       };
 
+      console.log('전송할 데이터:', newUserData);
+
       const result = await userApi.createUser(newUserData);
       createdUserId = result.id;
+
+      console.log('생성 결과:', result);
 
       if (!result || !result.id) {
         throw new Error("사용자 생성 실패: 응답 데이터 없음");

@@ -103,6 +103,10 @@ export default function ProfileModal({
       try {
         // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
         const mainResponse = await userApi.getMainProfile(employee.id);
+        console.log('API 응답:', mainResponse);
+        console.log('rank:', mainResponse.data?.rank);
+        console.log('position:', mainResponse.data?.position);
+        console.log('job:', mainResponse.data?.job);
         
         if (mainResponse && mainResponse.data) {
           // workPolicies 배열 설정 (workPolicyId가 있는 경우)
@@ -110,6 +114,9 @@ export default function ProfileModal({
           
           setCurrentEmployee(prev => ({
             ...prev,
+            rank: mainResponse.data.rank,
+            position: mainResponse.data.position,
+            job: mainResponse.data.job,
             workPolicy: mainResponse.data.workPolicy,
             workPolicies: workPolicies
           }));
@@ -137,6 +144,10 @@ export default function ProfileModal({
         try {
           // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
           const mainResponse = await userApi.getMainProfile(employee.id);
+          console.log('API 응답:', mainResponse);
+          console.log('rank:', mainResponse.data?.rank);
+          console.log('position:', mainResponse.data?.position);
+          console.log('job:', mainResponse.data?.job);
           
           if (mainResponse && mainResponse.data) {
             // workPolicies 배열 설정 (workPolicyId가 있는 경우)
@@ -144,6 +155,9 @@ export default function ProfileModal({
             
             setCurrentEmployee(prev => ({
               ...prev,
+              rank: mainResponse.data.rank,
+              position: mainResponse.data.position,
+              job: mainResponse.data.job,
               workPolicy: mainResponse.data.workPolicy,
               workPolicies: workPolicies
             }));

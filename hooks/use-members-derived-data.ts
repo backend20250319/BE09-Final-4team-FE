@@ -7,6 +7,7 @@ import { OrganizationDto } from "@/lib/services/organization/types";
 import { workPolicyApi } from "@/lib/services/attendance/api";
 import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
 import { titleApi } from "@/lib/services/title/api";
+import { TitleDto } from "@/lib/services/title/types";
 
 interface MemberRecord {
     id: string;
@@ -180,9 +181,9 @@ export function useTitlesFromMembers(membersData?: MemberRecord[]) {
 }
 
 export function useTitlesFromAPI() {
-    const [ranks, setRanks] = useState<string[]>([]);
-    const [positions, setPositions] = useState<string[]>([]);
-    const [jobs, setJobs] = useState<string[]>([]);
+    const [ranks, setRanks] = useState<TitleDto[]>([]);
+    const [positions, setPositions] = useState<TitleDto[]>([]);
+    const [jobs, setJobs] = useState<TitleDto[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -196,10 +197,12 @@ export function useTitlesFromAPI() {
                     titleApi.getJobs()
                 ]);
 
+                console.log('API에서 받은 데이터:', { ranksData, positionsData, jobsData });
+
                 if (mounted) {
-                    setRanks(ranksData.map(rank => rank.name));
-                    setPositions(positionsData.map(position => position.name));
-                    setJobs(jobsData.map(job => job.name));
+                    setRanks(ranksData);
+                    setPositions(positionsData);
+                    setJobs(jobsData);
                     setError(null);
                 }
             } catch (e: any) {
@@ -232,9 +235,9 @@ export function useTitlesFromAPI() {
                 titleApi.getJobs()
             ]);
 
-            setRanks(ranksData.map(rank => rank.name));
-            setPositions(positionsData.map(position => position.name));
-            setJobs(jobsData.map(job => job.name));
+            setRanks(ranksData);
+            setPositions(positionsData);
+            setJobs(jobsData);
             setError(null);
         } catch (e: any) {
             console.error('직급/직위/직책 데이터 재로드 실패:', e);
