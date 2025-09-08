@@ -6,6 +6,8 @@ import { userApi } from "@/lib/services/user/api";
 import { OrganizationDto } from "@/lib/services/organization/types";
 import { workPolicyApi } from "@/lib/services/attendance/api";
 import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
+import { titleApi } from "@/lib/services/title/api";
+import { TitleDto } from "@/lib/services/title/types";
 
 interface MemberRecord {
     id: string;
@@ -176,4 +178,77 @@ export function useTitlesFromMembers(membersData?: MemberRecord[]) {
         jobs,
         roles
     } as const;
+}
+
+export function useTitlesFromAPI() {
+    const [ranks, setRanks] = useState<TitleDto[]>([]);
+    const [positions, setPositions] = useState<TitleDto[]>([]);
+    const [jobs, setJobs] = useState<TitleDto[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+        const loadTitles = async () => {
+            try {
+                const [ranksData, positionsData, jobsData] = await Promise.all([
+                    titleApi.getRanks(),
+                    titleApi.getPositions(),
+                    titleApi.getJobs()
+                ]);
+
+                console.log('API에서 받은 데이터:', { ranksData, positionsData, jobsData });
+
+                if (mounted) {
+                    setRanks(ranksData);
+                    setPositions(positionsData);
+                    setJobs(jobsData);
+                    setError(null);
+                }
+            } catch (e: any) {
+                console.error('직급/직위/직책 데이터 로드 실패:', e);
+                if (mounted) {
+                    setError(e?.message || "직급/직위/직책 데이터 로드 실패");
+                    setRanks([]);
+                    setPositions([]);
+                    setJobs([]);
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+        loadTitles();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const refetch = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [ranksData, positionsData, jobsData] = await Promise.all([
+                titleApi.getRanks(),
+                titleApi.getPositions(),
+                titleApi.getJobs()
+            ]);
+
+            setRanks(ranksData);
+            setPositions(positionsData);
+            setJobs(jobsData);
+            setError(null);
+        } catch (e: any) {
+            console.error('직급/직위/직책 데이터 재로드 실패:', e);
+            setError(e?.message || "직급/직위/직책 데이터 로드 실패");
+            setRanks([]);
+            setPositions([]);
+            setJobs([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return { ranks, positions, jobs, loading, error, refetch } as const;
 }

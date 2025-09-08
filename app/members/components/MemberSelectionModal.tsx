@@ -14,6 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Search, User, ArrowLeft, X } from "lucide-react";
+import { userApi } from "@/lib/services/user/api";
+import { UserResponseDto } from "@/lib/services/user/types";
+import { organizationApi } from "@/lib/services/organization/api";
+import { EmployeeAssignmentDto } from "@/lib/services/organization/types";
 
 interface Member {
   id: string;
@@ -57,136 +61,64 @@ export default function MemberSelectionModal({
   );
 
   useEffect(() => {
-    const sampleMembers: Member[] = [
-      {
-        id: "1",
-        name: "비니비니",
-        role: "CEO",
-        email: "binibini@hermesai.com",
-        phone: "010-1234-5678",
-        currentMainOrg: "org1",
-        currentMainOrgName: "개발팀",
-      },
-      {
-        id: "2",
-        name: "이혜빈",
-        role: "CTO",
-        email: "lee.hb@company.com",
-        phone: "010-2345-6789",
-        currentMainOrg: "org2",
-        currentMainOrgName: "기획팀",
-      },
-      {
-        id: "3",
-        name: "조석근",
-        role: "Manager",
-        email: "jo.sg@company.com",
-        phone: "010-3456-7890",
-        currentMainOrg: "org3",
-        currentMainOrgName: "디자인팀",
-      },
-      {
-        id: "4",
-        name: "박준범",
-        role: "Senior Engineer",
-        email: "park.jb@company.com",
-        phone: "010-4567-8901",
-        currentMainOrg: "org1",
-        currentMainOrgName: "개발팀",
-      },
-      {
-        id: "5",
-        name: "김철수",
-        role: "Manager",
-        email: "kim.cs@company.com",
-        phone: "010-5678-9012",
-        currentMainOrg: "org4",
-        currentMainOrgName: "마케팅팀",
-      },
-      {
-        id: "6",
-        name: "이영희",
-        role: "Senior Manager",
-        email: "lee.yh@company.com",
-        phone: "010-6789-0123",
-        currentMainOrg: "org2",
-        currentMainOrgName: "기획팀",
-      },
-      {
-        id: "7",
-        name: "박준범",
-        role: "Senior Engineer",
-        email: "park.jb@company.com",
-        phone: "010-7890-1234",
-        currentMainOrg: "org1",
-        currentMainOrgName: "개발팀",
-      },
-      {
-        id: "8",
-        name: "이석진",
-        role: "Senior Engineer",
-        email: "lee.sj@company.com",
-        phone: "010-8901-2345",
-        currentMainOrg: "org3",
-        currentMainOrgName: "디자인팀",
-      },
-      {
-        id: "9",
-        name: "정수민",
-        role: "Engineer",
-        email: "jung.sm@company.com",
-        phone: "010-9012-3456",
-        currentMainOrg: "org1",
-        currentMainOrgName: "개발팀",
-      },
-      {
-        id: "10",
-        name: "김미영",
-        role: "Engineer",
-        email: "kim.my@company.com",
-        phone: "010-0123-4567",
-        currentMainOrg: "org2",
-        currentMainOrgName: "기획팀",
-      },
-      {
-        id: "11",
-        name: "박지성",
-        role: "Engineer",
-        email: "park.js@company.com",
-        phone: "010-1234-5678",
-        currentMainOrg: "org3",
-        currentMainOrgName: "디자인팀",
-      },
-      {
-        id: "12",
-        name: "이동욱",
-        role: "Engineer",
-        email: "lee.dw@company.com",
-        phone: "010-2345-6789",
-        currentMainOrg: "org4",
-        currentMainOrgName: "마케팅팀",
-      },
-      {
-        id: "13",
-        name: "최민수",
-        role: "Senior Engineer",
-        email: "choi.ms@company.com",
-        phone: "010-3456-7890",
-        currentMainOrg: "org1",
-        currentMainOrgName: "개발팀",
-      },
-      {
-        id: "14",
-        name: "김태영",
-        role: "Engineer",
-        email: "kim.ty@company.com",
-        phone: "010-4567-8901",
-        currentMainOrg: "org2",
-        currentMainOrgName: "기획팀",
-      },
-    ];
-    setMembers(sampleMembers);
-  }, []);
+    const loadMembers = async () => {
+      try {
+        // 사용자 데이터와 조직 배정 데이터를 병렬로 가져오기
+        const [users, assignments] = await Promise.all([
+          userApi.getAllUsers(),
+          organizationApi.getAllAssignments()
+        ]);
+
+        // 각 사용자의 메인 조직 정보 찾기
+        const convertedMembers: Member[] = users.map(user => {
+          const userAssignments = assignments.filter(assignment => 
+            assignment.employeeId === user.id && assignment.isPrimary
+          );
+          const mainAssignment = userAssignments[0]; // 메인 조직은 하나여야 함
+
+          return {
+            id: user.id.toString(),
+            name: user.name,
+            role: user.role || "직원",
+            email: user.email,
+            phone: user.phone || "",
+            currentMainOrg: mainAssignment?.organizationId.toString(),
+            currentMainOrgName: mainAssignment?.organizationName,
+          };
+        });
+
+        setMembers(convertedMembers);
+      } catch (error) {
+        console.error('구성원 데이터 로드 실패:', error);
+        // API 실패 시 샘플 데이터 사용
+        const sampleMembers: Member[] = [
+          {
+            id: "1",
+            name: "비니비니",
+            role: "CEO",
+            email: "binibini@hermesai.com",
+            phone: "010-1234-5678",
+            currentMainOrg: "org1",
+            currentMainOrgName: "개발팀",
+          },
+          {
+            id: "2",
+            name: "이혜빈",
+            role: "CTO",
+            email: "lee.hb@company.com",
+            phone: "010-2345-6789",
+            currentMainOrg: "org2",
+            currentMainOrgName: "기획팀",
+          },
+        ];
+        setMembers(sampleMembers);
+      }
+    };
+
+    if (isOpen) {
+      loadMembers();
+    }
+  }, [isOpen]);
 
   const handleAssignmentTypeChange = (
     memberId: string,

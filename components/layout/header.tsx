@@ -1,15 +1,14 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { UserAvatar } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/use-auth";
 import { userApi } from "@/lib/services/user/api";
 import ProfileModal from '@/app/members/components/ProfileModal'
 import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
+import { getAccessToken } from '@/lib/services/common/api-client'
 
 interface Employee {
   id: string
@@ -53,17 +52,55 @@ export function Header({
   isMobile = false
 }: HeaderProps) {
   const { user, logout, isAdmin } = useAuth()
-  const router = useRouter()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken()
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
 
   useEffect(() => {
     if (user?.email) {
       userApi.getAllUsers()
         .then(users => {
           if (Array.isArray(users)) {
-            const employee = users.find((emp: Employee) => emp.email === user.email);
-            setEmployeeData(employee || null);
+            const employee = users.find((emp: any) => emp.email === user.email);
+            if (employee) {
+              const mappedEmployee = {
+                ...employee,
+                profileImage: employee.profileImageUrl
+              };
+              setEmployeeData(mappedEmployee);
+              
+              if (employee.profileImageUrl && !employee.profileImageUrl.startsWith('http')) {
+                getAuthenticatedImageUrl(employee.profileImageUrl).then(url => {
+                  setProfileImageUrl(url);
+                });
+              } else {
+                setProfileImageUrl(employee.profileImageUrl);
+              }
+            } else {
+              setEmployeeData(null);
+              setProfileImageUrl(null);
+            }
           } else {
             console.warn('Users is not an array:', users);
             setEmployeeData(null);
@@ -110,27 +147,6 @@ export function Header({
 
   const handleNotificationClick = (notification: any) => {
     console.log('알림 클릭:', notification)
-    
-    // 알림 타입별 라우팅
-    switch (notification.type) {
-      case "ANNOUNCEMENT":
-        // 현재 공지사항 페이지에 있으면 해시만 변경하고 hashchange 이벤트 발생
-        if (window.location.pathname === '/announcements') {
-          window.location.hash = `#${notification.referenceId}`;
-        } else {
-          router.push(`/announcements#${notification.referenceId}`);
-        }
-        break;
-      case "APPROVAL_REQUEST":
-      case "APPROVAL_APPROVED":
-      case "APPROVAL_REJECTED":
-      case "APPROVAL_REFERENCE":
-        // TODO: 결재 페이지 구현 시 실제 페이지로 이동
-        console.log("결재 관련 알림:", notification);
-        break;
-      default:
-        console.warn("알 수 없는 알림 타입:", notification.type);
-    }
   }
 
   const handleViewAllNotifications = () => {
@@ -164,24 +180,37 @@ export function Header({
                   variant="ghost"
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
-                  <UserAvatar 
-                    src={employeeData?.profileImage}
-                    alt={displayName}
-                    fallback={displayName?.charAt(0)}
-                    size="xs"
-                    className="shadow-xs"
-                  />
-                  <span className="text-xs font-medium text-gray-700">{displayName}</span>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
+                    {profileImageUrl ? (
+                      <img
+                        src={profileImageUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{displayName}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
-                  <UserAvatar 
-                    src={employeeData?.profileImage}
-                    alt={displayName}
-                    fallback={displayName?.charAt(0)}
-                    size="md"
-                  />
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
+                    {profileImageUrl ? (
+                      <img
+                        src={profileImageUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>

@@ -25,9 +25,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { getAccessToken } from "@/lib/services/common/api-client";
 import {
   useOrganizationsList,
-  useTitlesFromMembers,
+  useTitlesFromAPI,
   useWorkPoliciesList,
 } from "@/hooks/use-members-derived-data";
 import { useRouter } from "next/navigation";
@@ -63,14 +64,35 @@ export default function ProfileModal({
     ranks,
     positions,
     jobs,
-    roles,
-  } = useTitlesFromMembers();
+  } = useTitlesFromAPI();
   const router = useRouter();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string>("");
   const [currentEmployee, setCurrentEmployee] = useState<MemberProfile | null>(employee);
   const [detailInfo, setDetailInfo] = useState<{address?: string, joinDate?: string} | null>(null);
+  const [authenticatedImageUrl, setAuthenticatedImageUrl] = useState<string | null>(null);
+
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken();
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
   
   useEffect(() => {
     setCurrentEmployee(employee);
@@ -96,28 +118,104 @@ export default function ProfileModal({
 
   useEffect(() => {
     if (!currentEmployee) return;
-    setProfileImage(currentEmployee.profileImage || currentEmployee.avatarUrl || "");
+    const imageUrl = currentEmployee.profileImage || currentEmployee.avatarUrl || "";
+    setProfileImage(imageUrl);
+    
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      getAuthenticatedImageUrl(imageUrl).then(url => {
+        setAuthenticatedImageUrl(url);
+      });
+    } else {
+      setAuthenticatedImageUrl(imageUrl);
+    }
   }, [currentEmployee]);
 
   const handleModalOpen = async () => {
-    if (employee?.id && canViewDetails) {
+    if (employee?.id) {
       try {
-        const response = await userApi.getDetailProfile(employee.id);
-        if (response.data) {
-          setDetailInfo({
-            address: response.data.address,
-            joinDate: response.data.joinDate
-          });
+        // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
+        const mainResponse = await userApi.getMainProfile(employee.id);
+        console.log('API 응답:', mainResponse);
+        console.log('rank:', mainResponse.data?.rank);
+        console.log('position:', mainResponse.data?.position);
+        console.log('job:', mainResponse.data?.job);
+        
+        if (mainResponse && mainResponse.data) {
+          // workPolicies 배열 설정 (workPolicyId가 있는 경우)
+          const workPolicies = mainResponse.data.workPolicyId ? [mainResponse.data.workPolicyId.toString()] : [];
+          
+          setCurrentEmployee(prev => ({
+            ...prev,
+            rank: mainResponse.data.rank,
+            position: mainResponse.data.position,
+            job: mainResponse.data.job,
+            workPolicy: mainResponse.data.workPolicy,
+            workPolicies: workPolicies
+          }));
+        }
+
+        // 상세 정보 조회 (본인 또는 관리자만)
+        if (canViewDetails) {
+          const detailResponse = await userApi.getDetailProfile(employee.id);
+          if (detailResponse.data) {
+            setDetailInfo({
+              address: detailResponse.data.address,
+              joinDate: detailResponse.data.joinDate
+            });
+          }
         }
       } catch (error) {
-        console.error('상세 정보 조회 실패:', error);
+        console.error('프로필 정보 조회 실패:', error);
       }
     }
   };
 
-  if (isOpen && !detailInfo) {
-    handleModalOpen();
-  }
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (employee?.id) {
+        try {
+          // 공개 프로필 조회 (모든 사용자) - 근무정책 정보를 위해
+          const mainResponse = await userApi.getMainProfile(employee.id);
+          console.log('API 응답:', mainResponse);
+          console.log('rank:', mainResponse.data?.rank);
+          console.log('position:', mainResponse.data?.position);
+          console.log('job:', mainResponse.data?.job);
+          
+          if (mainResponse && mainResponse.data) {
+            // workPolicies 배열 설정 (workPolicyId가 있는 경우)
+            const workPolicies = mainResponse.data.workPolicyId ? [mainResponse.data.workPolicyId.toString()] : [];
+            
+            setCurrentEmployee(prev => ({
+              ...prev,
+              rank: mainResponse.data.rank,
+              position: mainResponse.data.position,
+              job: mainResponse.data.job,
+              workPolicy: mainResponse.data.workPolicy,
+              workPolicies: workPolicies,
+              profileImage: mainResponse.data.profileImageUrl
+            }));
+          }
+
+          // 상세 정보 조회 (본인 또는 관리자만)
+          if (canViewDetails) {
+            const detailResponse = await userApi.getDetailProfile(employee.id);
+            if (detailResponse.data) {
+              setDetailInfo({
+                address: detailResponse.data.address,
+                joinDate: detailResponse.data.joinDate
+              });
+            }
+          }
+        } catch (error) {
+          console.error('프로필 정보 조회 실패:', error);
+        }
+      }
+    };
+
+    if (isOpen && !detailInfo && employee?.id) {
+      fetchProfileData();
+    }
+  }, [isOpen, detailInfo, employee?.id, canViewDetails]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,13 +248,38 @@ export default function ProfileModal({
           setProfileImage(croppedImageUrl);
 
           try {
-            const response = await fetch(`/api/members/${currentEmployee.id}`, {
+            const token = getAccessToken();
+            
+            const formData = new FormData();
+            const blob = await fetch(croppedImageUrl).then(r => r.blob());
+            
+            const timestamp = new Date().getTime();
+            const fileName = `profile_${currentEmployee.name}_${timestamp}.jpg`;
+            formData.append('files', blob, fileName);
+            
+            const uploadResponse = await fetch(`http://localhost:9000/api/attachments/upload`, {
+              method: "POST",
+              headers: {
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+              body: formData,
+            });
+            
+            if (!uploadResponse.ok) {
+              throw new Error("이미지 업로드에 실패했습니다.");
+            }
+            
+            const uploadResult = await uploadResponse.json();
+            const fileId = uploadResult[0].fileId;
+            
+            const response = await fetch(`http://localhost:9000/api/users/${currentEmployee.id}/profile-image`, {
               method: "PATCH",
               headers: {
                 "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
               },
               body: JSON.stringify({
-                profileImage: croppedImageUrl,
+                profileImageUrl: fileId,
               }),
             });
 
@@ -166,9 +289,14 @@ export default function ProfileModal({
 
             const updatedEmployee = {
               ...currentEmployee,
-              profileImage: croppedImageUrl,
+              profileImage: fileId,
             };
+            setCurrentEmployee(updatedEmployee);
             onUpdate?.(updatedEmployee);
+
+            getAuthenticatedImageUrl(fileId).then(url => {
+              setAuthenticatedImageUrl(url);
+            });
 
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", {
@@ -261,10 +389,7 @@ export default function ProfileModal({
                     <div className="relative">
                       <Avatar className="w-24 h-24">
                         <AvatarImage
-                          src={
-                            currentEmployee.avatarUrl ||
-                            currentEmployee.profileImage
-                          }
+                          src={authenticatedImageUrl || currentEmployee.avatarUrl}
                           alt={currentEmployee.name}
                         />
                         <AvatarFallback className="bg-gray-100 text-gray-600 text-2xl">

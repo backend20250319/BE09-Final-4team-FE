@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import SimpleDropdown from "./SimpleDropdown";
 import {
   useOrganizationsList,
-  useTitlesFromMembers,
+  useTitlesFromAPI,
   useWorkPoliciesList,
 } from "@/hooks/use-members-derived-data";
 import { Switch } from "@/components/ui/switch";
@@ -138,10 +138,9 @@ export default function AddMemberModal({
     ranks,
     positions,
     jobs,
-    roles,
     loading: titleLoading,
     error: titleError,
-  } = useTitlesFromMembers();
+  } = useTitlesFromAPI();
 
   useEffect(() => {
     if (isOpen) {

@@ -1,42 +1,34 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { authApi } from '@/lib/services/user/api';
+import PasswordChangeModal from '@/components/PasswordChangeModal';
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login, isLoggedIn } = useAuth();
-  const redirect = searchParams.get('redirect') || '/';
-  const expired = searchParams.get('expired') === 'true';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const toastShown = useRef(false);
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const [isPasswordResetRequired, setIsPasswordResetRequired] = useState(false);
 
   useEffect(() => {
-    if (expired && !toastShown.current) {
-      toast.error('세션이 만료되었습니다. 다시 로그인해주세요.');
-      toastShown.current = true;
+    if (isLoggedIn && !isPasswordResetRequired) {
+      router.push('/');
     }
-  }, [expired]);
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      router.push(redirect);
-    }
-  }, [isLoggedIn, router, redirect]);
+  }, [isLoggedIn, isPasswordResetRequired, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +61,14 @@ export default function LoginPage() {
         expiresIn: loginData.expiresIn,
       });
 
-      toast.success('로그인 성공!');
-      router.push(redirect);
+      if (loginData.needsPasswordReset) {
+        setIsPasswordResetRequired(true);
+        setShowPasswordChangeModal(true);
+        toast.warning('비밀번호를 변경해주세요.');
+      } else {
+        toast.success('로그인 성공!');
+        router.push('/');
+      }
     } catch (error: any) {
       console.error('로그인 오류:', error);
       const errorMessage = error.message || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.';
@@ -80,7 +78,26 @@ export default function LoginPage() {
     }
   };
 
-  return !isLoggedIn && (
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordChangeModal(false);
+    setIsPasswordResetRequired(false);
+    toast.success('비밀번호가 성공적으로 변경되었습니다. 메인 페이지로 이동합니다.');
+    router.push('/');
+  };
+
+  const handlePasswordChangeCancel = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    } finally {
+      setShowPasswordChangeModal(false);
+      setIsPasswordResetRequired(false);
+      window.location.href = '/login';
+    }
+  };
+
+  return (!isLoggedIn || isPasswordResetRequired) && (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 h-80 w-80 animate-blob rounded-full bg-purple-300 mix-blend-multiply opacity-70 blur-xl"></div>
@@ -162,6 +179,12 @@ export default function LoginPage() {
           </p>
         </CardContent>
       </Card>
+
+      <PasswordChangeModal
+        isOpen={showPasswordChangeModal}
+        onClose={handlePasswordChangeCancel}
+        onSuccess={handlePasswordChangeSuccess}
+      />
     </div>
   );
 }

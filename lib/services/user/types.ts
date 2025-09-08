@@ -68,9 +68,15 @@ export interface UserResponseDto {
   isAdmin: boolean;
   needsPasswordReset: boolean;
   employmentType?: EmploymentType;
-  rank?: Rank;
-  position?: Position;
-  job?: Job;
+  
+  rank?: string;
+  position?: string;
+  job?: string;
+  
+  rankDto?: Rank;
+  positionDto?: Position;
+  jobDto?: Job;
+  
   role?: string;
   profileImageUrl?: string;
   selfIntroduction?: string;
@@ -145,6 +151,12 @@ export interface LoginResponse {
   email: string;
   name: string;
   role: string;
+  needsPasswordReset: boolean;
+}
+
+export interface PasswordChangeRequestDto {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface DetailProfileResponseDto {

@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, Edit3 } from "lucide-react";
 import { MemberProfile } from "./types";
+import { getAccessToken } from "@/lib/services/common/api-client";
 
 interface HeaderProps {
   user: MemberProfile;
@@ -19,6 +20,38 @@ export default function ProfileHeader({
   canEditProfileImage = false,
   onImageChange
 }: HeaderProps) {
+  const [authenticatedImageUrl, setAuthenticatedImageUrl] = useState<string | null>(null);
+
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken();
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
+
+  useEffect(() => {
+    if (user.profileImage && !user.profileImage.startsWith('http')) {
+      getAuthenticatedImageUrl(user.profileImage).then(url => {
+        setAuthenticatedImageUrl(url);
+      });
+    } else {
+      setAuthenticatedImageUrl(user.profileImage || user.avatarUrl || null);
+    }
+  }, [user.profileImage, user.avatarUrl]);
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-8">
       <div className="flex items-center gap-6">
@@ -26,7 +59,7 @@ export default function ProfileHeader({
           <div className="rounded-full ring-2 ring-white/30 shadow-xl">
             <Avatar className="w-24 h-24 bg-transparent">
               <AvatarImage 
-                src={user.avatarUrl || user.profileImage} 
+                src={authenticatedImageUrl || user.avatarUrl}
                 alt={user.name} 
                 className="bg-transparent" 
               />
