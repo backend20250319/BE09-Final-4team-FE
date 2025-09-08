@@ -36,7 +36,11 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { attendanceApi, workMonitorApi } from "@/lib/services/attendance";
+import {
+  attendanceApi,
+  workMonitorApi,
+  employeeLeaveBalanceApi,
+} from "@/lib/services/attendance";
 import { useAuth } from "@/hooks/use-auth";
 import { formatKstTime } from "@/lib/utils/datetime";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -101,12 +105,26 @@ export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
 
+  // 이번 주 근로시간 상태
+  const [weeklyWork, setWeeklyWork] = useState<{
+    weekly: number;
+    dailyAverage: number;
+    overtime: number;
+  }>({ weekly: 0, dailyAverage: 0, overtime: 0 });
+
   // 오늘 출근/지각/휴가 수
   const [workMonitor, setWorkMonitor] = useState<{
     attendanceCount: number;
     lateCount: number;
     vacationCount: number;
   } | null>(null);
+
+  // 나의 연차 요약 상태
+  const [leaveSummary, setLeaveSummary] = useState<{
+    remaining: number;
+    total: number;
+    used: number;
+  }>({ remaining: 0, total: 0, used: 0 });
 
   useEffect(() => {
     const updateTime = () => {
@@ -174,18 +192,90 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadWorkMonitor = async () => {
       try {
+        console.log("Loading work monitor data...");
         const data = await workMonitorApi.getTodayWorkMonitor();
+        console.log("Work monitor data loaded:", data);
+
         setWorkMonitor({
-          attendanceCount: data.attendanceCount,
-          lateCount: data.lateCount,
-          vacationCount: data.vacationCount,
+          attendanceCount: data.attendanceCount || 0,
+          lateCount: data.lateCount || 0,
+          vacationCount: data.vacationCount || 0,
         });
       } catch (error: any) {
         console.error("workMonitor load error:", error);
+        // 에러 발생 시 기본값 설정
+        setWorkMonitor({
+          attendanceCount: 0,
+          lateCount: 0,
+          vacationCount: 0,
+        });
       }
     };
+
     loadWorkMonitor();
+
+    // 자동 갱신: 매 30초마다 데이터 새로고침
+    const interval = setInterval(loadWorkMonitor, 30000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // 날짜가 바뀌면 workMonitor 데이터 리셋 및 새로 로드
+  useEffect(() => {
+    const checkDateChange = () => {
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem("lastWorkMonitorDate");
+
+      if (lastDate !== today) {
+        console.log("Date changed, refreshing work monitor data...");
+        localStorage.setItem("lastWorkMonitorDate", today);
+
+        // 새로운 날짜의 데이터 로드
+        const loadWorkMonitor = async () => {
+          try {
+            const data = await workMonitorApi.getTodayWorkMonitor();
+            setWorkMonitor({
+              attendanceCount: data.attendanceCount || 0,
+              lateCount: data.lateCount || 0,
+              vacationCount: data.vacationCount || 0,
+            });
+          } catch (error: any) {
+            console.error("workMonitor reload error:", error);
+            setWorkMonitor({
+              attendanceCount: 0,
+              lateCount: 0,
+              vacationCount: 0,
+            });
+          }
+        };
+
+        loadWorkMonitor();
+      }
+    };
+
+    // 컴포넌트 마운트 시 한 번 체크
+    checkDateChange();
+
+    // 매 분마다 날짜 변경 체크
+    const dateCheckInterval = setInterval(checkDateChange, 60000);
+
+    return () => clearInterval(dateCheckInterval);
+  }, []);
+
+  // 출근/퇴근 후 work monitor 데이터 갱신하는 함수
+  const refreshWorkMonitor = async () => {
+    try {
+      console.log("Refreshing work monitor data after attendance action...");
+      const data = await workMonitorApi.updateTodayWorkMonitorData();
+      setWorkMonitor({
+        attendanceCount: data.attendanceCount || 0,
+        lateCount: data.lateCount || 0,
+        vacationCount: data.vacationCount || 0,
+      });
+    } catch (error: any) {
+      console.error("workMonitor refresh error:", error);
+    }
+  };
 
   useEffect(() => {
     const loadNews = async () => {
@@ -203,6 +293,63 @@ export default function DashboardPage() {
     };
     loadNews(); // 컴포넌트 마운트 시 뉴스 로드 함수 호출
   }, []);
+
+  useEffect(() => {
+    const loadWeekly = async () => {
+      try {
+        if (!user?.id) return;
+        const detail = await attendanceApi.getThisWeekAttendance(
+          Number(user.id)
+        );
+        const days = detail?.dailySummaries || [];
+        let totalHours = 0;
+        let workedDays = 0;
+        days.forEach((d: any) => {
+          const h =
+            typeof d.workHours === "number"
+              ? d.workHours
+              : typeof d.workMinutes === "number"
+              ? d.workMinutes / 60
+              : 0;
+          if (h > 0) {
+            totalHours += h;
+            workedDays += 1;
+          }
+        });
+        const dailyAvg =
+          workedDays > 0 ? Math.round((totalHours / workedDays) * 10) / 10 : 0;
+        const overtime = Math.max(0, Math.round((totalHours - 40) * 10) / 10);
+        setWeeklyWork({
+          weekly: Math.round(totalHours * 10) / 10,
+          dailyAverage: dailyAvg,
+          overtime,
+        });
+      } catch (e) {
+        // 실패 시 기본값 유지
+        setWeeklyWork({ weekly: 0, dailyAverage: 0, overtime: 0 });
+      }
+    };
+    loadWeekly();
+  }, [user?.id]);
+
+  useEffect(() => {
+    const loadLeaveSummary = async () => {
+      try {
+        if (!user?.id) return;
+        const summary = await employeeLeaveBalanceApi.getLeaveBalanceSummary(
+          Number(user.id)
+        );
+        const total = summary?.totalGrantedDays ?? 0;
+        const used = summary?.totalUsedDays ?? 0;
+        const remaining =
+          summary?.totalRemainingDays ?? Math.max(0, total - used);
+        setLeaveSummary({ remaining, total, used });
+      } catch (e) {
+        setLeaveSummary({ remaining: 0, total: 0, used: 0 });
+      }
+    };
+    loadLeaveSummary();
+  }, [user?.id]);
 
   // 알림 목록 로드 함수
   const loadNotifications = async (reset: boolean = false) => {
@@ -308,7 +455,16 @@ export default function DashboardPage() {
         isCheckedIn: true,
         lastCheckInDate: now.toDateString(),
       }));
-      toast.success("출근이 기록되었습니다!");
+
+      // 출근 성공 후 work monitor 데이터 갱신
+      await refreshWorkMonitor();
+
+      // 출근 상태에 따른 메시지 표시
+      if (res.attendanceStatus === "LATE") {
+        toast.warning("지각으로 출근이 기록되었습니다.");
+      } else {
+        toast.success("출근이 기록되었습니다!");
+      }
     } catch (error: any) {
       console.error("checkIn error:", {
         message: error?.message,
@@ -341,6 +497,10 @@ export default function DashboardPage() {
         checkOutTime: checkOutDisplay,
         isCheckedOut: true,
       }));
+
+      // 퇴근 후 work monitor 데이터 갱신 (조퇴 등의 상태 반영)
+      await refreshWorkMonitor();
+
       toast.success("퇴근이 기록되었습니다!");
     } catch (error: any) {
       console.error("checkOut error:", {
@@ -633,14 +793,14 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="text-center bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
               <div className="text-3xl font-bold mb-2">
-                {employeeData.workHoursData.weekly}h
+                {weeklyWork.weekly}h
               </div>
               <div className="text-sm opacity-90">이번 주 근무시간</div>
             </div>
             <div className="flex justify-center gap-6 text-sm text-gray-600">
-              <span>일 평균 {employeeData.workHoursData.dailyAverage}h</span>
+              <span>일 평균 {weeklyWork.dailyAverage}h</span>
               <span className="text-red-600 font-medium">
-                초과근무 {employeeData.workHoursData.overtime}h
+                초과근무 {weeklyWork.overtime}h
               </span>
             </div>
           </CardContent>
@@ -659,13 +819,13 @@ export default function DashboardPage() {
           <CardContent className="space-y-4">
             <div className="text-center bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
               <div className="text-3xl font-bold mb-2">
-                {employeeData.leaveData.remaining}일
+                {leaveSummary.remaining}일
               </div>
               <div className="text-sm opacity-90">남은 연차</div>
             </div>
             <div className="flex justify-center gap-6 text-sm text-gray-600">
-              <span>총 연차 {employeeData.leaveData.total}일</span>
-              <span>사용 연차 {employeeData.leaveData.used}일</span>
+              <span>총 연차 {leaveSummary.total}일</span>
+              <span>사용 연차 {leaveSummary.used}일</span>
             </div>
           </CardContent>
         </GlassCard>

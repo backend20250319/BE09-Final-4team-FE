@@ -1,7 +1,7 @@
 // components/calendar/schedule-calendar.jsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -15,10 +15,20 @@ export default function ScheduleCalendar({
   dayCellDidMount,
   eventContent,
   editable = true,
+  currentDate, // 현재 표시할 날짜 (주차 변경 시 사용)
 }) {
   const [isMounted, setIsMounted] = useState(false);
+  const calendarRef = useRef(null);
 
   useEffect(() => setIsMounted(true), []);
+
+  // currentDate가 변경되면 캘린더 날짜 업데이트
+  useEffect(() => {
+    if (isMounted && calendarRef.current && currentDate) {
+      const calendarApi = calendarRef.current.getApi();
+      calendarApi.gotoDate(currentDate);
+    }
+  }, [currentDate, isMounted]);
 
   if (!isMounted) {
     return (
@@ -55,13 +65,85 @@ export default function ScheduleCalendar({
           background: rgba(255, 99, 132, 0.8) !important;
           border: 2px solid rgba(255, 99, 132, 1) !important;
         }
+
+        /* 코어타임 스타일링 */
+        .fc-event.coretime {
+          background: rgba(40, 167, 69, 0.9) !important;
+          border: 2px solid #28a745 !important;
+          color: white !important;
+          font-weight: bold !important;
+        }
+
+        .fc-event.coretime .fc-event-title {
+          font-size: 0.85em !important;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* 일반 근무 시간 스타일 */
+        .fc-event.work {
+          background: rgba(59, 130, 246, 0.9) !important;
+          border: 2px solid #3b82f6 !important;
+          color: white !important;
+        }
+
+        /* 휴게시간 스타일 */
+        .fc-event.resttime {
+          background: rgba(255, 193, 7, 0.9) !important;
+          border: 2px solid #ffc107 !important;
+          color: #212529 !important;
+          font-weight: 500 !important;
+        }
+
+        /* 병가 스타일 */
+        .fc-event.sick_leave {
+          background: rgba(220, 53, 69, 0.9) !important;
+          border: 2px solid #dc3545 !important;
+          color: white !important;
+        }
+
+        /* 휴가 스타일 */
+        .fc-event.vacation {
+          background: rgba(253, 126, 20, 0.9) !important;
+          border: 2px solid #fd7e14 !important;
+          color: white !important;
+        }
+
+        /* 출장 스타일 */
+        .fc-event.business_trip {
+          background: rgba(111, 66, 193, 0.9) !important;
+          border: 2px solid #6f42c1 !important;
+          color: white !important;
+        }
+
+        /* 외근 스타일 */
+        .fc-event.out_of_office {
+          background: rgba(32, 201, 151, 0.9) !important;
+          border: 2px solid #20c997 !important;
+          color: white !important;
+        }
+
+        /* 초과근무 스타일 */
+        .fc-event.overtime {
+          background: rgba(232, 62, 140, 0.9) !important;
+          border: 2px solid #e83e8c !important;
+          color: white !important;
+        }
+
+        /* 재택근무 스타일 */
+        .fc-event.remote {
+          background: rgba(108, 117, 125, 0.9) !important;
+          border: 2px solid #6c757d !important;
+          color: white !important;
+        }
       `}</style>
 
       <FullCalendar
+        ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin]}
         initialView="timeGridWeek"
         headerToolbar={false}
         height="auto"
+        date={currentDate} // 현재 표시할 날짜 설정
         /* 데이터 및 상호작용 핸들러 */
         events={events}
         editable={editable}
@@ -75,6 +157,14 @@ export default function ScheduleCalendar({
         eventClick={onEventClick}
         dayCellDidMount={dayCellDidMount}
         eventContent={eventContent}
+        /* 이벤트 CSS 클래스 설정 */
+        eventClassNames={(arg) => {
+          const scheduleType = arg.event.extendedProps?.type;
+          if (scheduleType) {
+            return [scheduleType.toLowerCase()];
+          }
+          return [];
+        }}
         /* 타임그리드 설정 */
         slotMinTime="08:00:00"
         slotMaxTime="24:00:00"
@@ -98,7 +188,11 @@ export default function ScheduleCalendar({
         eventTimeFormat={{
           hour: "2-digit",
           minute: "2-digit",
-          meridiem: false,
+          hour12: false,
+        }}
+        slotLabelFormat={{
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: false,
         }}
         eventDisplay="block"
