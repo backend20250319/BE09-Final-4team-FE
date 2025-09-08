@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Mail, Phone, Calendar, Building2, Briefcase } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { MemberProfile } from "./profile/types";
+import { getAccessToken } from "@/lib/services/common/api-client";
 
 interface Employee {
   id: string;
@@ -48,13 +49,8 @@ interface MemberListProps {
   onEmployeeDelete?: (employeeId: string) => void;
 }
 
-const getProfileImage = (name: string) => {
-  const hash = name.split("").reduce((a, b) => {
-    a = (a << 5) - a + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-
-  return `https://picsum.photos/96/96?random=${hash}`;
+const getDefaultProfileImage = (name: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ec4899&color=fff&size=96&font-size=0.4&length=1`;
 };
 
 export default function MemberList({
@@ -75,8 +71,31 @@ export default function MemberList({
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
+  const [authenticatedImageUrls, setAuthenticatedImageUrls] = useState<Record<string, string>>({});
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
+
+  // 인증된 이미지 URL 생성 함수
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken();
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -108,6 +127,26 @@ export default function MemberList({
   useEffect(() => {
     setDisplayedCount(10);
   }, [searchTerm, selectedOrg]);
+
+  // employees가 변경될 때마다 인증된 이미지 URL 생성
+  useEffect(() => {
+    const loadAuthenticatedImages = async () => {
+      const newUrls: Record<string, string> = {};
+      
+      for (const employee of employees) {
+        if (employee.profileImage && !employee.profileImage.startsWith('http')) {
+          const url = await getAuthenticatedImageUrl(employee.profileImage);
+          if (url) {
+            newUrls[employee.id] = url;
+          }
+        }
+      }
+      
+      setAuthenticatedImageUrls(newUrls);
+    };
+
+    loadAuthenticatedImages();
+  }, [employees]);
 
   const loadMore = () => {
     if (isLoading || displayedCount >= employees.length) return;
@@ -193,14 +232,14 @@ export default function MemberList({
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12 bg-transparent">
                 <AvatarImage
-                  src={employee.profileImage || getProfileImage(employee.name)}
+                  src={
+                    employee.profileImage && employee.profileImage.startsWith('http')
+                      ? employee.profileImage 
+                      : authenticatedImageUrls[employee.id] || getDefaultProfileImage(employee.name)
+                  }
                   className="bg-transparent"
                   onError={(e) => {
-                    (
-                      e.target as HTMLImageElement
-                    ).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      employee.name
-                    )}&background=ec4899&color=fff&size=96&font-size=0.4&length=1`;
+                    (e.target as HTMLImageElement).src = getDefaultProfileImage(employee.name);
                   }}
                 />
                 <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">

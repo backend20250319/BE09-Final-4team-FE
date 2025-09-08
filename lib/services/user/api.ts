@@ -96,7 +96,7 @@ export const userApi = {
     },
 
     getMainProfile: async (userId: number): Promise<UserResponseDto> => {
-        const response = await apiClient.get(`/api/users/${userId}`);
+        const response = await apiClient.get(`/api/users/${userId}/profile`);
         return response.data;
     },
 

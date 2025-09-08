@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { userApi } from "@/lib/services/user/api";
 import ProfileModal from '@/app/members/components/ProfileModal'
 import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
+import { getAccessToken } from '@/lib/services/common/api-client'
 
 interface Employee {
   id: string
@@ -53,14 +54,53 @@ export function Header({
   const { user, logout, isAdmin } = useAuth()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken()
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
 
   useEffect(() => {
     if (user?.email) {
       userApi.getAllUsers()
         .then(users => {
           if (Array.isArray(users)) {
-            const employee = users.find((emp: Employee) => emp.email === user.email);
-            setEmployeeData(employee || null);
+            const employee = users.find((emp: any) => emp.email === user.email);
+            if (employee) {
+              const mappedEmployee = {
+                ...employee,
+                profileImage: employee.profileImageUrl
+              };
+              setEmployeeData(mappedEmployee);
+              
+              if (employee.profileImageUrl && !employee.profileImageUrl.startsWith('http')) {
+                getAuthenticatedImageUrl(employee.profileImageUrl).then(url => {
+                  setProfileImageUrl(url);
+                });
+              } else {
+                setProfileImageUrl(employee.profileImageUrl);
+              }
+            } else {
+              setEmployeeData(null);
+              setProfileImageUrl(null);
+            }
           } else {
             console.warn('Users is not an array:', users);
             setEmployeeData(null);
@@ -141,9 +181,9 @@ export function Header({
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
+                    {profileImageUrl ? (
                       <img
-                        src={employeeData.profileImage}
+                        src={profileImageUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
@@ -159,9 +199,9 @@ export function Header({
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
+                    {profileImageUrl ? (
                       <img
-                        src={employeeData.profileImage}
+                        src={profileImageUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
