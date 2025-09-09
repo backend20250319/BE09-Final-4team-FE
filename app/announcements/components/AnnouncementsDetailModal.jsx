@@ -16,9 +16,8 @@ import { Input } from "@/components/ui/input";
 import { communicationApi } from "@/lib/services/communication";
 import { formatDateTime } from "@/lib/utils/date-format";
 import { useAuth } from "@/contexts/auth-context";
-import { attachmentService } from "@/lib/services/attachment/api";
+import { attachmentApi } from "@/lib/services/attachment/api";
 import { toast } from "sonner";
-import { getAccessToken } from "@/lib/services/common/api-client";
 import { userApi } from "@/lib/services/user/api";
 import { Button } from "@/components/ui/button";
 
@@ -44,23 +43,8 @@ export default function AnnouncementsDetailModal({
   const [currentUserImageUrl, setCurrentUserImageUrl] = useState(null);
 
   const getAuthenticatedImageUrl = async (fileId) => {
-    try {
-      const token = getAccessToken();
-      if (!token || !fileId) return null;
-
-      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
-      }
-    } catch (error) {
-      console.error('이미지 로드 실패:', error);
-    }
+    if (!fileId) return null;
+    return await attachmentApi.viewFile(fileId)
     return null;
   };
 

@@ -87,24 +87,7 @@ export default function ProfileModal({
   }>({ remaining: 0, total: 0, used: 0 });
 
   const getAuthenticatedImageUrl = async (fileId: string) => {
-    try {
-      const token = getAccessToken();
-      if (!token) return null
-
-      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
-      if (response.ok) {
-        const blob = await response.blob()
-        return URL.createObjectURL(blob)
-      }
-    } catch (error) {
-      console.error('이미지 로드 실패:', error)
-    }
-    return null
+    return await attachmentApi.viewFile(fileId)
   }
   
   useEffect(() => {
@@ -307,44 +290,16 @@ export default function ProfileModal({
           setProfileImage(croppedImageUrl);
 
           try {
-            const token = getAccessToken();
-            
-            const formData = new FormData();
             const blob = await fetch(croppedImageUrl).then(r => r.blob());
             
             const timestamp = new Date().getTime();
             const fileName = `profile_${currentEmployee.name}_${timestamp}.jpg`;
-            formData.append('files', blob, fileName);
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
             
-            const uploadResponse = await fetch(`http://localhost:9000/api/attachments/upload`, {
-              method: "POST",
-              headers: {
-                ...(token && { Authorization: `Bearer ${token}` }),
-              },
-              body: formData,
-            });
-            
-            if (!uploadResponse.ok) {
-              throw new Error("이미지 업로드에 실패했습니다.");
-            }
-            
-            const uploadResult = await uploadResponse.json();
+            const uploadResult = await attachmentApi.uploadFiles([file]);
             const fileId = uploadResult[0].fileId;
             
-            const response = await fetch(`http://localhost:9000/api/users/${currentEmployee.id}/profile-image`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
-              },
-              body: JSON.stringify({
-                profileImageUrl: fileId,
-              }),
-            });
-
-            if (!response.ok) {
-              throw new Error("프로필 이미지 업데이트에 실패했습니다.");
-            }
+            await userApi.updateProfileImage(currentEmployee.id, fileId);
 
             const updatedEmployee = {
               ...currentEmployee,
@@ -353,9 +308,10 @@ export default function ProfileModal({
             setCurrentEmployee(updatedEmployee);
             onUpdate?.(updatedEmployee);
 
-            getAuthenticatedImageUrl(fileId).then(url => {
+            const url = await getAuthenticatedImageUrl(fileId);
+            if (url) {
               setAuthenticatedImageUrl(url);
-            });
+            }
 
             window.dispatchEvent(
               new CustomEvent("employeeUpdated", {
