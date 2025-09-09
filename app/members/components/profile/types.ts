@@ -17,8 +17,6 @@ export interface MemberProfile {
   role?: string;
   email?: string;
   phone?: string;
-  projects?: number;
-  followers?: number;
   teamCount?: number;
   mainTeam?: TeamInfo | null;
   concurrentTeams?: TeamInfo[];

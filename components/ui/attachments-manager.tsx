@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Upload, FileText, Eye, Download, Trash2 } from 'lucide-react'
 import { Button } from './button'
+import { attachmentApi } from '@/lib/services/attachment/api'
+import { toast } from 'sonner'
 
 export interface Attachment {
   id: string
@@ -27,32 +29,44 @@ export function AttachmentsManager({
   className = ''
 }: AttachmentsManagerProps) {
   const [isDragOver, setIsDragOver] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files) return
 
     // 파일 개수 제한 확인
     if (attachments.length + files.length > maxFiles) {
-      alert(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
+      toast.error(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
       return
     }
 
     // 파일 크기 제한 확인
     const oversizedFiles = Array.from(files).filter(file => file.size > maxFileSize * 1024 * 1024)
     if (oversizedFiles.length > 0) {
-      alert(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
+      toast.error(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
       return
     }
 
-    const newAttachments: Attachment[] = Array.from(files).map((file, index) => ({
-      id: `file-${Date.now()}-${index}`,
-      name: file.name,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      url: URL.createObjectURL(file)
-    }))
+    // 실제 파일 업로드
+    try {
+      setIsUploading(true)
+      const uploadedFiles = await attachmentApi.uploadFiles(Array.from(files))
+      
+      const newAttachments: Attachment[] = uploadedFiles.map((fileInfo) => ({
+        id: fileInfo.fileId,
+        name: fileInfo.fileName,
+        size: `${(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB`,
+        url: attachmentApi.getDownloadUrl(fileInfo.fileId)
+      }))
 
-    onAttachmentsChange([...attachments, ...newAttachments])
+      onAttachmentsChange([...attachments, ...newAttachments])
+    } catch (error) {
+      console.error('파일 업로드 실패:', error)
+      toast.error('파일 업로드에 실패했습니다.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -65,7 +79,7 @@ export function AttachmentsManager({
     setIsDragOver(false)
   }
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     setIsDragOver(false)
     
@@ -74,25 +88,36 @@ export function AttachmentsManager({
 
     // 파일 개수 제한 확인
     if (attachments.length + files.length > maxFiles) {
-      alert(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
+      toast.error(`최대 ${maxFiles}개의 파일만 업로드할 수 있습니다.`)
       return
     }
 
     // 파일 크기 제한 확인
     const oversizedFiles = Array.from(files).filter(file => file.size > maxFileSize * 1024 * 1024)
     if (oversizedFiles.length > 0) {
-      alert(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
+      toast.error(`파일 크기는 ${maxFileSize}MB를 초과할 수 없습니다.`)
       return
     }
 
-    const newAttachments: Attachment[] = Array.from(files).map((file, index) => ({
-      id: `file-${Date.now()}-${index}`,
-      name: file.name,
-      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      url: URL.createObjectURL(file)
-    }))
+    // 실제 파일 업로드
+    try {
+      setIsUploading(true)
+      const uploadedFiles = await attachmentApi.uploadFiles(Array.from(files))
+      
+      const newAttachments: Attachment[] = uploadedFiles.map((fileInfo) => ({
+        id: fileInfo.fileId,
+        name: fileInfo.fileName,
+        size: `${(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB`,
+        url: attachmentApi.getDownloadUrl(fileInfo.fileId)
+      }))
 
-    onAttachmentsChange([...attachments, ...newAttachments])
+      onAttachmentsChange([...attachments, ...newAttachments])
+    } catch (error) {
+      console.error('파일 업로드 실패:', error)
+      toast.error('파일 업로드에 실패했습니다.')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const removeAttachment = (attachmentId: string) => {
@@ -129,15 +154,23 @@ export function AttachmentsManager({
       {attachments.length === 0 ? (
         /* 파일이 없을 때: 드래그 앤 드롭 영역 */
         <div 
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors relative ${
             isDragOver 
               ? 'border-blue-500 bg-blue-50' 
               : 'border-gray-300 hover:border-blue-400'
-          }`}
+          } ${isUploading ? 'pointer-events-none opacity-70' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
+          {isUploading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-blue-600 font-medium">파일 업로드 중...</p>
+              </div>
+            </div>
+          )}
           <label htmlFor="file-upload" className="cursor-pointer">
             <Upload className={`w-8 h-8 mx-auto mb-2 ${
               isDragOver ? 'text-blue-500' : 'text-gray-400'
@@ -198,15 +231,23 @@ export function AttachmentsManager({
           {/* 추가 파일을 위한 드래그 앤 드롭 영역 */}
           {attachments.length < maxFiles && (
             <div 
-              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors relative ${
                 isDragOver 
                   ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-300 hover:border-blue-400'
-              }`}
+              } ${isUploading ? 'pointer-events-none opacity-70' : ''}`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
+              {isUploading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-1"></div>
+                    <p className="text-xs text-blue-600 font-medium">업로드 중...</p>
+                  </div>
+                </div>
+              )}
               <label htmlFor="file-upload" className="cursor-pointer">
                 <Upload className={`w-6 h-6 mx-auto mb-1 ${
                   isDragOver ? 'text-blue-500' : 'text-gray-400'

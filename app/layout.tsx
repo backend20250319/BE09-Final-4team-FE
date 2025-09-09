@@ -1,17 +1,22 @@
-import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
-import { GeistMono } from 'geist/font/mono'
-import './globals.css'
-import { Toaster } from 'sonner'
+import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import "./globals.css";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/contexts/auth-context";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { NotificationToastManager } from "@/components/ui/notification-toast";
+import GlobalAIChat from "./aichat/GlobalAIChat";
+import { QueryProvider } from "@/providers/query-provider";
 
 export const metadata: Metadata = {
-  title: 'Hermes'
-}
+  title: "Hermes",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -25,14 +30,17 @@ html {
         `}</style>
       </head>
       <body>
-        {children}
-        <Toaster 
-          position="top-center"
-          richColors
-          closeButton
-          duration={4000}
-        />
+        <QueryProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              {children}
+              <NotificationToastManager />
+            </NotificationProvider>
+          </AuthProvider>
+        </QueryProvider>
+
+        <Toaster position="top-center" richColors closeButton duration={4000} />
       </body>
     </html>
-  )
+  );
 }

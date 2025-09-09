@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Bell, User, Menu, LogOut, Settings, User as UserIcon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth";
+import { userApi } from "@/lib/services/user/api";
 import ProfileModal from '@/app/members/components/ProfileModal'
 import { NotificationsDropdown } from '@/components/ui/notifications-dropdown'
+import { getAccessToken } from '@/lib/services/common/api-client'
 
 interface Employee {
   id: string
@@ -49,25 +51,67 @@ export function Header({
   onToggleSidebar,
   isMobile = false
 }: HeaderProps) {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
   const [employeeData, setEmployeeData] = useState<Employee | null>(null)
   const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null)
+
+  const getAuthenticatedImageUrl = async (fileId: string) => {
+    try {
+      const token = getAccessToken()
+      if (!token) return null
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        return URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error)
+    }
+    return null
+  }
 
   useEffect(() => {
     if (user?.email) {
-      fetch('/api/members')
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.members) {
-            const employee = data.members.find((emp: Employee) => emp.email === user.email)
-            setEmployeeData(employee || null)
+      userApi.getAllUsers()
+        .then(users => {
+          if (Array.isArray(users)) {
+            const employee = users.find((emp: any) => emp.email === user.email);
+            if (employee) {
+              const mappedEmployee = {
+                ...employee,
+                profileImage: employee.profileImageUrl
+              };
+              setEmployeeData(mappedEmployee);
+              
+              if (employee.profileImageUrl && !employee.profileImageUrl.startsWith('http')) {
+                getAuthenticatedImageUrl(employee.profileImageUrl).then(url => {
+                  setProfileImageUrl(url);
+                });
+              } else {
+                setProfileImageUrl(employee.profileImageUrl);
+              }
+            } else {
+              setEmployeeData(null);
+              setProfileImageUrl(null);
+            }
+          } else {
+            console.warn('Users is not an array:', users);
+            setEmployeeData(null);
           }
         })
         .catch(error => {
-          console.error('직원 데이터 로드 오류:', error)
-        })
+          console.error('직원 데이터 로드 오류:', error);
+          setEmployeeData(null);
+        });
     }
-  }, [user])
+  }, [user]);
 
   useEffect(() => {
     const handleEmployeeUpdate = (event: CustomEvent) => {
@@ -88,7 +132,9 @@ export function Header({
   const displayEmail = user?.email || ''
 
   const handleMyProfileClick = () => {
-    setShowProfileModal(true)
+    if (employeeData) {
+      setShowProfileModal(true)
+    }
   }
 
   const handleProfileModalClose = () => {
@@ -100,12 +146,10 @@ export function Header({
   }
 
   const handleNotificationClick = (notification: any) => {
-    // 알림 클릭 시 처리 로직
     console.log('알림 클릭:', notification)
   }
 
   const handleViewAllNotifications = () => {
-    // 모든 알림 보기 처리 로직
     console.log('모든 알림 보기')
   }
 
@@ -137,9 +181,9 @@ export function Header({
                   className="flex items-center gap-3 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:bg-gray-200/80 transition-colors cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
+                    {profileImageUrl ? (
                       <img
-                        src={employeeData.profileImage}
+                        src={profileImageUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
@@ -155,9 +199,9 @@ export function Header({
               <DropdownMenuContent align="end" className="w-56">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-transparent">
-                    {employeeData?.profileImage ? (
+                    {profileImageUrl ? (
                       <img
-                        src={employeeData.profileImage}
+                        src={profileImageUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                       />
@@ -191,26 +235,14 @@ export function Header({
         </div>
       </div>
 
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={handleProfileModalClose}
-        employee={employeeData || {
-          id: 'temp',
-          name: user?.name || '사용자',
-          email: user?.email || '',
-          phone: '010-1234-5678',
-          address: '서울시 서초구 신반포로15길 19 (아크로리버파크)',
-          joinDate: new Date().toISOString().split('T')[0],
-          organization: '개발본부',
-          position: '대리',
-          role: '개발자',
-          job: '풀스택 개발',
-          isAdmin: user?.isAdmin || false,
-          teams: ['프론트엔드팀'],
-          workPolicies: ['flexible', 'hybrid']
-        }}
-        onUpdate={handleProfileUpdate}
-      />
+      {showProfileModal && employeeData && (
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={handleProfileModalClose}
+          employee={employeeData}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
     </div>
   )
-} 
+}

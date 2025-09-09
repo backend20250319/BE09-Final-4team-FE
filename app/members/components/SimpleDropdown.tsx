@@ -7,10 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 
 interface SimpleDropdownProps {
-  options: string[]
-  value?: string
+  options: (string | { id: number; name: string; sortOrder?: number })[]
+  value?: string | { id: number; name: string; sortOrder?: number }
   placeholder?: string
-  onChange: (value: string) => void
+  onChange: (value: string | { id: number; name: string; sortOrder?: number }) => void
   triggerClassName?: string
   menuClassName?: string
   disabled?: boolean
@@ -40,7 +40,7 @@ export default function SimpleDropdown({
     return () => ro.disconnect()
   }, [contentWidth])
 
-  const selectedLabel = value ?? ""
+  const selectedLabel = typeof value === 'object' ? value?.name : value ?? ""
 
   return (
     <Popover open={isOpen && !disabled} onOpenChange={setIsOpen}>
@@ -59,7 +59,7 @@ export default function SimpleDropdown({
             <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
               {selectedLabel || placeholder}
             </span>
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="h-4 w-4 opacity-50" />
           </Button>
         </PopoverTrigger>
       </div>
@@ -68,10 +68,11 @@ export default function SimpleDropdown({
           <div role="listbox" aria-activedescendant={selectedLabel || undefined}>
             {options.map((opt) => {
               const isSelected = opt === value
+              const key = typeof opt === 'object' ? opt.id || opt.name : opt;
               return (
                 <button
                   type="button"
-                  key={opt}
+                  key={key}
                   className={cn(
                     "w-full flex items-center p-3 hover:bg-gray-50 text-left",
                     isSelected && "bg-blue-50 text-blue-700",
@@ -83,7 +84,7 @@ export default function SimpleDropdown({
                     setIsOpen(false)
                   }}
                 >
-                  <span className="flex-1 text-gray-900">{opt}</span>
+                  {typeof opt === 'object' ? opt.name : opt}
                 </button>
               )
             })}

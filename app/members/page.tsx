@@ -1,969 +1,572 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from 'react'
-import { MainLayout } from "@/components/layout/main-layout"
-import { GlassCard } from "@/components/ui/glass-card"
-import { GradientButton } from "@/components/ui/gradient-button"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { MainLayout } from "@/components/layout/main-layout";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GradientButton } from "@/components/ui/gradient-button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
-  Users, 
   Search,
-  Settings, 
-  Plus,
-  Building2, 
-  User,
-  Mail,
-  Phone,
-  Calendar,
-  MapPin,
-  Crown,
-  Shield,
+  Settings,
+  Building2,
   ChevronDown,
   ChevronRight,
   Expand,
-  Minimize
-} from "lucide-react"
-import { toast } from 'sonner'
-import AddMemberModal from './components/AddMemberModal'
-import SettingsModal from './components/SettingsModal'
-import MemberList from './components/MemberList'
+  Minimize,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+import AddMemberModal from "./components/AddMemberModal";
+import SettingsModal from "./components/SettingsModal";
+import MemberList from "./components/MemberList";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/ui/spinner";
+import { organizationApi } from "@/lib/services/organization/api";
+import { OrganizationHierarchyDto } from "@/lib/services/organization/types";
+import { apiClient } from "@/lib/services/common/api-client";
+import { userApi } from "@/lib/services/user/api";
+import { UserResponseDto, UserCreateDto } from "@/lib/services/user/types";
+import { useTitlesFromAPI } from "@/hooks/use-members-derived-data";
 
 interface Employee {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  address?: string
-  joinDate: string
-  organization?: string
-  organizations?: string[]
-  position: string
-  role: string
-  job: string
-  rank?: string
-  isAdmin: boolean
-  teams: string[]
-  profileImage?: string
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  joinDate: string;
+  organization?: string;
+  organizations?: string[];
+  position: string;
+  role: string;
+  job: string;
+  rank?: string;
+  isAdmin: boolean;
+  teams: string[];
+  profileImage?: string;
+  workPolicies?: string[];
 }
+
+const convertUserToEmployee = (user: UserResponseDto): Employee => ({
+  id: user.id.toString(),
+  name: user.name,
+  email: user.email,
+  phone: user.phone || "",
+  address: user.address || "",
+  joinDate: user.joinDate || "",
+  organization: user.organizations?.find((org) => org.isPrimary)
+    ?.organizationName,
+  organizations: user.organizations?.map((org) => org.organizationName) || [],
+  position: user.position?.name || "",
+  role: user.role || "",
+  job: user.job?.name || "",
+  rank: user.rank?.name || "",
+  isAdmin: user.isAdmin,
+  teams: [],
+  profileImage: user.profileImageUrl,
+  workPolicies: user.workPolicyId ? [user.workPolicyId.toString()] : undefined,
+});
 
 interface OrgStructure {
-  name: string
-  children?: OrgStructure[]
-  employeeCount: number
-  isExpanded?: boolean
+  name: string;
+  children?: OrgStructure[];
+  employeeCount: number;
+  isExpanded?: boolean;
 }
 
-const mockEmployees: Employee[] = [
-  {
-    id: "1",
-      name: "비니비니",
-    email: "bini@hermesai.com",
-    phone: "010-0000-0000",
-    address: "서울특별시 강남구",
-    joinDate: "2020-01-01",
-    organization: "CEO",
-      position: "CEO",
-    role: "본부장",
-    job: "사업 기획",
-    rank: "1급",
-    isAdmin: true,
-    teams: ["CEO", "인사팀", "경영팀"],
-    profileImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-  },
-  {
-    id: "2",
-    name: "김철수",
-    email: "kim.cs@company.com",
-      phone: "010-1234-5678",
-    address: "서울특별시 서초구",
-    joinDate: "2021-03-15",
-    organization: "개발팀",
-    position: "팀장",
-    role: "팀장",
-    job: "백엔드 개발",
-    rank: "2급",
-    isAdmin: false,
-    teams: ["프론트엔드팀", "백엔드팀", "모바일팀"]
-  },
-  {
-    id: "3",
-    name: "이영희",
-    email: "lee.yh@company.com",
-    phone: "010-2345-6789",
-    address: "서울특별시 마포구",
-    joinDate: "2021-06-01",
-    organization: "개발팀",
-    position: "선임",
-    role: "팀원",
-    job: "프론트엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["UI팀", "UX팀", "그래픽팀"]
-  },
-  {
-    id: "4",
-    name: "박민수",
-    email: "park.ms@company.com",
-    phone: "010-3456-7890",
-    address: "경기도 성남시",
-    joinDate: "2022-01-10",
-    organization: "개발팀",
-    position: "주임",
-    role: "팀원",
-    job: "백엔드 개발",
-    rank: "4급",
-    isAdmin: false,
-    teams: ["백엔드팀", "프론트엔드팀"]
-  },
-  {
-    id: "5",
-    name: "최지은",
-    email: "choi.je@company.com",
-    phone: "010-4567-8901",
-    address: "서울특별시 송파구",
-    joinDate: "2022-04-01",
-    organization: "마케팅팀",
-    position: "대리",
-    role: "팀원",
-    job: "마케팅",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["브랜드팀", "콘텐츠팀", "홍보팀"]
-  },
-  {
-    id: "6",
-    name: "정수민",
-    email: "jung.sm@company.com",
-      phone: "010-5678-9012",
-    address: "서울특별시 강남구",
-    joinDate: "2022-07-15",
-    organization: "개발본부",
-    position: "사원",
-    role: "팀원",
-    job: "프론트엔드 개발",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["프론트엔드팀", "백엔드팀", "모바일팀"]
-  },
-  {
-    id: "7",
-    name: "한지훈",
-    email: "han.jh@company.com",
-    phone: "010-6789-0123",
-    address: "서울특별시 서초구",
-    joinDate: "2021-09-01",
-    organization: "경영진",
-    position: "팀장",
-    role: "팀장",
-    job: "사업 기획",
-    rank: "2급",
-    isAdmin: false,
-    teams: ["경영팀"]
-  },
-  {
-    id: "8",
-    name: "송미영",
-    email: "song.my@company.com",
-    phone: "010-7890-1234",
-    address: "서울특별시 마포구",
-    joinDate: "2022-03-20",
-    organization: "개발본부",
-    position: "선임",
-    role: "팀원",
-    job: "백엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["백엔드팀", "모바일팀", "프론트엔드팀"]
-  },
-  {
-    id: "9",
-    name: "강동현",
-    email: "kang.dh@company.com",
-    phone: "010-8901-2345",
-    address: "경기도 성남시",
-    joinDate: "2022-06-10",
-    organization: "디자인본부",
-    position: "주임",
-    role: "팀원",
-    job: "UI/UX 디자인",
-    rank: "4급",
-    isAdmin: false,
-    teams: ["UX팀", "그래픽팀", "UI팀"]
-  },
-  {
-    id: "10",
-    name: "윤서연",
-    email: "yoon.sy@company.com",
-    phone: "010-9012-3456",
-    address: "서울특별시 송파구",
-    joinDate: "2022-08-01",
-    organization: "개발본부",
-    position: "대리",
-    role: "팀원",
-    job: "모바일 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["모바일팀", "프론트엔드팀"]
-  },
-  {
-    id: "11",
-    name: "임태호",
-    email: "lim.th@company.com",
-    phone: "010-0123-4567",
-    address: "서울특별시 강남구",
-    joinDate: "2022-09-15",
-    organization: "마케팅본부",
-    position: "사원",
-    role: "팀원",
-    job: "콘텐츠 마케팅",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["콘텐츠팀", "홍보팀", "브랜드팀"]
-  },
-  {
-    id: "12",
-    name: "김미영",
-    email: "kim.my@company.com",
-      phone: "010-1111-2222",
-    address: "서울특별시 서초구",
-    joinDate: "2021-12-01",
-    organization: "디자인본부",
-    position: "팀장",
-    role: "팀장",
-    job: "UI/UX 디자인",
-    rank: "2급",
-    isAdmin: false,
-    teams: ["UI팀", "UX팀"]
-  },
-  {
-    id: "13",
-    name: "이준호",
-    email: "lee.jh@company.com",
-    phone: "010-2222-3333",
-    address: "서울특별시 마포구",
-    joinDate: "2022-01-15",
-    organization: "개발본부",
-    position: "선임",
-    role: "팀원",
-    job: "프론트엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["프론트엔드팀", "백엔드팀", "모바일팀"]
-  },
-  {
-    id: "14",
-    name: "박수진",
-    email: "park.sj@company.com",
-    phone: "010-3333-4444",
-    address: "경기도 성남시",
-    joinDate: "2022-04-20",
-    organization: "마케팅본부",
-    position: "주임",
-    role: "팀원",
-    job: "브랜드 마케팅",
-    rank: "4급",
-    isAdmin: false,
-    teams: ["브랜드팀", "콘텐츠팀"]
-  },
-  {
-    id: "15",
-    name: "최동현",
-    email: "choi.dh@company.com",
-    phone: "010-4444-5555",
-    address: "서울특별시 송파구",
-    joinDate: "2022-06-01",
-    organization: "개발본부",
-    position: "대리",
-    role: "팀원",
-    job: "백엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["백엔드팀", "프론트엔드팀", "모바일팀"]
-  },
-  {
-    id: "16",
-    name: "정민지",
-    email: "jung.mj@company.com",
-    phone: "010-5555-6666",
-    address: "서울특별시 강남구",
-    joinDate: "2022-08-15",
-    organization: "디자인본부",
-    position: "사원",
-    role: "팀원",
-    job: "그래픽 디자인",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["UX팀", "UI팀", "그래픽팀"]
-  },
-  {
-    id: "17",
-    name: "한승우",
-    email: "han.sw@company.com",
-    phone: "010-6666-7777",
-    address: "서울특별시 서초구",
-    joinDate: "2021-11-01",
-    organization: "마케팅본부",
-    position: "팀장",
-    role: "팀장",
-    job: "홍보 마케팅",
-    rank: "2급",
-    isAdmin: false,
-    teams: ["홍보팀", "콘텐츠팀", "브랜드팀"]
-  },
-  {
-    id: "18",
-    name: "송지현",
-    email: "song.jh@company.com",
-    phone: "010-7777-8888",
-    address: "서울특별시 마포구",
-    joinDate: "2022-02-10",
-    organization: "개발본부",
-    position: "선임",
-    role: "팀원",
-    job: "프론트엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["프론트엔드팀", "백엔드팀"]
-  },
-  {
-    id: "19",
-    name: "강현우",
-    email: "kang.hw@company.com",
-    phone: "010-8888-9999",
-    address: "경기도 성남시",
-    joinDate: "2022-05-01",
-    organization: "디자인본부",
-    position: "주임",
-    role: "팀원",
-    job: "UI 디자인",
-    rank: "4급",
-    isAdmin: false,
-    teams: ["그래픽팀", "UI팀", "UX팀"]
-  },
-  {
-    id: "20",
-    name: "윤서진",
-    email: "yoon.sj@company.com",
-    phone: "010-9999-0000",
-    address: "서울특별시 송파구",
-    joinDate: "2022-07-20",
-    organization: "마케팅본부",
-    position: "대리",
-    role: "팀원",
-    job: "브랜드 마케팅",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["브랜드팀", "홍보팀", "콘텐츠팀"]
-  },
-  {
-    id: "21",
-    name: "임준호",
-    email: "lim.jh@company.com",
-    phone: "010-0000-1111",
-    address: "서울특별시 강남구",
-    joinDate: "2022-09-01",
-    organization: "개발본부",
-    position: "사원",
-    role: "팀원",
-    job: "모바일 개발",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["모바일팀", "프론트엔드팀", "백엔드팀"]
-  },
-  {
-    id: "22",
-    name: "김영수",
-    email: "kim.ys@company.com",
-    phone: "010-1111-3333",
-    address: "서울특별시 서초구",
-    joinDate: "2022-10-15",
-    organization: "디자인본부",
-    position: "사원",
-    role: "팀원",
-    job: "UX 디자인",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["UX팀", "그래픽팀"]
-  },
-  {
-    id: "23",
-    name: "이미라",
-    email: "lee.mr@company.com",
-    phone: "010-2222-4444",
-    address: "서울특별시 마포구",
-    joinDate: "2022-11-01",
-    organization: "마케팅본부",
-    position: "대리",
-    role: "팀원",
-    job: "콘텐츠 마케팅",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["콘텐츠팀", "홍보팀"]
-  },
-  {
-    id: "24",
-    name: "박성훈",
-    email: "park.sh@company.com",
-    phone: "010-3333-5555",
-    address: "경기도 성남시",
-    joinDate: "2022-12-01",
-    organization: "개발본부",
-    position: "선임",
-    role: "팀원",
-    job: "프론트엔드 개발",
-    rank: "3급",
-    isAdmin: false,
-    teams: ["프론트엔드팀", "백엔드팀", "모바일팀"]
-  },
-  {
-    id: "25",
-    name: "최유진",
-    email: "choi.yj@company.com",
-    phone: "010-4444-6666",
-    address: "서울특별시 송파구",
-    joinDate: "2023-01-15",
-    organization: "디자인본부",
-    position: "사원",
-    role: "팀원",
-    job: "그래픽 디자인",
-    rank: "5급",
-    isAdmin: false,
-    teams: ["그래픽팀", "UI팀", "UX팀"]
-  },
-  {
-    id: "26",
-    name: "정태우",
-    email: "jung.tw@company.com",
-    phone: "010-5555-7777",
-    address: "서울특별시 강남구",
-    joinDate: "2021-08-01",
-    organization: "경영진",
-    position: "팀장",
-    role: "팀장",
-    job: "경영 기획",
-    rank: "2급",
-    isAdmin: false,
-    teams: ["경영팀"]
-  },
-  ...Array.from({ length: 116 }, (_, i) => {
-    const allTeams = ['프론트엔드팀', '백엔드팀', '모바일팀', 'UI팀', 'UX팀', '그래픽팀', '브랜드팀', '콘텐츠팀', '홍보팀', '경영팀', '인사팀'];
-    const organizations = ['개발본부', '디자인본부', '마케팅본부', '경영진'];
-    const selectedOrg = organizations[Math.floor(Math.random() * organizations.length)];
-    
-    let availableTeams: string[] = [];
-    if (selectedOrg === '개발본부') {
-      availableTeams = ['프론트엔드팀', '백엔드팀', '모바일팀'];
-    } else if (selectedOrg === '디자인본부') {
-      availableTeams = ['UI팀', 'UX팀', '그래픽팀'];
-    } else if (selectedOrg === '마케팅본부') {
-      availableTeams = ['브랜드팀', '콘텐츠팀', '홍보팀'];
-    } else if (selectedOrg === '경영진') {
-      availableTeams = ['인사팀', '경영팀'];
-    }
-    
-    const maxTeamCount = Math.min(5, availableTeams.length);
-    const teamCount = Math.floor(Math.random() * maxTeamCount) + 1;
-    const selectedTeams: string[] = [];
-    const shuffledTeams = [...availableTeams].sort(() => 0.5 - Math.random());
-    
-    for (let j = 0; j < teamCount && j < shuffledTeams.length; j++) {
-      selectedTeams.push(shuffledTeams[j]);
-    }
-    
-    const positions = ['팀장', '선임', '주임', '대리', '사원'];
-    const roles = ['본부장', '팀장', '팀원', '인턴'];
-    const jobs = ['사업 기획', '프론트엔드 개발', '백엔드 개발', '인사 관리', '마케팅', '영업', '디자인'];
-    const ranks = ['1급', '2급', '3급', '4급', '5급'];
-    const addresses = ['서울특별시 강남구', '서울특별시 서초구', '서울특별시 마포구', '경기도 성남시', '서울특별시 송파구'];
-    
-    const startDate = new Date('2020-01-01');
-    const endDate = new Date('2024-12-31');
-    const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
-    const joinDate = new Date(randomTime).toISOString().split('T')[0];
-
-    return {
-      id: (i + 27).toString(),
-      name: `직원${i + 26}`,
-      position: positions[Math.floor(Math.random() * positions.length)],
-      email: `employee${i + 26}@company.com`,
-      phone: `010-${String(Math.floor(Math.random() * 9000) + 1000)}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      address: addresses[Math.floor(Math.random() * addresses.length)],
-      joinDate: joinDate,
-      organization: selectedOrg,
-      role: roles[Math.floor(Math.random() * roles.length)],
-      job: jobs[Math.floor(Math.random() * jobs.length)],
-      rank: ranks[Math.floor(Math.random() * ranks.length)],
-      isAdmin: false,
-      teams: selectedTeams
-    };
-  })
-];
-
-const mockOrgStructure: OrgStructure[] = [
-  {
-    name: "CEO",
-    employeeCount: 1,
-    isExpanded: false
-  },
-  {
-    name: "경영진",
-    employeeCount: 5,
-    isExpanded: false,
-    children: [
-      { name: "경영팀", employeeCount: 3, isExpanded: false },
-      { name: "인사팀", employeeCount: 2, isExpanded: false }
-    ]
-  },
-  {
-    name: "개발본부",
-    employeeCount: 89,
-    isExpanded: false,
-    children: [
-      { name: "프론트엔드팀", employeeCount: 12, isExpanded: false },
-      { name: "백엔드팀", employeeCount: 15, isExpanded: false },
-      { name: "모바일팀", employeeCount: 8, isExpanded: false }
-    ]
-  },
-  {
-    name: "디자인본부",
-    employeeCount: 24,
-    isExpanded: false,
-    children: [
-      { name: "UI팀", employeeCount: 8, isExpanded: false },
-      { name: "UX팀", employeeCount: 6, isExpanded: false },
-      { name: "그래픽팀", employeeCount: 10, isExpanded: false }
-    ]
-  },
-  {
-    name: "마케팅본부",
-    employeeCount: 18,
-    isExpanded: false,
-    children: [
-      { name: "브랜드팀", employeeCount: 6, isExpanded: false },
-      { name: "콘텐츠팀", employeeCount: 8, isExpanded: false },
-      { name: "홍보팀", employeeCount: 4, isExpanded: false }
-    ]
-  }
-]
-
 export default function MembersPage() {
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
-  const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false)
-  const [showSettingsModal, setShowSettingsModal] = useState(false)
-  
-  const [orgStructure, setOrgStructure] = useState<OrgStructure[]>(mockOrgStructure)
-  const [orgSearchTerm, setOrgSearchTerm] = useState('')
-  const [isAllExpanded, setIsAllExpanded] = useState(false)
+  const { isLoggedIn, isAdmin } = useAuth();
+  const router = useRouter();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [orgStructure, setOrgStructure] = useState<OrgStructure[]>([]);
+  const [orgSearchTerm, setOrgSearchTerm] = useState("");
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [orgLoading, setOrgLoading] = useState(false);
+  const [isSearchingMembers, setIsSearchingMembers] = useState(false);
+
+  const {
+    ranks,
+    positions,
+    jobs,
+    loading: titleLoading,
+    error: titleError,
+  } = useTitlesFromAPI();
+
+  const filteredEmployees = useMemo(() => {
+    let filtered = employees;
+
+    if (searchTerm) {
+      filtered = filtered.filter((emp) => {
+        const searchLower = searchTerm.toLowerCase();
+        const nameMatch = emp.name.toLowerCase().includes(searchLower);
+        const orgMatch =
+          (emp.organization &&
+            emp.organization.toLowerCase().includes(searchLower)) ||
+          (Array.isArray(emp.organizations) &&
+            emp.organizations.some((o) =>
+              o.toLowerCase().includes(searchLower)
+            ));
+        const teamMatch =
+          emp.teams &&
+          emp.teams.some((team) => team.toLowerCase().includes(searchLower));
+        return nameMatch || orgMatch || teamMatch;
+      });
+    }
+
+    if (selectedOrg) {
+      filtered = filtered.filter((emp) => {
+        const orgMatch =
+          emp.organization === selectedOrg ||
+          (Array.isArray(emp.organizations) &&
+            emp.organizations.includes(selectedOrg));
+        const teamMatch = emp.teams && emp.teams.includes(selectedOrg);
+        return orgMatch || teamMatch;
+      });
+    }
+
+    return filtered;
+  }, [employees, searchTerm, selectedOrg]);
 
   const calculateEmployeeCounts = (employees: Employee[]) => {
-    const orgCounts: Record<string, number> = {}
-    const teamCounts: Record<string, number> = {}
-    
-    employees.forEach(emp => {
-      const orgList = Array.isArray(emp.organizations) && emp.organizations.length > 0
-        ? emp.organizations
-        : (emp.organization ? [emp.organization] : [])
-      orgList.forEach(orgName => {
-        orgCounts[orgName] = (orgCounts[orgName] || 0) + 1
-      })
-      
-      if (emp.teams) {
-        emp.teams.forEach(team => {
-          teamCounts[team] = (teamCounts[team] || 0) + 1
-        })
-      }
-    })
-    
-    return { orgCounts, teamCounts }
-  }
+    const orgCounts: Record<string, number> = {};
+    const teamCounts: Record<string, number> = {};
 
-  const updateOrgStructureWithRealCounts = (employees: Employee[], orgStructure: OrgStructure[]) => {
-    const { orgCounts, teamCounts } = calculateEmployeeCounts(employees)
-    
-    const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
-      return orgs.map(org => {
-        let employeeCount = 0
-        
-        if (orgCounts[org.name]) {
-          employeeCount = orgCounts[org.name]
-        }
-        
-        if (org.children) {
-          const updatedChildren = org.children.map(child => {
-            const childCount = teamCounts[child.name] || 0
-            return { ...child, employeeCount: childCount }
-          })
-          return { ...org, employeeCount, children: updatedChildren }
-        }
-        
-        return { ...org, employeeCount }
-      })
-    }
-    
-    return updateOrg(orgStructure)
-  }
+    employees.forEach((emp) => {
+      const orgList =
+        Array.isArray(emp.organizations) && emp.organizations.length > 0
+          ? emp.organizations
+          : emp.organization
+          ? [emp.organization]
+          : [];
 
-  useEffect(() => {
-    const loadEmployees = async () => {
-      try {
-        console.log('API 호출 시작...')
-        const response = await fetch('/api/members')
-        const data = await response.json()
-        console.log('API 응답:', data)
-        
-                 if (data.success && data.members && data.members.length > 0) {
-           const employees = data.members || []
-           console.log('API에서 로드된 직원 수:', employees.length)
-           setEmployees(employees)
-           setFilteredEmployees(employees)
-           
-           const updatedOrgStructure = updateOrgStructureWithRealCounts(employees, mockOrgStructure)
-           setOrgStructure(updatedOrgStructure)
-         } else {
-          console.log('API에 데이터 없음, 기본 데이터 사용')
-          const sortedEmployees = [...mockEmployees].sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime())
-          console.log('기본 데이터 직원 수:', sortedEmployees.length)
-          setEmployees(sortedEmployees)
-          setFilteredEmployees(sortedEmployees)
-          
-           console.log('기본 데이터를 API에 저장 중...')
-           try {
-             const response = await fetch('/api/members/bulk', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ members: sortedEmployees })
-             })
-             const result = await response.json()
-             console.log('데이터 저장 결과:', result)
-           } catch (error) {
-             console.error('데이터 저장 오류:', error)
-           }
-          
-          const updatedOrgStructure = updateOrgStructureWithRealCounts(sortedEmployees, mockOrgStructure)
-          setOrgStructure(updatedOrgStructure)
-        }
-      } catch (error) {
-        console.error('직원 데이터 로드 오류:', error)
-        console.log('오류 발생, 기본 데이터 사용')
-        const sortedEmployees = [...mockEmployees].sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime())
-        console.log('기본 데이터 직원 수:', sortedEmployees.length)
-        setEmployees(sortedEmployees)
-        setFilteredEmployees(sortedEmployees)
-        
-        const updatedOrgStructure = updateOrgStructureWithRealCounts(sortedEmployees, mockOrgStructure)
-        setOrgStructure(updatedOrgStructure)
-      }
-    }
-    
-    loadEmployees()
-  }, [])
-
-  useEffect(() => {
-    if (employees.length > 0) {
-      const updatedOrgStructure = updateOrgStructureWithRealCounts(employees, mockOrgStructure)
-      setOrgStructure(updatedOrgStructure)
-    }
-  }, [employees])
-
-  useEffect(() => {
-    let filtered = employees
-    
-    if (searchTerm) {
-      filtered = filtered.filter(emp => {
-        const searchLower = searchTerm.toLowerCase()
-        const nameMatch = emp.name.toLowerCase().includes(searchLower)
-        const orgMatch = (
-          (emp.organization && emp.organization.toLowerCase().includes(searchLower)) ||
-          (Array.isArray(emp.organizations) && emp.organizations.some(o => o.toLowerCase().includes(searchLower)))
-        )
-        const teamMatch = emp.teams && emp.teams.some(team => 
-          team.toLowerCase().includes(searchLower)
-        )
-        return nameMatch || orgMatch || teamMatch
-      })
-    }
-    
-    if (selectedOrg) {
-      filtered = filtered.filter(emp => {
-        const orgMatch = (
-          emp.organization === selectedOrg ||
-          (Array.isArray(emp.organizations) && emp.organizations.includes(selectedOrg))
-        )
-        const teamMatch = emp.teams && emp.teams.includes(selectedOrg)
-        return orgMatch || teamMatch
-      })
-    }
-    
-    setFilteredEmployees(filtered)
-  }, [employees, searchTerm, selectedOrg])
-
-  const handleOrgSelect = (orgName: string) => {
-    if (orgName === selectedOrg) {
-      setSelectedOrg(null)
-    } else {
-      setSelectedOrg(orgName)
-    }
-  }
-
-  const handleOrgToggle = (orgName: string) => {
-    setOrgStructure(prev => {
-      const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
-        return orgs.map(org => {
-          if (org.name === orgName) {
-            return { ...org, isExpanded: !org.isExpanded }
-          }
-          if (org.children) {
-            return { ...org, children: updateOrg(org.children) }
-          }
-          return org
-        })
-      }
-      return updateOrg(prev)
-    })
-  }
-
-  const handleExpandAllToggle = () => {
-    const newExpandedState = !isAllExpanded
-    setIsAllExpanded(newExpandedState)
-    
-    setOrgStructure(prev => {
-      const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
-        return orgs.map(org => ({
-          ...org,
-          isExpanded: newExpandedState,
-          children: org.children ? updateOrg(org.children) : undefined
-        }))
-      }
-      return updateOrg(prev)
-    })
-  }
-
-  const filteredOrgStructure = useMemo(() => {
-    if (!orgSearchTerm) return orgStructure
-    const term = orgSearchTerm.toLowerCase()
-
-    const collectExactMatches = (orgs: OrgStructure[], matches: OrgStructure[] = []): OrgStructure[] => {
-      for (const org of orgs) {
-        if (org.name.toLowerCase() === term) matches.push(org)
-        if (org.children) collectExactMatches(org.children, matches)
-      }
-      return matches
-    }
-    
-    const filterTree = (orgs: OrgStructure[]): OrgStructure[] => {
-      const result: OrgStructure[] = []
-      for (const org of orgs) {
-        const selfMatch = org.name.toLowerCase().includes(term)
-        const filteredChildren = org.children ? filterTree(org.children) : undefined
-
-        if (selfMatch) {
-          if (filteredChildren && filteredChildren.length > 0) {
-            result.push({ ...org, isExpanded: true, children: filteredChildren })
-          } else {
-            result.push({ ...org, isExpanded: false, children: undefined })
-          }
-          continue
-        }
-
-        if (filteredChildren && filteredChildren.length > 0) {
-          result.push({ ...org, isExpanded: true, children: filteredChildren })
-        }
-      }
-      return result
-    }
-
-    const exactMatches = collectExactMatches(orgStructure)
-    if (exactMatches.length === 1) {
-      const m = exactMatches[0]
-      return [{ ...m, isExpanded: false, children: undefined }]
-    }
-
-    return filterTree(orgStructure)
-  }, [orgStructure, orgSearchTerm])
-
-  useEffect(() => {
-    if (orgSearchTerm) {
-      setOrgStructure(prev => {
-        const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
-          return orgs.map(org => {
-            const orgNameMatch = org.name.toLowerCase().includes(orgSearchTerm.toLowerCase())
-            const childMatch = org.children?.some(child => 
-              child.name.toLowerCase().includes(orgSearchTerm.toLowerCase())
-            )
-            
-            if (orgNameMatch || childMatch) {
-              return {
-                ...org,
-                isExpanded: true,
-                children: org.children ? updateOrg(org.children) : undefined
-              }
-            }
-            
-            if (org.children) {
-              return {
-                ...org,
-                children: updateOrg(org.children)
-              }
-            }
-            
-            return org
-          })
-        }
-        return updateOrg(prev)
-      })
-    } else {
-      setOrgStructure(mockOrgStructure)
-    }
-  }, [orgSearchTerm])
-
-  const handleSettingsClick = () => {
-    setShowSettingsModal(true)
-  }
-
-  const handleSettingsClose = () => {
-    setShowSettingsModal(false)
-  }
-
-  const handleAddMember = () => {
-    setShowSettingsModal(false)
-    setShowAddMemberModal(true)
-  }
-
-  const handleAddMemberClose = () => {
-    setShowAddMemberModal(false)
-  }
-
-  const handleAddMemberBack = () => {
-    setShowAddMemberModal(false)
-    setShowSettingsModal(true)
-  }
-
-  const handleEmployeeUpdate = (updatedEmployee: Employee) => {
-    setEmployees(prev => 
-      prev.map(emp => emp.id === updatedEmployee.id ? updatedEmployee : emp)
-    )
-    setFilteredEmployees(prev => 
-      prev.map(emp => emp.id === updatedEmployee.id ? updatedEmployee : emp)
-    )
-  }
-
-  useEffect(() => {
-    const handleEmployeeUpdateEvent = (event: CustomEvent) => {
-      const updatedEmployee = event.detail
-      handleEmployeeUpdate(updatedEmployee)
-    }
-
-    window.addEventListener('employeeUpdated', handleEmployeeUpdateEvent as EventListener)
-    
-    return () => {
-      window.removeEventListener('employeeUpdated', handleEmployeeUpdateEvent as EventListener)
-    }
-  }, [])
-
-  const handleAddMemberSave = async (memberData: any) => {
-    try {
-      const response = await fetch('/api/members', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(memberData),
+      orgList.forEach((orgName) => {
+        orgCounts[orgName] = (orgCounts[orgName] || 0) + 1;
       });
 
-      const result = await response.json();
+      if (emp.teams) {
+        emp.teams.forEach((team) => {
+          teamCounts[team] = (teamCounts[team] || 0) + 1;
+        });
+      }
+    });
 
-      if (result.success) {
-        const primaryOrg = Array.isArray(memberData.organizations) && memberData.organizations.length > 0
-          ? memberData.organizations[0]
-          : memberData.organization
-        const newMember: Employee = {
-          id: result.member.id,
-          name: memberData.name,
-          email: memberData.email,
-          phone: memberData.phone || '',
-          address: memberData.address || '',
-          joinDate: memberData.joinDate,
-          organization: primaryOrg,
-          organizations: Array.isArray(memberData.organizations) ? memberData.organizations : undefined,
-          position: memberData.position,
-          role: memberData.role,
-          job: memberData.job,
-          rank: memberData.rank || '',
-          isAdmin: Boolean(memberData.isAdmin),
-          teams: primaryOrg ? [primaryOrg] : []
-        };
+    return { orgCounts, teamCounts };
+  };
 
-        const updatedEmployees = [...employees, newMember].sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime());
-        setEmployees(updatedEmployees);
+  const buildOrgStructure = useCallback(
+    (employees: Employee[]): OrgStructure[] => {
+      const { orgCounts, teamCounts } = calculateEmployeeCounts(employees);
 
-        const updatedOrgStructure = updateOrgStructureWithRealCounts(updatedEmployees, orgStructure);
-        setOrgStructure(updatedOrgStructure);
+      const orgs = Object.keys(orgCounts).map((orgName) => ({
+        name: orgName,
+        employeeCount: orgCounts[orgName],
+        isExpanded: false,
+        children: Object.keys(teamCounts)
+          .filter(
+            (teamName) =>
+              teamName.includes(orgName) || orgName.includes(teamName)
+          )
+          .map((teamName) => ({
+            name: teamName,
+            employeeCount: teamCounts[teamName],
+            isExpanded: false,
+          })),
+      }));
 
-        const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-        const newUser = {
-          email: memberData.email,
-          password: memberData.tempPassword,
-          name: memberData.name,
-          isAdmin: Boolean(memberData.isAdmin),
-          needsPasswordReset: true
-        };
-        existingUsers.push(newUser);
-        localStorage.setItem('users', JSON.stringify(existingUsers));
+      return orgs;
+    },
+    [calculateEmployeeCounts]
+  );
 
-        setShowAddMemberModal(false);
-        toast.success('구성원이 성공적으로 추가되었습니다.');
+  const fetchOrganizationStructure = useCallback(async () => {
+    try {
+      setOrgLoading(true);
+      console.log("조직 구조 API 호출 시작...");
+
+      const response = await organizationApi.getOrganizationHierarchy();
+      console.log("조직 구조 API 응답:", response);
+
+      let orgData: OrganizationHierarchyDto[];
+
+      if (
+        response &&
+        typeof response === "object" &&
+        "data" in response &&
+        Array.isArray(response.data)
+      ) {
+        orgData = response.data;
+      } else if (Array.isArray(response)) {
+        orgData = response;
       } else {
-        throw new Error(result.message);
+        throw new Error("예상치 못한 응답 형식입니다.");
+      }
+      console.log("추출된 조직 데이터:", orgData);
+
+      const convertToOrgStructure = (
+        org: OrganizationHierarchyDto
+      ): OrgStructure => ({
+        name: org.name,
+        employeeCount: org.memberCount,
+        isExpanded: false,
+        children: org.children
+          ? org.children.map(convertToOrgStructure)
+          : undefined,
+      });
+
+      const convertedStructure = orgData.map(convertToOrgStructure);
+      console.log("변환된 조직 구조:", convertedStructure);
+
+      setOrgStructure(convertedStructure);
+      toast.success("조직 구조를 성공적으로 불러왔습니다.");
+    } catch (error) {
+      console.error("조직 구조 로딩 실패:", error);
+      toast.error("조직 구조를 불러올 수 없습니다. 기존 데이터를 사용합니다.");
+
+      const fallbackStructure = buildOrgStructure([]);
+      setOrgStructure(fallbackStructure);
+    } finally {
+      setOrgLoading(false);
+    }
+  }, [buildOrgStructure]);
+
+  const fetchEmployees = useCallback(async () => {
+    if (!isLoggedIn) {
+      router.push("/login");
+      return;
+    }
+
+    setDataLoading(true);
+    try {
+      const users = await userApi.getAllUsers();
+
+      if (Array.isArray(users)) {
+        const convertedUsers = users.map(convertUserToEmployee);
+
+        const sortedUsers = convertedUsers.sort((a, b) => {
+          return a.name.localeCompare(b.name, "ko", { numeric: true });
+        });
+
+        setEmployees(sortedUsers);
+        if (orgStructure.length === 0 && !orgLoading) {
+          await fetchOrganizationStructure();
+        }
+      } else {
+        console.warn("Users is not an array:", users);
+        toast.error("직원 데이터를 불러올 수 없습니다.");
+        setEmployees([]);
       }
     } catch (error) {
-      console.error('구성원 추가 오류:', error);
-      toast.error('구성원 추가 중 오류가 발생했습니다: ' + (error as Error).message);
+      console.error("사용자 목록 조회 실패:", error);
+
+      if (error.response?.status === 403) {
+        toast.error("구성원 목록을 조회할 권한이 없습니다.");
+        return;
+      }
+
+      if (error.response?.status === 500) {
+        toast.error("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      toast.error("구성원 목록을 불러오는데 실패했습니다.");
+    } finally {
+      setDataLoading(false);
+    }
+  }, [isLoggedIn, router, orgStructure.length, orgLoading]);
+
+  const handleMemberSearchSubmit = useCallback(
+    async (term: string) => {
+      setIsSearchingMembers(true);
+      try {
+        if (!term.trim()) {
+          await fetchEmployees();
+        } else {
+          const searchResults = await userApi.searchUsers(term);
+          if (Array.isArray(searchResults)) {
+            const convertedResults = searchResults.map(convertUserToEmployee);
+            setEmployees(convertedResults);
+          } else {
+            console.warn("검색 결과가 배열이 아님:", searchResults);
+            setEmployees([]);
+          }
+        }
+      } catch (error) {
+        console.error("직원 검색 오류:", error);
+        toast.error("직원 검색 중 오류가 발생했습니다.");
+        setEmployees([]);
+      } finally {
+        setIsSearchingMembers(false);
+      }
+    },
+    [fetchEmployees]
+  );
+
+  if (isLoggedIn && employees.length === 0 && !dataLoading) {
+    fetchEmployees();
+  }
+
+  const handleOrgSelect = (orgName: string) => {
+    setSelectedOrg(orgName === selectedOrg ? null : orgName);
+  };
+
+  const handleOrgToggle = (orgName: string) => {
+    setOrgStructure((prev) => {
+      const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
+        return orgs.map((org) => {
+          if (org.name === orgName) {
+            return { ...org, isExpanded: !org.isExpanded };
+          }
+          if (org.children) {
+            return { ...org, children: updateOrg(org.children) };
+          }
+          return org;
+        });
+      };
+      return updateOrg(prev);
+    });
+  };
+
+  const handleExpandAllToggle = () => {
+    const newExpandedState = !isAllExpanded;
+    setIsAllExpanded(newExpandedState);
+    setOrgStructure((prev) => {
+      const updateOrg = (orgs: OrgStructure[]): OrgStructure[] => {
+        return orgs.map((org) => ({
+          ...org,
+          isExpanded: newExpandedState,
+          children: org.children ? updateOrg(org.children) : undefined,
+        }));
+      };
+      return updateOrg(prev);
+    });
+  };
+
+  const filteredOrgStructure = useMemo(() => {
+    if (!orgSearchTerm) return orgStructure;
+
+    const term = orgSearchTerm.toLowerCase();
+    const filterTree = (orgs: OrgStructure[]): OrgStructure[] => {
+      const result: OrgStructure[] = [];
+      for (const org of orgs) {
+        const selfMatch = org.name.toLowerCase().includes(term);
+        const filteredChildren = org.children
+          ? filterTree(org.children)
+          : undefined;
+
+        if (selfMatch) {
+          result.push({
+            ...org,
+            isExpanded: true,
+            children: filteredChildren,
+          });
+        } else if (filteredChildren && filteredChildren.length > 0) {
+          result.push({ ...org, isExpanded: true, children: filteredChildren });
+        }
+      }
+      return result;
+    };
+
+    return filterTree(orgStructure);
+  }, [orgStructure, orgSearchTerm]);
+
+  const handleEmployeeUpdate = (updatedEmployee: Employee) => {
+    setEmployees((prev) => {
+      const updated = prev.map((emp) => {
+        if (emp.id === updatedEmployee.id) {
+          return updatedEmployee;
+        }
+        return emp;
+      });
+
+      const sorted = updated.sort((a, b) => {
+        return a.name.localeCompare(b.name, "ko", { numeric: true });
+      });
+
+      return sorted;
+    });
+  };
+
+  const handleAddMemberSave = async (memberData: any) => {
+    let createdUserId: number | null = null;
+
+    try {
+      console.log("memberData:", memberData);
+      console.log("ranks:", ranks);
+      console.log("positions:", positions);
+      console.log("jobs:", jobs);
+
+      // memberData에서 rank, position, job 값 확인
+      console.log("memberData.rank:", memberData.rank);
+      console.log("memberData.position:", memberData.position);
+      console.log("memberData.job:", memberData.job);
+
+      // rank, position, job의 실제 ID를 찾기 - 이미 객체이므로 직접 ID 사용
+      const rankId = memberData.rank?.id;
+      const positionId = memberData.position?.id;
+      const jobId = memberData.job?.id;
+
+      console.log("찾은 ID들:", { rankId, positionId, jobId });
+
+      // 각 배열의 첫 번째 요소 구조 확인
+      if (ranks.length > 0) {
+        console.log("첫 번째 rank 구조:", ranks[0]);
+      }
+      if (positions.length > 0) {
+        console.log("첫 번째 position 구조:", positions[0]);
+      }
+      if (jobs.length > 0) {
+        console.log("첫 번째 job 구조:", jobs[0]);
+      }
+
+      const newUserData: UserCreateDto = {
+        name: memberData.name,
+        email: memberData.email,
+        password: memberData.tempPassword || "temporaryPassword123!",
+        phone: memberData.phone || "",
+        address: memberData.address || "",
+        joinDate: memberData.joinDate,
+        isAdmin: Boolean(memberData.isAdmin),
+        role: memberData.role,
+        position: positionId
+          ? { id: positionId, name: memberData.position.name, sortOrder: 0 }
+          : undefined,
+        job: jobId
+          ? { id: jobId, name: memberData.job.name, sortOrder: 0 }
+          : undefined,
+        rank: rankId
+          ? { id: rankId, name: memberData.rank.name, sortOrder: 0 }
+          : undefined,
+        workPolicyId: memberData.workPolicies?.[0]
+          ? parseInt(memberData.workPolicies[0])
+          : undefined,
+        needsPasswordReset: Boolean(memberData.tempPassword),
+      };
+
+      console.log("전송할 데이터:", newUserData);
+
+      const result = await userApi.createUser(newUserData);
+      createdUserId = result.id;
+
+      console.log("생성 결과:", result);
+
+      if (!result || !result.id) {
+        throw new Error("사용자 생성 실패: 응답 데이터 없음");
+      }
+
+      console.log("사용자 생성 결과:", result);
+      console.log("생성된 사용자의 근무 정책 ID:", result.workPolicyId);
+
+      if (memberData.organizations && memberData.organizations.length > 0) {
+        const allOrganizations = await organizationApi.getAllOrganizations();
+
+        for (let i = 0; i < memberData.organizations.length; i++) {
+          const orgName = memberData.organizations[i];
+          const organization = allOrganizations.find(
+            (org) => org.name === orgName
+          );
+
+          if (!organization) {
+            throw new Error(`조직을 찾을 수 없습니다: ${orgName}`);
+          }
+
+          await organizationApi.createAssignment({
+            employeeId: result.id,
+            organizationId: organization.organizationId,
+            isPrimary: i === 0,
+            isLeader: false,
+          });
+        }
+      }
+
+      const newMember: Employee = {
+        id: result.id.toString(),
+        name: result.name,
+        email: result.email,
+        phone: result.phone || "",
+        address: result.address || "",
+        joinDate: result.joinDate || "",
+        organization: memberData.organizations?.[0] || "",
+        organizations: memberData.organizations || [],
+        position: memberData.position || "",
+        role: memberData.role || "",
+        job: memberData.job || "",
+        rank: memberData.rank || "",
+        isAdmin: result.isAdmin,
+        teams: [],
+        profileImage: result.profileImageUrl,
+        workPolicies: result.workPolicyId
+          ? [result.workPolicyId.toString()]
+          : [],
+      };
+
+      const updatedEmployees = [...employees, newMember];
+
+      const sortedEmployees = updatedEmployees.sort((a, b) => {
+        return a.name.localeCompare(b.name, "ko", { numeric: true });
+      });
+
+      setEmployees(sortedEmployees);
+      await fetchOrganizationStructure();
+      setShowAddMemberModal(false);
+      toast.success("구성원이 성공적으로 추가되었습니다.");
+    } catch (error) {
+      console.error("구성원 추가 오류:", error);
+
+      if (createdUserId) {
+        try {
+          await userApi.deleteUser(createdUserId);
+        } catch (deleteError) {
+          console.error("사용자 삭제 실패:", deleteError);
+        }
+      }
+
+      toast.error(
+        "구성원 추가 중 오류가 발생했습니다: " +
+          (error instanceof Error ? error.message : String(error))
+      );
     }
   };
 
-  const getTitle = () => {
-    if (selectedOrg) {
-      return `구성원 - ${selectedOrg}`
-    }
-    return '구성원'
-  }
+  const handleEmployeeDelete = (employeeId: string) => {
+    setEmployees((prev) => {
+      const filtered = prev.filter((emp) => emp.id !== employeeId);
 
-  const getSubtitle = () => {
-    let subtitle = `직원 수: ${filteredEmployees.length}`
-    
-    if (selectedOrg) {
-      subtitle += ` (${selectedOrg} 필터링됨)`
-    }
-    
-    if (searchTerm) {
-      subtitle += ` (검색어: "${searchTerm}")`
-    }
-    
-    return subtitle
-  }
+      const sorted = filtered.sort((a, b) => {
+        return a.name.localeCompare(b.name, "ko", { numeric: true });
+      });
 
-  const OrgTreeItem = ({ org, level = 0 }: { org: OrgStructure; level?: number }) => (
+      return sorted;
+    });
+    toast.success("구성원이 삭제되었습니다.");
+  };
+
+  const OrgTreeItem = ({
+    org,
+    level = 0,
+  }: {
+    org: OrgStructure;
+    level?: number;
+  }) => (
     <div className="ml-4">
       <button
         onClick={() => handleOrgSelect(org.name)}
         className={`group w-full text-left p-2 rounded-lg transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 focus-visible:ring-offset-2 ${
           selectedOrg === org.name
-            ? 'bg-blue-50 text-blue-800 ring-1 ring-blue-200 hover:ring-blue-300'
-            : 'bg-white hover:bg-gray-50 ring-1 ring-transparent hover:ring-gray-200 hover:shadow-sm'
+            ? "bg-blue-50 text-blue-800 ring-1 ring-blue-200 hover:ring-blue-300"
+            : "bg-white hover:bg-gray-50 ring-1 ring-transparent hover:ring-gray-200 hover:shadow-sm"
         }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {org.children && (
+            {org.children ? (
               <div
                 onClick={(e) => {
                   e.stopPropagation();
@@ -976,6 +579,10 @@ export default function MembersPage() {
                 ) : (
                   <ChevronRight className="w-4 h-4" />
                 )}
+              </div>
+            ) : (
+              <div className="p-1 w-6 h-6 flex items-center justify-center">
+                <span className="text-gray-400 text-lg">·</span>
               </div>
             )}
             <Building2 className="w-4 h-4" />
@@ -994,72 +601,95 @@ export default function MembersPage() {
         </div>
       )}
     </div>
-  )
+  );
+
+  if (dataLoading) {
+    return (
+      <MainLayout requireAuth={true}>
+        <div className="flex justify-center items-center h-screen w-full">
+          <Spinner size="lg" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
-    <MainLayout requireAuth={false}>
-      {/* 페이지 헤더 */}
+    <MainLayout requireAuth={true}>
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">{getTitle()}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {selectedOrg ? `구성원 - ${selectedOrg}` : "구성원"}
+          </h1>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={handleSettingsClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              설정
-            </Button>
-                </div>
-              </div>
-        <p className="text-gray-600">{getSubtitle()}</p>
+            {isAdmin && (
+              <GradientButton
+                variant="primary"
+                onClick={() => setShowSettingsModal(true)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                설정
+              </GradientButton>
+            )}
+          </div>
+        </div>
+        <p className="text-gray-600">
+          직원 수: {filteredEmployees.length}
+          {selectedOrg && ` (${selectedOrg} 필터링됨)`}
+          {searchTerm && ` (검색어: "${searchTerm}")`}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 구성원 리스트 */}
         <div className="lg:col-span-2">
           <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">구성원 목록</h3>
+              <h3 className="text-xl font-semibold text-gray-900">
+                구성원 목록
+              </h3>
             </div>
             <MemberList
               employees={filteredEmployees}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              onSearchSubmit={handleMemberSearchSubmit}
               selectedOrg={selectedOrg}
-              placeholder="직원명, 조직명, 팀명으로 검색"
+              placeholder="직원명, 조직명, 이메일로 검색"
               onEmployeeUpdate={handleEmployeeUpdate}
+              onEmployeeDelete={handleEmployeeDelete}
+              isSearching={isSearchingMembers}
+              isSearchMode={!!searchTerm && !isSearchingMembers}
             />
           </GlassCard>
-      </div>
+        </div>
 
-        {/* 조직도 */}
         <div>
           <GlassCard className="p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">조직도</h3>
-            
-            {/* 조직도 검색 */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">조직도</h3>
+              {orgLoading && (
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <span className="text-sm text-gray-500">로딩 중...</span>
+                </div>
+              )}
+            </div>
+
             <div className="mb-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
+                <Input
                   placeholder="조직명을 입력하여 검색"
                   value={orgSearchTerm}
                   onChange={(e) => setOrgSearchTerm(e.target.value)}
                   className="pl-10"
-          />
-        </div>
-      </div>
+                />
+              </div>
+            </div>
 
-            
-
-            {/* 모두 펼치기/접기 버튼 */}
             <div className="flex gap-2 mb-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={handleExpandAllToggle}
                 className="flex items-center gap-1"
               >
@@ -1068,11 +698,22 @@ export default function MembersPage() {
                 ) : (
                   <Expand className="w-4 h-4" />
                 )}
-                모두 {isAllExpanded ? '접기' : '펼치기'}
+                모두 {isAllExpanded ? "접기" : "펼치기"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchOrganizationStructure}
+                disabled={orgLoading}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${orgLoading ? "animate-spin" : ""}`}
+                />
+                새로고침
               </Button>
             </div>
 
-            {/* 조직도 트리 */}
             <div className="space-y-1">
               {filteredOrgStructure.map((org, index) => (
                 <OrgTreeItem key={index} org={org} />
@@ -1082,20 +723,24 @@ export default function MembersPage() {
         </div>
       </div>
 
-      {/* 구성원 추가 모달 */}
       <AddMemberModal
         isOpen={showAddMemberModal}
-        onClose={handleAddMemberClose}
+        onClose={() => setShowAddMemberModal(false)}
         onSave={handleAddMemberSave}
-        onBack={handleAddMemberBack}
+        onBack={() => {
+          setShowAddMemberModal(false);
+          setShowSettingsModal(true);
+        }}
       />
 
-      {/* 설정 모달 */}
       <SettingsModal
         isOpen={showSettingsModal}
-        onClose={handleSettingsClose}
-        onAddMember={handleAddMember}
+        onClose={() => setShowSettingsModal(false)}
+        onAddMember={() => {
+          setShowSettingsModal(false);
+          setShowAddMemberModal(true);
+        }}
       />
     </MainLayout>
-  )
-} 
+  );
+}

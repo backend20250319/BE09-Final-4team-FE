@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send } from "lucide-react";
+import { User, Calendar, Eye, Edit, Trash2, MessageSquare, Send, MoreHorizontal } from "lucide-react";
 import { AttachmentsSection } from "@/components/ui/attachments-section";
+import { UserAvatar } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { communicationApi } from "@/lib/services/communication";
+import { formatDateTime } from "@/lib/utils/date-format";
+import { useAuth } from "@/contexts/auth-context";
+import { attachmentService } from "@/lib/services/attachment/api";
+import { toast } from "sonner";
+import { getAccessToken } from "@/lib/services/common/api-client";
+import { userApi } from "@/lib/services/user/api";
+import { Button } from "@/components/ui/button";
 
 // Lexical Editor Viewer (읽기 전용)
 const Editor = dynamic(() => import("../write/components/Editor"), { ssr: false });
@@ -23,71 +32,159 @@ export default function AnnouncementsDetailModal({
   onEdit,
   onDelete
 }) {
+  const { user, isAdmin } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([]);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [authenticatedImageUrls, setAuthenticatedImageUrls] = useState({});
+  const [currentUserImageUrl, setCurrentUserImageUrl] = useState(null);
+
+  const getAuthenticatedImageUrl = async (fileId) => {
+    try {
+      const token = getAccessToken();
+      if (!token || !fileId) return null;
+
+      const response = await fetch(`http://localhost:9000/api/attachments/${fileId}/view`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch (error) {
+      console.error('이미지 로드 실패:', error);
+    }
+    return null;
+  };
 
   useEffect(() => {
-    if (!announcement) return;
+    if (user?.email) {
+      userApi.getAllUsers()
+        .then(users => {
+          if (Array.isArray(users)) {
+            const employee = users.find((emp) => emp.email === user.email);
+            if (employee) {
+              if (employee.profileImageUrl && !employee.profileImageUrl.startsWith('http')) {
+                getAuthenticatedImageUrl(employee.profileImageUrl).then(url => {
+                  setCurrentUserImageUrl(url);
+                });
+              } else {
+                setCurrentUserImageUrl(employee.profileImageUrl);
+              }
+            }
+          }
+        })
+        .catch(error => {
+          console.error('현재 사용자 프로필 이미지 로드 오류:', error);
+        });
+    }
+  }, [user]);
 
-    setLoading(true);
-    setError("");
-
-    // 더미 데이터 사용 (실제로는 API 호출)
-    const mockData = {
-      title: announcement.title,
-      displayAuthor: announcement.displayAuthor,
-      createdAt: announcement.createdAt,
-      view: announcement.views,
-      content: announcement.content,
-      attachment: announcement.attachment
+  useEffect(() => {
+    const loadCommentImages = async () => {
+      const newUrls = {};
+      
+      for (const comment of comments) {
+        if (comment.userInfo?.profileImageUrl && !comment.userInfo.profileImageUrl.startsWith('http')) {
+          const url = await getAuthenticatedImageUrl(comment.userInfo.profileImageUrl);
+          if (url) {
+            newUrls[comment.id] = url;
+          }
+        } else if (comment.userInfo?.profileImageUrl) {
+          newUrls[comment.id] = comment.userInfo.profileImageUrl;
+        }
+      }
+      
+      setAuthenticatedImageUrls(newUrls);
     };
 
-    // 더미 댓글 데이터
-    const mockComments = [
-      {
-        id: 1,
-        author: "김철수",
-        content: "인사발령 내용 잘 확인했습니다. 감사합니다.",
-        createdAt: "2025-07-15 14:30",
-        avatar: "/placeholder-user.jpg"
-      },
-      {
-        id: 2,
-        author: "이영희",
-        content: "새로운 조직도 함께 공유해주시면 더 좋겠습니다.",
-        createdAt: "2025-07-15 15:45",
-        avatar: "/placeholder-user.jpg"
-      },
-      {
-        id: 3,
-        author: "박민수",
-        content: "인사팀 담당자께서 상세 설명 부탁드립니다.",
-        createdAt: "2025-07-15 16:20",
-        avatar: "/placeholder-user.jpg"
-      }
-    ];
+    if (comments.length > 0) {
+      loadCommentImages();
+    }
+  }, [comments]);
 
-    setData(mockData);
-    setComments(mockComments);
-    setLoading(false);
+  useEffect(() => {
+    const loadAnnouncementData = async () => {
+      if (!announcement) return;
+
+      setLoading(true);
+      setError("");
+
+      try {
+        // 공지사항 상세 정보 조회
+        const detailResponse = await communicationApi.announcements.getAnnouncement(announcement.id);
+        setData(detailResponse.data);
+
+        // 첨부파일 정보 조회
+        if (detailResponse.data.fileIds && detailResponse.data.fileIds.length > 0) {
+          const attachmentPromises = detailResponse.data.fileIds.map(async (fileId) => {
+            try {
+              const fileInfo = await attachmentService.getFileInfo(fileId);
+              return {
+                id: fileId,
+                name: fileInfo.fileName,
+                size: `${(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB`,
+                // URL은 제거하고 다운로드 시에만 처리
+              };
+            } catch (error) {
+              console.error(`파일 정보 조회 실패: ${fileId}`, error);
+              return null;
+            }
+          });
+          
+          const attachmentResults = await Promise.all(attachmentPromises);
+          setAttachments(attachmentResults.filter(att => att !== null));
+        }
+
+        // 댓글 목록 조회
+        const commentsResponse = await communicationApi.comments.getCommentsByAnnouncementId(announcement.id);
+        setComments(commentsResponse);
+      } catch (error) {
+        console.error('데이터 로딩 실패:', error);
+        setError(error.message || '데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAnnouncementData();
   }, [announcement]);
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-
-    const newCommentObj = {
-      id: comments.length + 1,
-      author: "현재 사용자",
-      content: newComment,
-      createdAt: new Date().toLocaleString('ko-KR'),
-      avatar: "/placeholder-user.jpg"
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenDropdownId(null);
     };
 
-    setComments(prev => [newCommentObj, ...prev]);
-    setNewComment("");
+    if (openDropdownId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openDropdownId]);
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      // API를 통해 댓글 생성
+      const createdComment = await communicationApi.comments.createComment(announcement.id, {
+        content: newComment
+      });
+      
+      // 댓글 목록에 추가
+      setComments(prev => [createdComment, ...prev]);
+      setNewComment("");
+    } catch (error) {
+      console.error('댓글 작성 실패:', error);
+      toast.error('댓글 작성에 실패했습니다.');
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -97,12 +194,40 @@ export default function AnnouncementsDetailModal({
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await communicationApi.comments.deleteComment(commentId);
+      setComments(prev => prev.filter(comment => comment.id !== commentId));
+      setOpenDropdownId(null);
+    } catch (error) {
+      console.error('댓글 삭제 실패:', error);
+      toast.error('댓글 삭제에 실패했습니다.');
+    }
+  };
+
+  const toggleDropdown = (commentId) => {
+    setOpenDropdownId(openDropdownId === commentId ? null : commentId);
+  };
+
+  // 첨부파일 다운로드 핸들러
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      await attachmentService.downloadFile(attachment.id, attachment.name);
+    } catch (error) {
+      console.error('파일 다운로드 실패:', error);
+      toast.error('파일 다운로드에 실패했습니다.');
+    }
+  };
+
   if (!isOpen) return null;
 
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>공지사항 불러오는 중</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-gray-500 text-lg py-8">불러오는 중...</div>
         </DialogContent>
       </Dialog>
@@ -113,6 +238,9 @@ export default function AnnouncementsDetailModal({
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>오류 발생</DialogTitle>
+          </DialogHeader>
           <div className="text-center text-red-500 text-lg py-8">{error || "데이터가 없습니다."}</div>
         </DialogContent>
       </Dialog>
@@ -133,11 +261,11 @@ export default function AnnouncementsDetailModal({
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
-              {data.createdAt}
+              {formatDateTime(data.createdAt)}
             </span>
             <span className="flex items-center gap-1">
               <Eye className="w-4 h-4" />
-              {data.view}
+              {data.views}
             </span>
             <span className="flex items-center gap-1">
               <MessageSquare className="w-4 h-4" />
@@ -149,7 +277,7 @@ export default function AnnouncementsDetailModal({
         {/* 본문 내용 */}
         <div className="mb-6">
           <Editor
-            jsonData={JSON.stringify(data.content)}
+            jsonData={typeof data.content === 'object' ? JSON.stringify(data.content) : data.content}
             onChange={() => { }}
             readOnly={true}
             showToolbar={false}
@@ -157,16 +285,12 @@ export default function AnnouncementsDetailModal({
         </div>
 
         {/* 첨부파일 */}
-        {data.attachment && (
+        {attachments.length > 0 && (
           <div className="pt-4 border-t border-gray-200 mb-6">
             <h3 className="font-semibold mb-3 text-gray-700">첨부파일</h3>
             <AttachmentsSection
-              attachments={[{
-                id: data.attachment.id || data.attachment.name,
-                name: data.attachment.name,
-                size: data.attachment.size ? `${data.attachment.size}` : "",
-                url: data.attachment.url
-              }]}
+              attachments={attachments}
+              onDownload={handleDownloadAttachment}
             />
           </div>
         )}
@@ -178,41 +302,73 @@ export default function AnnouncementsDetailModal({
             댓글 ({comments.length})
           </h3>
 
-          {/* 댓글 작성 */}
           <div className="mb-6">
             <div className="flex gap-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
-              <div className="flex-1">
-                <Input
-                  placeholder="댓글을 입력하세요..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="mb-2"
-                />
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    댓글 작성
-                  </button>
-                </div>
-              </div>
+              <UserAvatar 
+                src={currentUserImageUrl}
+                alt={user?.name || '사용자'}
+                fallback={user?.name?.charAt(0) || 'U'}
+                size="md"
+                className="flex-shrink-0"
+              />
+              <Input
+                placeholder="댓글을 입력하세요..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAddComment();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
-          {/* 댓글 목록 */}
           <div className="space-y-4">
             {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+              <div key={comment.id} className="flex gap-3 relative">
+                <UserAvatar 
+                  src={authenticatedImageUrls[comment.id] || comment.userInfo?.profileImageUrl}
+                  alt={comment.userInfo?.name || '사용자'}
+                  fallback={comment.userInfo?.name?.charAt(0) || 'U'}
+                  size="md"
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-800">{comment.author}</span>
-                    <span className="text-sm text-gray-500">{comment.createdAt}</span>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-800">{comment.userInfo?.name || '사용자'}</span>
+                      <span className="text-sm text-gray-500">{new Date(comment.createdAt).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                    {comment.canDelete && (
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDropdown(comment.id);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                        </button>
+                        {openDropdownId === comment.id && (
+                          <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[100px]">
+                            <button
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{comment.content}</p>
                 </div>
@@ -229,22 +385,24 @@ export default function AnnouncementsDetailModal({
           >
             닫기
           </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onEdit}
-              className="px-6 py-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
-            >
-              <Edit className="w-4 h-4" />
-              수정
-            </button>
-            <button
-              onClick={onDelete}
-              className="px-6 py-2 rounded bg-red-100 text-red-600 hover:bg-red-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              삭제
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="flex gap-2">
+              <button
+                onClick={onEdit}
+                className="px-6 py-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                수정
+              </button>
+              <button
+                onClick={onDelete}
+                className="px-6 py-2 rounded bg-red-100 text-red-600 hover:bg-red-200 transition font-semibold shadow cursor-pointer flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                삭제
+              </button>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,94 +1,57 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
-import { Sidebar } from "./sidebar";
-import { Header } from "./header";
-import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
-import ChatbotSticker from "@/app/aichat/components/ChatbotSticker.jsx";
-import Chatbot from "@/app/aichat/components/Chatbot.jsx";
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { Sidebar } from './sidebar';
+import { Header } from './header';
+import GlobalAIChat from '@/app/aichat/GlobalAIChat';
 
 interface MainLayoutProps {
-  children: ReactNode;
-  userName?: string;
-  showNotifications?: boolean;
-  showUserProfile?: boolean;
-  onMenuItemClick?: (index: number) => void;
+  children: React.ReactNode;
   requireAuth?: boolean;
   requireAdmin?: boolean;
 }
 
-export function MainLayout({
-  children,
-  userName,
-  showNotifications,
-  showUserProfile,
-  onMenuItemClick,
-  requireAuth = false,
-  requireAdmin = false,
-}: MainLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const {
-    user,
-    isLoading,
-    requireAuth: authCheck,
-    requireAdmin: adminCheck,
-  } = useAuth();
+export function MainLayout({ children, requireAuth = true, requireAdmin = false }: MainLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { isLoggedIn, isAdmin } = useAuth();
+
+  const needsLogin = (requireAuth || requireAdmin) && !isLoggedIn;
+  const needsAdminAccess = requireAdmin && !isAdmin;
 
   useEffect(() => {
-    if (!isLoading) {
-      if (requireAuth && !authCheck()) {
-        return;
-      }
-      if (requireAdmin && !adminCheck()) {
-        return;
-      }
+    if (needsLogin) {
+      const redirectUrl = encodeURIComponent(pathname);
+      router.push(`/login?redirect=${redirectUrl}`);
+      return;
     }
-  }, [isLoading, requireAuth, requireAdmin, authCheck, adminCheck]);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+    if (needsAdminAccess) {
+      router.push('/');
+      return;
+    }
+  }, [needsLogin, needsAdminAccess, pathname]);
 
-  const toggleChat = () => {
-    setIsChatOpen(!isChatOpen);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+  if (needsLogin || needsAdminAccess) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <Sidebar onMenuItemClick={onMenuItemClick} isOpen={sidebarOpen} />
-      <div
-        className={`transition-all duration-300 ${
-          sidebarOpen ? "ml-72" : "ml-0"
-        }`}
-      >
-        <Header
-          userName={userName}
-          showNotifications={showNotifications}
-          showUserProfile={showUserProfile}
-          onToggleSidebar={toggleSidebar}
-        />
-        <div className="p-8">{children}</div>
+    <>
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden ml-72">
+          <Header />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-
-      {/* AI 챗봇 스티커 - 항상 표시 */}
-      <ChatbotSticker isOpen={isChatOpen} onToggle={toggleChat} />
-
-      {/* AI 챗봇 창 - 열렸을 때만 표시 */}
-      {isChatOpen && <Chatbot onClose={() => setIsChatOpen(false)} />}
-    </div>
+      <div>
+        <GlobalAIChat />
+      </div>
+    </>
   );
 }

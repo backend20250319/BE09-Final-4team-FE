@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import SimpleDropdown from "./SimpleDropdown"
 import { Badge } from "@/components/ui/badge"
-import { useOrganizationsList, useTitlesFromMembers } from '@/hooks/use-members-derived-data'
+import { useOrganizationsList, useTitlesFromAPI, useWorkPoliciesList } from '@/hooks/use-members-derived-data'
+import { titleApi } from '@/lib/services/title/api'
 import { Switch } from "@/components/ui/switch"
 import { 
   User, 
@@ -31,8 +32,11 @@ import {
   Check,
   X
 } from "lucide-react"
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/services/common/api-client'
+import { organizationApi } from '@/lib/services/organization/api'; // 추가
+import { userApi } from '@/lib/services/user/api';
 
 interface Employee {
   id: string
@@ -49,7 +53,7 @@ interface Employee {
   isAdmin: boolean
   teams: string[]
   profileImage?: string
-  selfIntroduction?: string
+
   remainingLeave?: number
   weeklyWorkHours?: number
   weeklySchedule?: Array<{
@@ -69,7 +73,7 @@ interface EditModalProps {
 }
 
 export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelete }: EditModalProps) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null)
   const joinDateRef = useRef<HTMLInputElement | null>(null)
   const [tempPassword, setTempPassword] = useState<string>('')
@@ -88,7 +92,8 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   const [concurrentContentWidth, setConcurrentContentWidth] = useState<number | undefined>(undefined)
   const [memberOrganizations, setMemberOrganizations] = useState<{ main: string | null; concurrent: string[] }>({ main: null, concurrent: [] })
   const { organizations, loading: orgLoading, error: orgError } = useOrganizationsList()
-  const { ranks, positions, jobs, roles, loading: titleLoading, error: titleError } = useTitlesFromMembers()
+  const { workPolicies, loading: workPolicyLoading, error: workPolicyError } = useWorkPoliciesList()
+  const { ranks, positions, jobs, loading: titleLoading, error: titleError } = useTitlesFromAPI()
 
   const recomputePopoverWidths = () => {
     const readWidth = (el?: HTMLElement | null) => {
@@ -120,25 +125,23 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
   }, [orgContentWidth, policyContentWidth])
 
   const isOwnProfile = user?.email === employee?.email
-  const canEdit = isOwnProfile || user?.isAdmin
-  const canDelete = user?.isAdmin
-  const canResetPassword = user?.isAdmin
-
-  const workPolicies = [
-    { id: 'fixed-9to6', label: '9-6 고정근무', description: '오전 9시 ~ 오후 6시 고정 근무', color: 'bg-blue-100 text-blue-800' },
-    { id: 'flexible', label: '유연근무', description: '코어타임 내 자유로운 출퇴근', color: 'bg-green-100 text-green-800' },
-    { id: 'autonomous', label: '자율근무', description: '업무 성과 기반 자율 근무', color: 'bg-purple-100 text-purple-800' },
-    { id: 'remote', label: '재택근무', description: '원격 근무 가능', color: 'bg-orange-100 text-orange-800' },
-    { id: 'hybrid', label: '하이브리드', description: '사무실 + 재택 혼합 근무', color: 'bg-indigo-100 text-indigo-800' }
-  ]
-
-  // options는 실데이터에서 가져옵니다
+  const canEdit = isOwnProfile || isAdmin
+  const canDelete = isAdmin
+  const canResetPassword = isAdmin
 
   useEffect(() => {
     if (employee) {
-      setEditedEmployee({
-        ...employee,
-        workPolicies: employee.workPolicies || []
+      setEditedEmployee(prev => {
+        const newEmployee = {
+          ...employee,
+          workPolicies: employee.workPolicies || [],
+          address: prev?.address || employee.address || '',
+          joinDate: prev?.joinDate || employee.joinDate || '',
+          rank: typeof employee.rank === 'object' ? employee.rank?.name : employee.rank,
+          position: typeof employee.position === 'object' ? employee.position?.name : employee.position,
+          job: typeof employee.job === 'object' ? employee.job?.name : employee.job,
+        };
+        return newEmployee;
       })
       const initialOrgs = (employee.organizations && employee.organizations.length > 0) ? employee.organizations : []
       const main = initialOrgs.length > 0 ? initialOrgs[0] : null
@@ -147,6 +150,39 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
       setTempPassword('')
     }
   }, [employee])
+
+  const [detailInfoLoaded, setDetailInfoLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchDetailInfo = async () => {
+      if (employee?.id && canEdit && !detailInfoLoaded) {
+        try {
+          const detailResponse = await userApi.getDetailProfile(employee.id);
+          if (detailResponse.data) {
+            setEditedEmployee(prev => {
+              const updated = {
+                ...prev,
+                address: detailResponse.data.address || prev?.address || '',
+                joinDate: detailResponse.data.joinDate || prev?.joinDate || ''
+              };
+              return updated;
+            });
+            setDetailInfoLoaded(true);
+          }
+        } catch (error) {
+          console.error('상세정보 조회 실패:', error);
+        }
+      }
+    };
+
+    if (isOpen && employee?.id) {
+      fetchDetailInfo();
+    }
+  }, [isOpen, employee?.id, canEdit, detailInfoLoaded]);
+
+  useEffect(() => {
+    setDetailInfoLoaded(false);
+  }, [employee?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -199,23 +235,123 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!editedEmployee) return
 
     try {
-      const response = await fetch(`/api/members`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editedEmployee),
-      })
+      let positionId = null;
+      let jobId = null;
+      let rankId = null;
 
-      const result = await response.json()
+      if (editedEmployee.position) {
+        try {
+          const positions = await titleApi.getPositions();
+          const position = positions.find(p => p.name === editedEmployee.position);
+          positionId = position?.id || null;
+        } catch (error) {
+          console.error('직위 조회 실패:', error);
+        }
+      }
 
-      if (result.success) {
-        onUpdate?.(editedEmployee)
+      if (editedEmployee.job) {
+        try {
+          const jobs = await titleApi.getJobs();
+          const job = jobs.find(j => j.name === editedEmployee.job);
+          jobId = job?.id || null;
+        } catch (error) {
+          console.error('직책 조회 실패:', error);
+        }
+      }
+
+      if (editedEmployee.rank) {
+        try {
+          const ranks = await titleApi.getRanks();
+          const rank = ranks.find(r => r.name === editedEmployee.rank);
+          rankId = rank?.id || null;
+        } catch (error) {
+          console.error('직급 조회 실패:', error);
+        }
+      }
+
+      const updateData = {
+        name: editedEmployee.name,
+        email: editedEmployee.email,
+        phone: editedEmployee.phone || null,
+        address: editedEmployee.address || null,
+        joinDate: editedEmployee.joinDate,
+        isAdmin: editedEmployee.isAdmin,
+        role: editedEmployee.role || null,
+        workPolicyId: editedEmployee.workPolicies?.[0] ? parseInt(editedEmployee.workPolicies[0]) : null,
+        profileImageUrl: editedEmployee.profileImage || null,
+        position: positionId ? { id: positionId, name: editedEmployee.position, sortOrder: 0 } : null,
+        job: jobId ? { id: jobId, name: editedEmployee.job, sortOrder: 0 } : null,
+        rank: rankId ? { id: rankId, name: editedEmployee.rank, sortOrder: 0 } : null,
+        // 임시 비밀번호가 생성된 경우에만 포함
+        ...(tempPassword && { password: tempPassword, needsPasswordReset: true }),
+      }
+
+      const response = await apiClient.patch(`/api/users/${editedEmployee.id}`, updateData)
+      const result = response.data
+
+      if (result.status === 'SUCCESS') {
+        const updatedEmployeeData = result.data;
+
+        if (editedEmployee.organizations && editedEmployee.organizations.length > 0) {
+          try {
+            const allOrganizations = await organizationApi.getAllOrganizations();
+            
+            for (let i = 0; i < editedEmployee.organizations.length; i++) {
+              const orgName = editedEmployee.organizations[i];
+              
+              const organization = allOrganizations.find(org => org.name === orgName);
+              
+              if (!organization) {
+                console.warn(`조직을 찾을 수 없습니다: ${orgName}`);
+                continue;
+              }
+              
+              try {
+                await organizationApi.createAssignment({
+                  employeeId: parseInt(editedEmployee.id),
+                  organizationId: organization.organizationId,
+                  isPrimary: i === 0,
+                  isLeader: false
+                });
+              } catch (assignmentError) {
+                console.error(`조직 할당 실패: ${orgName}`, assignmentError);
+              }
+            }
+          } catch (orgError) {
+            console.error('조직 할당 실패:', orgError);
+          }
+        }
+        
+        const updatedEmployee: Employee = {
+          id: updatedEmployeeData.id.toString(),
+          name: updatedEmployeeData.name,
+          email: updatedEmployeeData.email,
+          phone: updatedEmployeeData.phone || "",
+          address: updatedEmployeeData.address || "",
+          joinDate: updatedEmployeeData.joinDate || "",
+          organizations: editedEmployee.organizations || [],
+          position: updatedEmployeeData.position?.name || "",
+          role: updatedEmployeeData.role || "",
+          job: updatedEmployeeData.job?.name || "",
+          rank: updatedEmployeeData.rank?.name || "",
+          isAdmin: updatedEmployeeData.isAdmin,
+          teams: [],
+          profileImage: updatedEmployeeData.profileImageUrl,
+          workPolicies: updatedEmployeeData.workPolicyId ? [updatedEmployeeData.workPolicyId.toString()] : [],
+        };
+
+        onUpdate?.(updatedEmployee)
         window.dispatchEvent(new CustomEvent('employeeUpdated', { 
-          detail: editedEmployee 
+          detail: updatedEmployee
         }))
         onClose()
-        toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
+        
+        if (tempPassword) {
+          toast.success('구성원 정보와 임시 비밀번호가 성공적으로 업데이트되었습니다.')
+          setTempPassword('')
+        } else {
+          toast.success('구성원 정보가 성공적으로 업데이트되었습니다.')
+        }
       } else {
         throw new Error(result.message)
       }
@@ -231,14 +367,14 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
     if (!confirm('정말로 이 구성원을 삭제하시겠습니까?')) return
 
     try {
-      const response = await fetch(`/api/members?id=${employee.id}`, {
-        method: 'DELETE',
-      })
+      const response = await apiClient.delete(`/api/users/${employee.id}`)
+      const result = response.data
 
-      const result = await response.json()
-
-      if (result.success) {
+      if (result.status === 'SUCCESS') {
         onDelete?.(employee.id)
+        window.dispatchEvent(new CustomEvent('employeeDeleted', { 
+          detail: { id: employee.id } 
+        }))
         onClose()
         toast.success('구성원이 성공적으로 삭제되었습니다.')
       } else {
@@ -352,8 +488,9 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                       id="email"
                       type="email"
                       value={editedEmployee?.email || ''}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="이메일을 입력하세요"
+                      readOnly
+                      className="bg-gray-50 cursor-not-allowed"
+                      placeholder="이메일은 수정할 수 없습니다"
                     />
                   </div>
                   <div className="space-y-2">
@@ -572,28 +709,57 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
                         className="w-full justify-between"
                       >
                         <div className="flex items-center gap-2">
-                          {editedEmployee?.workPolicies && editedEmployee.workPolicies.length > 0
-                                ? (workPolicies.find(p => p.id === (editedEmployee?.workPolicies?.[0] ?? ''))?.label ?? '근무 정책을 선택하세요')
-                            : '근무 정책을 선택하세요'
-                          }
+                          {editedEmployee?.workPolicies?.[0] ? (
+                            workPolicies.find(p => p.id.toString() === editedEmployee.workPolicies?.[0])?.name ?? '근무 정책을 선택하세요'
+                          ) : (
+                            '근무 정책을 선택하세요'
+                          )}
                         </div>
                         <ChevronDown className="w-4 h-4" />
                       </Button>
                         </PopoverTrigger>
                       </div>
                       <PopoverContent align="start" side="bottom" className="p-0 max-h-[60vh] overflow-y-auto overscroll-contain" style={{ width: policyContentWidth, minWidth: policyContentWidth, maxWidth: policyContentWidth }}>
-                          {workPolicies.map((policy) => (
-                            <div
-                              key={policy.id}
-                              className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleWorkPolicyToggle(policy.id)}
-                            >
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{policy.label}</div>
-                                <div className="text-sm text-gray-500">{policy.description}</div>
-                              </div>
+                          {workPolicyLoading && (
+                            <div className="p-3 text-sm text-gray-500">
+                              근무 정책을 불러오는 중...
                             </div>
-                          ))}
+                          )}
+                          {workPolicyError && !workPolicyLoading && (
+                            <div className="p-3 text-sm text-red-500">
+                              근무 정책을 불러오지 못했습니다.
+                            </div>
+                          )}
+                          {!workPolicyLoading &&
+                            !workPolicyError &&
+                            workPolicies.map((policy) => {
+                              const isSelected = editedEmployee?.workPolicies?.includes(policy.id.toString());
+                              return (
+                                <div
+                                  key={policy.id.toString()}
+                                  className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                  onClick={() => handleWorkPolicyToggle(policy.id.toString())}
+                                >
+                                  <div
+                                    className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                      isSelected ? "bg-blue-50 border-blue-500" : "border-gray-300"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <div className="w-2 h-2 rounded-full bg-blue-600" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900">
+                                      {policy.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {policy.type} - {policy.workHours}시간 {policy.workMinutes}분
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                       </PopoverContent>
                     </Popover>
                   </div>
