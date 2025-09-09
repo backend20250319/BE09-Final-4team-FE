@@ -1,33 +1,22 @@
 "use client";
 
-import { newsApi } from "@/app/news/api";
-import { NewsArticle } from "@/app/news/types";
+import { newsApi, NewsArticle } from "@/lib/services/news";
 import { MainLayout } from "@/components/layout/main-layout";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GradientButton } from "@/components/ui/gradient-button";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { colors, typography } from "@/lib/design-tokens";
+import { typography } from "@/lib/design-tokens";
 import {
   Users,
   Calendar,
   Clock,
-  TrendingUp,
   Bell,
   FileText,
   CheckCircle,
   AlertCircle,
-  ArrowRight,
   Globe,
   User,
-  Building2,
-  Mail,
-  Phone,
-  MapPin,
-  Crown,
-  Shield,
   Timer,
   CheckCircle2,
   XCircle,
