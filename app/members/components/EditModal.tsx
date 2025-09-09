@@ -136,7 +136,10 @@ export default function EditModal({ isOpen, onClose, employee, onUpdate, onDelet
           ...employee,
           workPolicies: employee.workPolicies || [],
           address: prev?.address || employee.address || '',
-          joinDate: prev?.joinDate || employee.joinDate || ''
+          joinDate: prev?.joinDate || employee.joinDate || '',
+          rank: typeof employee.rank === 'object' ? employee.rank?.name : employee.rank,
+          position: typeof employee.position === 'object' ? employee.position?.name : employee.position,
+          job: typeof employee.job === 'object' ? employee.job?.name : employee.job,
         };
         return newEmployee;
       })
