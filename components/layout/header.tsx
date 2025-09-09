@@ -215,7 +215,7 @@ export function Header({
                     <p className="text-sm font-medium leading-none">{displayName}</p>
                     <p className="text-xs leading-none text-muted-foreground">{displayEmail}</p>
                     {employeeData && (
-                      <p className="text-xs leading-none text-muted-foreground">{employeeData.position} • {employeeData.organization}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{employeeData.position} {employeeData.organization}</p>
                     )}
                   </div>
                 </div>
