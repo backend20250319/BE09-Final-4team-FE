@@ -75,11 +75,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, isAdmin } = useAuth();
   const { recentNotifications, markAsRead } = useNotifications();
-  
+
   // 실제 알림 목록 상태 (communication API)
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
-  const [lastNotificationId, setLastNotificationId] = useState<number | null>(null);
+  const [lastNotificationId, setLastNotificationId] = useState<number | null>(
+    null
+  );
   const [hasMoreNotifications, setHasMoreNotifications] = useState(true);
   const notificationScrollRef = useRef<HTMLDivElement>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -100,7 +102,7 @@ export default function DashboardPage() {
 
   const [newsData, setNewsData] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
-  
+
   // 공지사항 상태
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(true);
@@ -195,6 +197,9 @@ export default function DashboardPage() {
         console.log("Loading work monitor data...");
         const data = await workMonitorApi.getTodayWorkMonitor();
         console.log("Work monitor data loaded:", data);
+        console.log("Late count from API:", data.lateCount);
+        console.log("Attendance count from API:", data.attendanceCount);
+        console.log("Vacation count from API:", data.vacationCount);
 
         setWorkMonitor({
           attendanceCount: data.attendanceCount || 0,
@@ -267,6 +272,8 @@ export default function DashboardPage() {
     try {
       console.log("Refreshing work monitor data after attendance action...");
       const data = await workMonitorApi.updateTodayWorkMonitorData();
+      console.log("Refreshed work monitor data:", data);
+      console.log("Updated late count:", data.lateCount);
       setWorkMonitor({
         attendanceCount: data.attendanceCount || 0,
         lateCount: data.lateCount || 0,
@@ -354,19 +361,25 @@ export default function DashboardPage() {
   // 알림 목록 로드 함수
   const loadNotifications = async (reset: boolean = false) => {
     if (!hasMoreNotifications && !reset) return;
-    
+
     try {
       setNotificationsLoading(true);
-      const params = reset ? {} : lastNotificationId ? { lastId: lastNotificationId } : {};
-      const response = await communicationApi.notifications.getMyNotifications(params);
+      const params = reset
+        ? {}
+        : lastNotificationId
+        ? { lastId: lastNotificationId }
+        : {};
+      const response = await communicationApi.notifications.getMyNotifications(
+        params
+      );
       const newNotifications = response.data || [];
-      
+
       if (reset) {
         setNotifications(newNotifications);
       } else {
-        setNotifications(prev => [...prev, ...newNotifications]);
+        setNotifications((prev) => [...prev, ...newNotifications]);
       }
-      
+
       if (newNotifications.length > 0) {
         setLastNotificationId(newNotifications[newNotifications.length - 1].id);
       }
@@ -427,8 +440,9 @@ export default function DashboardPage() {
   useEffect(() => {
     const container = notificationScrollRef.current;
     if (container) {
-      container.addEventListener('scroll', handleNotificationScroll);
-      return () => container.removeEventListener('scroll', handleNotificationScroll);
+      container.addEventListener("scroll", handleNotificationScroll);
+      return () =>
+        container.removeEventListener("scroll", handleNotificationScroll);
     }
   }, [notificationsLoading, hasMoreNotifications]);
 
@@ -555,7 +569,6 @@ export default function DashboardPage() {
       dailyAverage: 8.4,
       overtime: 2,
     },
-
   };
 
   const adminData = {
@@ -586,6 +599,10 @@ export default function DashboardPage() {
       },
     ],
   };
+
+  // Debug logging for workMonitor state
+  console.log("Current workMonitor state:", workMonitor);
+  console.log("AdminData late count:", workMonitor?.lateCount ?? 0);
 
   const recentActivities = [
     {
@@ -625,18 +642,30 @@ export default function DashboardPage() {
   // 알림 타입별 아이콘과 색상
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'ANNOUNCEMENT':
-        return { icon: Bell, color: 'text-blue-600', bgColor: 'bg-blue-100' };
-      case 'APPROVAL_REQUEST':
-        return { icon: AlertCircle, color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
-      case 'APPROVAL_APPROVED':
-        return { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' };
-      case 'APPROVAL_REJECTED':
-        return { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' };
-      case 'APPROVAL_REFERENCE':
-        return { icon: FileText, color: 'text-purple-600', bgColor: 'bg-purple-100' };
+      case "ANNOUNCEMENT":
+        return { icon: Bell, color: "text-blue-600", bgColor: "bg-blue-100" };
+      case "APPROVAL_REQUEST":
+        return {
+          icon: AlertCircle,
+          color: "text-yellow-600",
+          bgColor: "bg-yellow-100",
+        };
+      case "APPROVAL_APPROVED":
+        return {
+          icon: CheckCircle,
+          color: "text-green-600",
+          bgColor: "bg-green-100",
+        };
+      case "APPROVAL_REJECTED":
+        return { icon: XCircle, color: "text-red-600", bgColor: "bg-red-100" };
+      case "APPROVAL_REFERENCE":
+        return {
+          icon: FileText,
+          color: "text-purple-600",
+          bgColor: "bg-purple-100",
+        };
       default:
-        return { icon: Bell, color: 'text-gray-600', bgColor: 'bg-gray-100' };
+        return { icon: Bell, color: "text-gray-600", bgColor: "bg-gray-100" };
     }
   };
 
@@ -645,16 +674,16 @@ export default function DashboardPage() {
     const now = new Date();
     const past = new Date(dateString);
     const diffMs = now.getTime() - past.getTime();
-    
+
     const seconds = Math.floor(diffMs / 1000);
     if (seconds < 60) return "방금 전";
-    
+
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}분 전`;
-    
+
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}시간 전`;
-    
+
     const days = Math.floor(hours / 24);
     return `${days}일 전`;
   };
@@ -666,20 +695,20 @@ export default function DashboardPage() {
       if (!notification.read) {
         await communicationApi.notifications.markAsRead(notification.id);
         // 로컬 상태 업데이트
-        setNotifications(prev => 
-          prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
         );
       }
 
       // 페이지 이동
       switch (notification.type) {
-        case 'ANNOUNCEMENT':
+        case "ANNOUNCEMENT":
           router.push(`/announcements#${notification.referenceId}`);
           break;
-        case 'APPROVAL_REQUEST':
-        case 'APPROVAL_APPROVED':
-        case 'APPROVAL_REJECTED':
-        case 'APPROVAL_REFERENCE':
+        case "APPROVAL_REQUEST":
+        case "APPROVAL_APPROVED":
+        case "APPROVAL_REJECTED":
+        case "APPROVAL_REFERENCE":
           router.push(`/approvals/${notification.referenceId}`);
           break;
         default:
@@ -942,7 +971,7 @@ export default function DashboardPage() {
           className="p-6 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 animate-fadeInUp"
           style={{ animationDelay: "0.9s" }}
         >
-          <CardHeader 
+          <CardHeader
             className="pb-4 cursor-pointer"
             onClick={() => router.push("/announcements")}
           >
@@ -969,12 +998,15 @@ export default function DashboardPage() {
               </div>
             ) : (
               announcements.map((item) => {
-                const announcementDate = new Date(item.createdAt).toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit'
-                }).replace(/\. /g, '.').replace(/\.$/, '');
-                
+                const announcementDate = new Date(item.createdAt)
+                  .toLocaleDateString("ko-KR", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                  })
+                  .replace(/\. /g, ".")
+                  .replace(/\.$/, "");
+
                 return (
                   <div
                     key={item.id}
@@ -989,8 +1021,12 @@ export default function DashboardPage() {
                     }}
                   >
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium text-gray-800 text-sm truncate pr-2">{item.title}</h4>
-                      <span className="text-xs text-gray-500 whitespace-nowrap">{announcementDate}</span>
+                      <h4 className="font-medium text-gray-800 text-sm truncate pr-2">
+                        {item.title}
+                      </h4>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {announcementDate}
+                      </span>
                     </div>
                   </div>
                 );
@@ -1084,7 +1120,7 @@ export default function DashboardPage() {
             <div className="mb-6">
               <h3 className={`${typography.h3} text-gray-800`}>알림</h3>
             </div>
-            <div 
+            <div
               ref={notificationScrollRef}
               className="space-y-4 max-h-96 overflow-y-auto pr-2"
             >
@@ -1097,7 +1133,7 @@ export default function DashboardPage() {
                   {notifications.map((notification) => {
                     const iconData = getNotificationIcon(notification.type);
                     const IconComponent = iconData.icon;
-                    
+
                     return (
                       <div
                         key={notification.id}
@@ -1109,18 +1145,28 @@ export default function DashboardPage() {
                         onClick={() => handleNotificationClick(notification)}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            !notification.read ? iconData.bgColor : 'bg-gray-100'
-                          }`}>
-                            <IconComponent className={`w-5 h-5 ${
-                              !notification.read ? iconData.color : 'text-gray-400'
-                            }`} />
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              !notification.read
+                                ? iconData.bgColor
+                                : "bg-gray-100"
+                            }`}
+                          >
+                            <IconComponent
+                              className={`w-5 h-5 ${
+                                !notification.read
+                                  ? iconData.color
+                                  : "text-gray-400"
+                              }`}
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between mb-2">
                               <h4
                                 className={`font-medium truncate ${
-                                  !notification.read ? "text-blue-800" : "text-gray-500"
+                                  !notification.read
+                                    ? "text-blue-800"
+                                    : "text-gray-500"
                                 }`}
                               >
                                 {notification.content}
@@ -1129,9 +1175,13 @@ export default function DashboardPage() {
                                 <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 flex-shrink-0"></div>
                               )}
                             </div>
-                            <div className={`text-xs ${
-                              !notification.read ? "text-gray-500" : "text-gray-400"
-                            }`}>
+                            <div
+                              className={`text-xs ${
+                                !notification.read
+                                  ? "text-gray-500"
+                                  : "text-gray-400"
+                              }`}
+                            >
                               {getRelativeTime(notification.createdAt)}
                             </div>
                           </div>

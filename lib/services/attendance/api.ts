@@ -160,7 +160,7 @@ export const workScheduleApi = {
       request
     );
     const result = response.data;
-    if (!result || result.status !== "success" || !result.data) {
+    if (!result || result.status !== "SUCCESS" || !result.data) {
       const msg = result?.message || "스케줄 생성 실패";
       throw { message: msg, data: result };
     }
@@ -422,7 +422,7 @@ export const workMonitorApi = {
       );
       console.log("WorkMonitor API Response:", response.data);
 
-      if (response.data.status !== "success" || !response.data.data) {
+      if (response.data.status !== "SUCCESS" || !response.data.data) {
         throw new Error(response.data.message || "근무 모니터링 조회 실패");
       }
 
@@ -441,7 +441,7 @@ export const workMonitorApi = {
       );
       console.log("Today WorkMonitor API Response:", response.data);
 
-      if (response.data.status !== "success" || !response.data.data) {
+      if (response.data.status !== "SUCCESS" || !response.data.data) {
         throw new Error(
           response.data.message || "오늘 근무 모니터링 조회 실패"
         );
@@ -462,7 +462,7 @@ export const workMonitorApi = {
       );
       console.log("Update WorkMonitor API Response:", response.data);
 
-      if (response.data.status !== "success" || !response.data.data) {
+      if (response.data.status !== "SUCCESS" || !response.data.data) {
         throw new Error(response.data.message || "근무 모니터링 갱신 실패");
       }
 
@@ -481,7 +481,7 @@ export const workMonitorApi = {
       );
       console.log("Update Today WorkMonitor API Response:", response.data);
 
-      if (response.data.status !== "success" || !response.data.data) {
+      if (response.data.status !== "SUCCESS" || !response.data.data) {
         throw new Error(
           response.data.message || "오늘 근무 모니터링 갱신 실패"
         );
@@ -588,6 +588,24 @@ export const employeeLeaveBalanceApi = {
     const params = new URLSearchParams({ newGrantDate });
     const response = await apiClient.post<ApiResult<string>>(
       `/api/leave-balance/reset-all?${params}`
+    );
+    return response.data.data;
+  },
+
+  // 근무년수 기반 연차 부여
+  grantAnnualLeaveByWorkYears: async (
+    employeeId: number
+  ): Promise<EmployeeLeaveBalanceResponseDto[]> => {
+    const response = await apiClient.post<
+      ApiResult<EmployeeLeaveBalanceResponseDto[]>
+    >(`/api/leave-balance/grant-by-work-years/${employeeId}`);
+    return response.data.data;
+  },
+
+  // 모든 직원 근무년수 기반 연차 부여
+  grantAnnualLeaveToAllEmployees: async (): Promise<string> => {
+    const response = await apiClient.post<ApiResult<string>>(
+      `/api/leave-balance/grant-all-by-work-years`
     );
     return response.data.data;
   },
