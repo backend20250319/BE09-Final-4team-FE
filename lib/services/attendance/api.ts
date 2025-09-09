@@ -308,6 +308,18 @@ export const workPolicyApi = {
     );
     return response.data.data;
   },
+
+  // 근무 정책 수정
+  updateWorkPolicy: async (
+    workPolicyId: number,
+    request: import("./types").WorkPolicyUpdateDto
+  ): Promise<WorkPolicyResponseDto> => {
+    const response = await apiClient.put<ApiResult<WorkPolicyResponseDto>>(
+      `/api/workpolicy/${workPolicyId}`,
+      request
+    );
+    return response.data.data;
+  },
 };
 
 // Annual Leave API

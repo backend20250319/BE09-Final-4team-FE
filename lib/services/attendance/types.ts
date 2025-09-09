@@ -187,6 +187,7 @@ export interface WorkPolicyResponseDto {
   weeklyWorkingDays: number;
   startTime?: LocalTime;
   startTimeEnd?: LocalTime;
+  endTime?: LocalTime;
   workHours: number;
   workMinutes: number;
   coreTimeStart?: LocalTime;
@@ -211,6 +212,32 @@ export interface WorkPolicyResponseDto {
   isFixedWork: boolean;
 }
 
+// 근무 정책 수정 타입 (백엔드 WorkPolicyUpdateDto와 호환)
+export interface WorkPolicyUpdateDto {
+  name?: string;
+  type?: string; // or WorkPolicyType, backend accepts enum string
+  workCycle?: string; // or WorkCycle
+  startDayOfWeek?: string; // or DayOfWeek
+  workCycleStartDay?: number;
+  workDays?: string[]; // DayOfWeek[] as strings
+  weeklyWorkingDays?: number;
+  startTime?: string; // "HH:mm:ss"
+  startTimeEnd?: string; // "HH:mm:ss"
+  endTime?: string; // "HH:mm:ss"
+  workHours?: number;
+  workMinutes?: number;
+  coreTimeStart?: string; // "HH:mm:ss"
+  coreTimeEnd?: string; // "HH:mm:ss"
+  breakStartTime?: string; // "HH:mm:ss"
+  breakEndTime?: string; // "HH:mm:ss"
+  breakMinutes?: number;
+  avgWorkTime?: string; // "HH:mm:ss"
+  totalRequiredMinutes?: number;
+  holidays?: string[];
+  isHolidayFixed?: boolean;
+  isBreakFixed?: boolean;
+}
+
 // 근무 정책 요청 타입
 export interface WorkPolicyRequestDto {
   name: string;
@@ -221,6 +248,7 @@ export interface WorkPolicyRequestDto {
   workDays: DayOfWeek[];
   weeklyWorkingDays?: number;
   startTime?: string; // "HH:mm:ss" 형식
+  endTime?: string; // "HH:mm:ss" 형식
   startTimeEnd?: string; // "HH:mm:ss" 형식
   workHours: number;
   workMinutes: number;
@@ -353,6 +381,7 @@ export interface WorkPolicyDto {
   weeklyWorkingDays: number;
   startTime?: LocalTime;
   startTimeEnd?: LocalTime;
+  endTime?: LocalTime;
   workHours: number;
   workMinutes: number;
   coreTimeStart?: LocalTime;

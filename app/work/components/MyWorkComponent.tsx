@@ -116,6 +116,11 @@ export default function MyWorkComponent(): JSX.Element {
     percentage: 0,
   });
 
+  // NEW: Pending operation queues (create/update/delete)
+  const [pendingCreates, setPendingCreates] = useState<WorkEvent[]>([]);
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
+  const [pendingDeletes, setPendingDeletes] = useState<Set<string>>(new Set());
+
   // 드롭다운 상태
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [dropdownEventId, setDropdownEventId] = useState<string | null>(null);
@@ -136,11 +141,11 @@ export default function MyWorkComponent(): JSX.Element {
     if (!isClient) return;
 
     const currentDay = baseDate.getDay(); // 0: 일요일 ~ 6: 토요일
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(baseDate);
-    monday.setDate(baseDate.getDate() + mondayOffset);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    const sundayOffset = -currentDay; // 주 시작: 일요일
+    const sunday = new Date(baseDate);
+    sunday.setDate(baseDate.getDate() + sundayOffset);
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
 
     const formatDate = (date: Date): string => {
       const year = date.getFullYear();
@@ -149,15 +154,15 @@ export default function MyWorkComponent(): JSX.Element {
       return `${year}-${month}-${day}`;
     };
 
-    const mondayStr = formatDate(monday);
     const sundayStr = formatDate(sunday);
-    setCurrentWeek(`${mondayStr} ~ ${sundayStr}`);
-    setCurrentMondayDate(monday); // 현재 주의 월요일 날짜 업데이트
+    const saturdayStr = formatDate(saturday);
+    setCurrentWeek(`${sundayStr} ~ ${saturdayStr}`);
+    setCurrentMondayDate(sunday); // 현재 주의 일요일 날짜로 업데이트
 
     const weekMapping: WeekDates = {};
     for (let i = 0; i < 7; i++) {
-      const currentDate = new Date(monday);
-      currentDate.setDate(monday.getDate() + i);
+      const currentDate = new Date(sunday);
+      currentDate.setDate(sunday.getDate() + i);
       const dayKey = currentDate.getDate();
       weekMapping[dayKey] = formatDate(currentDate);
     }
@@ -173,11 +178,11 @@ export default function MyWorkComponent(): JSX.Element {
         // 주의 월요일~일요일 계산
         const d = new Date(baseDate);
         const currentDay = d.getDay();
-        const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-        const monday = new Date(d);
-        monday.setDate(d.getDate() + mondayOffset);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
+        const sundayOffset = -currentDay; // 주 시작: 일요일
+        const sunday = new Date(d);
+        sunday.setDate(d.getDate() + sundayOffset);
+        const saturday = new Date(sunday);
+        saturday.setDate(sunday.getDate() + 6);
 
         const toStr = (date: Date) => {
           const y = date.getFullYear();
@@ -186,8 +191,8 @@ export default function MyWorkComponent(): JSX.Element {
           return `${y}-${m}-${day}`;
         };
 
-        const startDate = toStr(monday);
-        const endDate = toStr(sunday);
+        const startDate = toStr(sunday);
+        const endDate = toStr(saturday);
 
         // 기간 스케줄 조회 (정책 적용 없이)
         const schedules = await workScheduleApi.getUserSchedulesByDateRange(
@@ -212,49 +217,77 @@ export default function MyWorkComponent(): JSX.Element {
         };
 
         // 스케줄 → 캘린더 이벤트 매핑
-        const mapped: WorkEvent[] = schedules.map((s) => {
-          const startHHmm = timeToHHmm(s.startTime) || "09:00";
-          const endHHmm = timeToHHmm(s.endTime) || "18:00";
-          const start = `${s.startDate}T${startHHmm}:00`;
-          const end = `${s.endDate}T${endHHmm}:00`;
-          const title = toLabelFromEnum(
-            s.scheduleType,
-            s.title || s.scheduleType
-          );
-          const color = SCHEDULE_TYPE_COLOR[s.scheduleType] || "#4FC3F7";
+        const mapped: WorkEvent[] = schedules
+          .map((s) => {
+            // LocalTime(string/object) → HH:mm 변환 (기본값 제거)
+            const timeToHHmm = (t: any): string | undefined => {
+              if (!t) return undefined;
+              if (typeof t === "string") return t.slice(0, 5);
+              if (
+                typeof t?.hour === "number" &&
+                typeof t?.minute === "number"
+              ) {
+                return `${String(t.hour).padStart(2, "0")}:${String(
+                  t.minute
+                ).padStart(2, "0")}`;
+              }
+              return undefined;
+            };
 
-          // CORETIME 스케줄 로깅
-          if (s.scheduleType === "CORETIME") {
-            console.log("CORETIME 스케줄 발견:", {
-              id: s.id,
+            const startHHmm = timeToHHmm(s.startTime);
+            const endHHmm = timeToHHmm(s.endTime);
+
+            if (!startHHmm || !endHHmm) {
+              console.warn("시간 파싱 실패 또는 누락 - 이벤트 스킵", {
+                id: s.id,
+                startTime: s.startTime,
+                endTime: s.endTime,
+              });
+              return undefined;
+            }
+
+            const start = `${s.startDate}T${startHHmm}:00`;
+            const end = `${s.endDate}T${endHHmm}:00`;
+            const title = toLabelFromEnum(
+              s.scheduleType,
+              s.title || s.scheduleType
+            );
+            const color = SCHEDULE_TYPE_COLOR[s.scheduleType] || "#4FC3F7";
+
+            // CORETIME 스케줄 로깅
+            if (String(s.scheduleType) === "CORETIME") {
+              console.log("CORETIME 스케줄 발견:", {
+                id: s.id,
+                title,
+                scheduleType: s.scheduleType,
+                startDate: s.startDate,
+                startTime: startHHmm,
+                endTime: endHHmm,
+                color,
+              });
+            }
+
+            return {
+              id: String(s.id),
               title,
-              scheduleType: s.scheduleType,
-              startDate: s.startDate,
-              startTime: startHHmm,
-              endTime: endHHmm,
-              color,
-            });
-          }
-
-          return {
-            id: String(s.id),
-            title,
-            start,
-            end,
-            backgroundColor: color,
-            borderColor: color,
-            textColor: "#1f2937",
-            allDay: s.isAllDay || false,
-            extendedProps: {
-              originalTitle: s.title,
-              type: s.scheduleType, // keep enum for logic
-            },
-          } as WorkEvent;
-        });
+              start,
+              end,
+              backgroundColor: color,
+              borderColor: color,
+              textColor: "#1f2937",
+              allDay: s.isAllDay || false,
+              extendedProps: {
+                originalTitle: s.title,
+                type: s.scheduleType, // keep enum for logic
+              },
+            } as WorkEvent;
+          })
+          .filter((e): e is WorkEvent => Boolean(e));
 
         console.log(
           `로드된 스케줄 수: ${schedules.length}, CORETIME 수: ${
-            schedules.filter((s) => s.scheduleType === "CORETIME").length
+            schedules.filter((s) => String(s.scheduleType) === "CORETIME")
+              .length
           }`
         );
         setEvents(mapped);
@@ -331,7 +364,6 @@ export default function MyWorkComponent(): JSX.Element {
   const handleEventDrop = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 이동할 수 없습니다.");
-      // 이벤트를 원래 위치로 되돌리기
       info.revert();
       return;
     }
@@ -343,7 +375,7 @@ export default function MyWorkComponent(): JSX.Element {
       return;
     }
 
-    // Optimistic update
+    // Optimistic update only; do not persist yet
     const updated = events.map((event) =>
       event.id === eventId
         ? {
@@ -357,68 +389,13 @@ export default function MyWorkComponent(): JSX.Element {
     setEvents(updated);
     setHasPendingChanges(true);
 
-    // Save to database immediately
-    const isPersisted = !isNaN(Number(eventId));
-    if (!user?.id || !isPersisted) {
-      return;
-    }
-
-    const toHHmmss = (iso: string) => {
-      const d = new Date(iso);
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}:00`;
-    };
-
-    (async () => {
-      try {
-        const newStart = info.event.start.toISOString();
-        const newEnd = info.event.end
-          ? info.event.end.toISOString()
-          : originalEvent.end;
-        const startDate = newStart.slice(0, 10);
-        const endDate = newEnd.slice(0, 10);
-
-        await workScheduleApi.updateSchedule(Number(user.id), Number(eventId), {
-          title:
-            originalEvent.extendedProps?.originalTitle || originalEvent.title,
-          description: undefined,
-          startDate,
-          endDate,
-          startTime: toHHmmss(newStart),
-          endTime: toHHmmss(newEnd),
-          scheduleType:
-            (originalEvent.extendedProps?.type as ScheduleType) ||
-            ScheduleType.WORK,
-          color: originalEvent.backgroundColor,
-          isAllDay: !!originalEvent.allDay,
-          isRecurring: false,
-        });
-
-        // Update status to saved
-        setEvents((prev) =>
-          prev.map((e) => (e.id === eventId ? { ...e, status: undefined } : e))
-        );
-        setHasPendingChanges(false);
-
-        console.log(`일정 이동 저장 완료: ${eventId}`);
-      } catch (err) {
-        console.error("Failed to save event drop:", err);
-        // Revert the change
-        info.revert();
-        setEvents((prev) =>
-          prev.map((e) => (e.id === eventId ? originalEvent : e))
-        );
-        alert("일정 이동 저장에 실패했습니다.");
-        setHasPendingChanges(false);
-      }
-    })();
+    // Stage update op
+    setPendingUpdates((prev) => new Set(prev).add(eventId));
   };
 
   const handleEventResize = (info: any): void => {
     if (info.event.start.getDay() === 0) {
       alert("일요일에는 일정을 수정할 수 없습니다.");
-      // 이벤트를 원래 크기로 되돌리기
       info.revert();
       return;
     }
@@ -430,7 +407,7 @@ export default function MyWorkComponent(): JSX.Element {
       return;
     }
 
-    // Optimistic update
+    // Optimistic update only; do not persist yet
     const updated = events.map((event) =>
       event.id === eventId
         ? {
@@ -444,66 +421,13 @@ export default function MyWorkComponent(): JSX.Element {
     setEvents(updated);
     setHasPendingChanges(true);
 
-    // Save to database immediately
-    const isPersisted = !isNaN(Number(eventId));
-    if (!user?.id || !isPersisted) {
-      return;
-    }
-
-    const toHHmmss = (iso: string) => {
-      const d = new Date(iso);
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}:00`;
-    };
-
-    (async () => {
-      try {
-        const newStart = info.event.start.toISOString();
-        const newEnd = info.event.end.toISOString();
-        const startDate = newStart.slice(0, 10);
-        const endDate = newEnd.slice(0, 10);
-
-        await workScheduleApi.updateSchedule(Number(user.id), Number(eventId), {
-          title:
-            originalEvent.extendedProps?.originalTitle || originalEvent.title,
-          description: undefined,
-          startDate,
-          endDate,
-          startTime: toHHmmss(newStart),
-          endTime: toHHmmss(newEnd),
-          scheduleType:
-            (originalEvent.extendedProps?.type as ScheduleType) ||
-            ScheduleType.WORK,
-          color: originalEvent.backgroundColor,
-          isAllDay: !!originalEvent.allDay,
-          isRecurring: false,
-        });
-
-        // Update status to saved
-        setEvents((prev) =>
-          prev.map((e) => (e.id === eventId ? { ...e, status: undefined } : e))
-        );
-        setHasPendingChanges(false);
-
-        console.log(`일정 리사이즈 저장 완료: ${eventId}`);
-      } catch (err) {
-        console.error("Failed to save event resize:", err);
-        // Revert the change
-        info.revert();
-        setEvents((prev) =>
-          prev.map((e) => (e.id === eventId ? originalEvent : e))
-        );
-        alert("일정 크기 변경 저장에 실패했습니다.");
-        setHasPendingChanges(false);
-      }
-    })();
+    // Stage update op
+    setPendingUpdates((prev) => new Set(prev).add(eventId));
   };
 
   const handleSelect = (selectInfo: any): void => {
     if (selectInfo.start.getDay() === 0) {
       alert("일요일에는 일정을 추가할 수 없습니다.");
-      // 선택 영역 해제
       selectInfo.view.calendar.unselect();
       return;
     }
@@ -514,7 +438,7 @@ export default function MyWorkComponent(): JSX.Element {
     const conflicts = events.some((e) => {
       const es = new Date(e.start);
       const ee = new Date(e.end);
-      return es < selEnd && selStart < ee; // overlap if existing.start < selEnd && selStart < existing.end
+      return es < selEnd && selStart < ee;
     });
     if (conflicts) {
       alert(
@@ -537,109 +461,17 @@ export default function MyWorkComponent(): JSX.Element {
       textColor: "#ffffff",
       status: "pending",
       isNewEvent: true,
-      extendedProps: {
-        isNewEvent: true,
-      },
-    };
+      extendedProps: { isNewEvent: true },
+    } as any;
 
     // Optimistic add
-    calendarApi.addEvent(newEvent);
+    calendarApi.addEvent(newEvent as any);
     setEvents((prev) => [...prev, newEvent]);
     setHasPendingChanges(true);
     calendarApi.unselect();
 
-    // Persist to backend
-    (async () => {
-      try {
-        if (!user?.id) return;
-        const startDate = newEvent.start.slice(0, 10);
-        const endDate = newEvent.end.slice(0, 10);
-        const toHHmmss = (iso: string) => {
-          const d = new Date(iso);
-          const hh = String(d.getHours()).padStart(2, "0");
-          const mm = String(d.getMinutes()).padStart(2, "0");
-          return `${hh}:${mm}:00`;
-        };
-
-        const created = await workScheduleApi.createSchedule({
-          userId: Number(user.id),
-          title: newEvent.title,
-          description: undefined,
-          startDate,
-          endDate,
-          startTime: toHHmmss(newEvent.start),
-          endTime: toHHmmss(newEvent.end),
-          scheduleType: ScheduleType.WORK,
-          color: newEvent.backgroundColor,
-          isAllDay: !!newEvent.allDay,
-          isRecurring: false,
-        });
-
-        // Map server response to event and replace temp
-        const start = `${created.startDate}${
-          created.startTime
-            ? "T" +
-              String(created.startTime.hour).padStart(2, "0") +
-              ":" +
-              String(created.startTime.minute).padStart(2, "0") +
-              ":00"
-            : "T09:00:00"
-        }`;
-        const end = `${created.endDate}${
-          created.endTime
-            ? "T" +
-              String(created.endTime.hour).padStart(2, "0") +
-              ":" +
-              String(created.endTime.minute).padStart(2, "0") +
-              ":00"
-            : "T18:00:00"
-        }`;
-        const title = toLabelFromEnum(
-          created.scheduleType,
-          created.title || created.scheduleType
-        );
-        const color = SCHEDULE_TYPE_COLOR[created.scheduleType] || "#4FC3F7";
-
-        const savedEvent: WorkEvent = {
-          id: String(created.id),
-          title,
-          start,
-          end,
-          backgroundColor: color,
-          borderColor: color,
-          textColor: "#1f2937",
-          allDay: created.isAllDay,
-          extendedProps: {
-            originalTitle: created.title,
-            type: created.scheduleType,
-          },
-        } as WorkEvent;
-
-        // Replace temp event
-        setEvents((prev) =>
-          prev.filter((e) => e.id !== tempId).concat(savedEvent)
-        );
-        // Update calendar instance
-        const temp = calendarApi.getEventById(tempId);
-        if (temp) temp.remove();
-        calendarApi.addEvent(savedEvent as any);
-        setHasPendingChanges(false);
-      } catch (err: any) {
-        console.error(
-          "Failed to create schedule:",
-          err,
-          err?.data,
-          err?.response
-        );
-        // Revert optimistic event
-        setEvents((prev) => prev.filter((e) => e.id !== tempId));
-        const temp = calendarApi.getEventById(tempId);
-        if (temp) temp.remove();
-        const msg =
-          err?.message || err?.data?.message || "근무 생성에 실패했습니다.";
-        alert(msg);
-      }
-    })();
+    // Stage create op
+    setPendingCreates((prev) => [...prev, newEvent]);
   };
 
   const handleEventClick = (clickInfo: any): void => {
@@ -651,7 +483,7 @@ export default function MyWorkComponent(): JSX.Element {
     eventId: string,
     event: React.MouseEvent
   ): void => {
-    event.stopPropagation(); // 이벤트 버블링 방지
+    event.stopPropagation();
 
     const targetEvent = events.find((e) => e.id === eventId);
     if (!targetEvent) return;
@@ -663,7 +495,7 @@ export default function MyWorkComponent(): JSX.Element {
     }
 
     if (confirm("이 일정을 삭제하시겠습니까?")) {
-      // 캘린더에서 이벤트 제거
+      // Remove from calendar view
       const calendarApi = document
         .querySelector(".fc")
         ?.querySelector(".fc-view")?.parentElement;
@@ -672,9 +504,24 @@ export default function MyWorkComponent(): JSX.Element {
         if (fcEvent) fcEvent.remove();
       }
 
-      // 상태에서 이벤트 제거
+      // Update local state
       setEvents((prev) => prev.filter((e) => e.id !== eventId));
       setHasPendingChanges(true);
+
+      // Stage delete or cancel staged create
+      if (isNaN(Number(eventId))) {
+        // Temp event from create -> cancel the staged creation
+        setPendingCreates((prev) => prev.filter((e) => e.id !== eventId));
+      } else {
+        setPendingDeletes((prev) => new Set(prev).add(eventId));
+      }
+
+      // Also remove from pendingUpdates if present
+      setPendingUpdates((prev) => {
+        const copy = new Set(prev);
+        copy.delete(eventId);
+        return copy;
+      });
     }
   };
 
@@ -685,19 +532,16 @@ export default function MyWorkComponent(): JSX.Element {
   };
 
   const handleCancelChanges = (): void => {
+    // Rollback to the last confirmed snapshot
     setEvents(originalEvents);
     setHasPendingChanges(false);
+    setPendingCreates([]);
+    setPendingDeletes(new Set());
+    setPendingUpdates(new Set());
   };
 
   const handleSubmitChanges = async (): Promise<void> => {
-    const pendingEvents = events.filter((e) => e.status === "pending");
-    console.log("변경 신청된 일정들:", pendingEvents);
-
-    if (pendingEvents.length === 0) {
-      setHasPendingChanges(false);
-      return;
-    }
-
+    // Apply staged operations: creates -> updates -> deletes
     if (!user?.id) {
       alert("사용자 정보를 확인할 수 없습니다.");
       return;
@@ -711,46 +555,96 @@ export default function MyWorkComponent(): JSX.Element {
     };
 
     try {
-      // 모든 pending 이벤트를 병렬로 처리
-      const updatePromises = pendingEvents.map(async (event) => {
-        const isPersisted = !isNaN(Number(event.id));
-        if (!isPersisted) return;
+      // 1) Creates
+      for (const ev of pendingCreates) {
+        const startDate = ev.start.slice(0, 10);
+        const endDate = ev.end.slice(0, 10);
+        const created = await workScheduleApi.createSchedule({
+          userId: Number(user.id),
+          title: ev.title,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(ev.start),
+          endTime: toHHmmss(ev.end),
+          scheduleType: ScheduleType.WORK,
+          color: ev.backgroundColor,
+          isAllDay: !!ev.allDay,
+          isRecurring: false,
+        });
 
-        const startDate = event.start.slice(0, 10);
-        const endDate = event.end.slice(0, 10);
-
-        return workScheduleApi.updateSchedule(
-          Number(user.id),
-          Number(event.id),
-          {
-            title: event.extendedProps?.originalTitle || event.title,
-            description: undefined,
-            startDate,
-            endDate,
-            startTime: toHHmmss(event.start),
-            endTime: toHHmmss(event.end),
-            scheduleType:
-              (event.extendedProps?.type as ScheduleType) || ScheduleType.WORK,
-            color: event.backgroundColor,
-            isAllDay: !!event.allDay,
-            isRecurring: false,
-          }
+        // Replace temp id with server id
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === ev.id
+              ? {
+                  ...e,
+                  id: String(created.id),
+                  start: `${created.startDate}T${String(
+                    created.startTime?.hour ?? 0
+                  )
+                    .toString()
+                    .padStart(2, "0")}:${String(created.startTime?.minute ?? 0)
+                    .toString()
+                    .padStart(2, "0")}:00`,
+                  end: `${created.endDate}T${String(created.endTime?.hour ?? 0)
+                    .toString()
+                    .padStart(2, "0")}:${String(created.endTime?.minute ?? 0)
+                    .toString()
+                    .padStart(2, "0")}:00`,
+                  status: undefined,
+                  extendedProps: {
+                    ...(e.extendedProps || {}),
+                    isNewEvent: false,
+                  },
+                }
+              : e
+          )
         );
-      });
+      }
 
-      await Promise.all(updatePromises);
+      // 2) Updates
+      for (const id of Array.from(pendingUpdates)) {
+        // Skip if event was deleted
+        if (pendingDeletes.has(id)) continue;
+        const ev = events.find((e) => e.id === id);
+        if (!ev) continue;
+        const startDate = ev.start.slice(0, 10);
+        const endDate = ev.end.slice(0, 10);
+        await workScheduleApi.updateSchedule(Number(user.id), Number(id), {
+          title: ev.extendedProps?.originalTitle || ev.title,
+          description: undefined,
+          startDate,
+          endDate,
+          startTime: toHHmmss(ev.start),
+          endTime: toHHmmss(ev.end),
+          scheduleType:
+            (ev.extendedProps?.type as ScheduleType) || ScheduleType.WORK,
+          color: ev.backgroundColor,
+          isAllDay: !!ev.allDay,
+          isRecurring: false,
+        });
+        // Clear pending flag visually
+        setEvents((prev) =>
+          prev.map((e) => (e.id === id ? { ...e, status: undefined } : e))
+        );
+      }
 
-      // 모든 pending 상태 제거
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.status === "pending" ? { ...e, status: undefined } : e
-        )
-      );
+      // 3) Deletes
+      for (const id of Array.from(pendingDeletes)) {
+        await workScheduleApi.deleteSchedule(Number(user.id), Number(id));
+        setEvents((prev) => prev.filter((e) => e.id !== id));
+      }
+
+      // Finalize
+      setPendingCreates([]);
+      setPendingUpdates(new Set());
+      setPendingDeletes(new Set());
       setHasPendingChanges(false);
-
-      console.log(`${pendingEvents.length}개 일정 변경사항 저장 완료`);
+      setOriginalEvents(events);
+      console.log("변경사항 적용 완료");
     } catch (err) {
-      console.error("Failed to save pending changes:", err);
+      console.error("변경사항 저장 실패:", err);
       alert("변경사항 저장에 실패했습니다.");
     }
   };
