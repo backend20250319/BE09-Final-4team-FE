@@ -299,6 +299,50 @@ export default function VacationPage(): JSX.Element {
     }
   };
 
+  // 연차 잔액 새로고침
+  const refreshLeaveBalance = async () => {
+    if (!user?.id) return;
+
+    try {
+      const [basic, comp, special] = await Promise.all([
+        employeeLeaveBalanceApi.getRemainingLeave(
+          user.id,
+          LeaveType.BASIC_ANNUAL
+        ),
+        employeeLeaveBalanceApi.getRemainingLeave(
+          user.id,
+          LeaveType.COMPENSATION_ANNUAL
+        ),
+        employeeLeaveBalanceApi.getRemainingLeave(
+          user.id,
+          LeaveType.SPECIAL_ANNUAL
+        ),
+      ]);
+      setRemainingBasic(basic);
+      setRemainingComp(comp);
+      setRemainingSpecial(special);
+      alert("연차 잔액이 새로고침되었습니다.");
+    } catch (e) {
+      console.error("연차 잔액 새로고침 실패:", e);
+      alert("연차 잔액 새로고침에 실패했습니다.");
+    }
+  };
+
+  // 근무년수 기반 연차 부여
+  const grantAnnualLeaveByWorkYears = async () => {
+    if (!user?.id) return;
+
+    try {
+      await employeeLeaveBalanceApi.grantAnnualLeaveByWorkYears(user.id);
+      alert("근무년수에 따른 연차가 부여되었습니다.");
+      // 연차 부여 후 잔액 새로고침
+      await refreshLeaveBalance();
+    } catch (e) {
+      console.error("연차 부여 실패:", e);
+      alert("연차 부여에 실패했습니다.");
+    }
+  };
+
   // 휴가 신청 처리
   const handleVacationSubmit = async (data: any) => {
     if (!user?.id) {
@@ -366,6 +410,9 @@ export default function VacationPage(): JSX.Element {
       setVacationRecords((prev) => [newRecord, ...prev]);
       setIsModalOpen(false);
       alert("휴가 신청이 성공적으로 제출되었습니다.");
+
+      // 휴가 신청 후 연차 잔액 새로고침
+      await refreshLeaveBalance();
     } catch (error: any) {
       console.error("휴가 신청 실패:", error);
 
@@ -393,6 +440,26 @@ export default function VacationPage(): JSX.Element {
             <p className="text-gray-600 mt-1">
               나의 휴가 현황을 확인하고 관리하세요
             </p>
+          </div>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshLeaveBalance}
+              className="flex items-center space-x-2"
+            >
+              <Clock className="w-4 h-4" />
+              <span>연차 새로고침</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={grantAnnualLeaveByWorkYears}
+              className="flex items-center space-x-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <Gift className="w-4 h-4" />
+              <span>연차 부여</span>
+            </Button>
           </div>
         </div>
 

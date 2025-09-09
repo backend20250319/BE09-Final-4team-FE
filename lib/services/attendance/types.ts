@@ -216,18 +216,18 @@ export interface WorkPolicyRequestDto {
   name: string;
   type: WorkPolicyType;
   workCycle?: WorkCycle;
-  startDayOfWeek?: DayOfWeek;
+  startDayOfWeek: DayOfWeek; // 필수 필드
   workCycleStartDay?: number;
   workDays: DayOfWeek[];
   weeklyWorkingDays?: number;
-  startTime?: LocalTime;
-  startTimeEnd?: LocalTime;
+  startTime?: string; // "HH:mm:ss" 형식
+  startTimeEnd?: string; // "HH:mm:ss" 형식
   workHours: number;
   workMinutes: number;
-  coreTimeStart?: LocalTime;
-  coreTimeEnd?: LocalTime;
-  breakStartTime?: LocalTime;
-  avgWorkTime?: LocalTime;
+  coreTimeStart?: string; // "HH:mm:ss" 형식
+  coreTimeEnd?: string; // "HH:mm:ss" 형식
+  breakStartTime: string; // "HH:mm:ss" 형식, 필수 필드
+  avgWorkTime?: string; // "HH:mm:ss" 형식
   totalRequiredMinutes: number;
   annualLeaves?: AnnualLeaveRequestDto[];
 }
