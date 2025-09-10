@@ -308,6 +308,18 @@ export const workPolicyApi = {
     );
     return response.data.data;
   },
+
+  // 근무 정책 수정
+  updateWorkPolicy: async (
+    workPolicyId: number,
+    request: import("./types").WorkPolicyUpdateDto
+  ): Promise<WorkPolicyResponseDto> => {
+    const response = await apiClient.put<ApiResult<WorkPolicyResponseDto>>(
+      `/api/workpolicy/${workPolicyId}`,
+      request
+    );
+    return response.data.data;
+  },
 };
 
 // Annual Leave API
@@ -606,6 +618,19 @@ export const employeeLeaveBalanceApi = {
   grantAnnualLeaveToAllEmployees: async (): Promise<string> => {
     const response = await apiClient.post<ApiResult<string>>(
       `/api/leave-balance/grant-all-by-work-years`
+    );
+    return response.data.data;
+  },
+
+  // 근무 정책을 스케줄에 적용
+  applyWorkPolicyToSchedule: async (
+    userId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<ScheduleResponseDto[]> => {
+    const params = new URLSearchParams({ startDate, endDate });
+    const response = await apiClient.post<ApiResult<ScheduleResponseDto[]>>(
+      `/api/work-schedule/users/${userId}/apply-work-policy?${params}`
     );
     return response.data.data;
   },
