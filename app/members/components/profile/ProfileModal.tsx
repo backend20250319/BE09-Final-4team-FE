@@ -42,6 +42,7 @@ import EditModal from "../EditModal";
 import { WorkPolicyResponseDto } from "@/lib/services/attendance/types";
 import { userApi } from "@/lib/services/user/api";
 import { attendanceApi, employeeLeaveBalanceApi } from "@/lib/services/attendance/api";
+import attachmentApi from "@/lib/services/attachment";
 
 interface Props {
   isOpen: boolean;
