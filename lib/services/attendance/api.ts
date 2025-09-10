@@ -621,4 +621,17 @@ export const employeeLeaveBalanceApi = {
     );
     return response.data.data;
   },
+
+  // 근무 정책을 스케줄에 적용
+  applyWorkPolicyToSchedule: async (
+    userId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<ScheduleResponseDto[]> => {
+    const params = new URLSearchParams({ startDate, endDate });
+    const response = await apiClient.post<ApiResult<ScheduleResponseDto[]>>(
+      `/api/work-schedule/users/${userId}/apply-work-policy?${params}`
+    );
+    return response.data.data;
+  },
 };

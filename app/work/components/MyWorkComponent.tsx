@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Users, Clock, TrendingUp, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  Users,
+  Clock,
+  TrendingUp,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { DateNavigation } from "@/components/ui/date-navigation";
 import { GlassCard } from "@/components/ui/glass-card";
+import { Button } from "@/components/ui/button";
 import { colors } from "@/lib/design-tokens";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -115,6 +123,8 @@ export default function MyWorkComponent(): JSX.Element {
     averageHours: 40,
     percentage: 0,
   });
+  const [isApplyingWorkPolicy, setIsApplyingWorkPolicy] =
+    useState<boolean>(false);
 
   // NEW: Pending operation queues (create/update/delete)
   const [pendingCreates, setPendingCreates] = useState<WorkEvent[]>([]);
@@ -169,136 +179,112 @@ export default function MyWorkComponent(): JSX.Element {
     setWeekDates(weekMapping);
   }, [isClient, baseDate]);
 
+  // 스케줄 데이터 로드 함수
+  const loadScheduleData = async () => {
+    try {
+      if (!user?.id || !isClient) return;
+
+      // 주의 월요일~일요일 계산
+      const d = new Date(baseDate);
+      const currentDay = d.getDay();
+      const sundayOffset = -currentDay; // 주 시작: 일요일
+      const sunday = new Date(d);
+      sunday.setDate(d.getDate() + sundayOffset);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
+
+      const toStr = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      };
+
+      const startDate = toStr(sunday);
+      const endDate = toStr(saturday);
+
+      // 기간 스케줄 조회 (정책 적용 없이)
+      const schedules = await workScheduleApi.getUserSchedulesByDateRange(
+        Number(user.id),
+        startDate,
+        endDate
+      );
+
+      // LocalTime(string/object) → HH:mm 변환
+      const timeToHHmm = (t: any): string | undefined => {
+        if (!t) return undefined;
+        if (typeof t === "string") {
+          // "HH:mm:ss" 또는 "HH:mm" → 앞 5자리
+          return t.slice(0, 5);
+        }
+        if (typeof t.hour === "number" && typeof t.minute === "number") {
+          return `${String(t.hour).padStart(2, "0")}:${String(
+            t.minute
+          ).padStart(2, "0")}`;
+        }
+        return undefined;
+      };
+
+      // 스케줄 → 캘린더 이벤트 매핑
+      const mapped: WorkEvent[] = schedules
+        .map((s) => {
+          // LocalTime(string/object) → HH:mm 변환 (기본값 제거)
+          const timeToHHmm = (t: any): string | undefined => {
+            if (!t) return undefined;
+            if (typeof t === "string") return t.slice(0, 5);
+            if (typeof t?.hour === "number" && typeof t?.minute === "number") {
+              return `${String(t.hour).padStart(2, "0")}:${String(
+                t.minute
+              ).padStart(2, "0")}`;
+            }
+            return undefined;
+          };
+
+          const startTime = timeToHHmm(s.startTime);
+          const endTime = timeToHHmm(s.endTime);
+          if (!startTime || !endTime) return null; // 시간 정보가 없으면 제외
+
+          const startDateTime = `${s.startDate}T${startTime}:00`;
+          const endDateTime = `${s.endDate}T${endTime}:00`;
+
+          return {
+            id: String(s.id),
+            title: toLabelFromEnum(s.scheduleType, s.title || s.scheduleType),
+            start: startDateTime,
+            end: endDateTime,
+            backgroundColor: toColorFromEnum(s.scheduleType),
+            borderColor: toColorFromEnum(s.scheduleType),
+            textColor: "#ffffff",
+            allDay: !!s.isAllDay,
+            status: s.status || "ACTIVE",
+            extendedProps: {
+              originalTime: `${startTime} - ${endTime}`,
+              originalStartTime: startTime,
+              originalEndTime: endTime,
+              originalTitle: s.title || s.scheduleType,
+              originalColor: toColorFromEnum(s.scheduleType),
+              type: s.scheduleType,
+            },
+          };
+        })
+        .filter((e): e is WorkEvent => e !== null);
+
+      setEvents(mapped);
+      setOriginalEvents(mapped);
+      setPendingCreates([]);
+      setPendingUpdates(new Set());
+      setPendingDeletes(new Set());
+      setHasPendingChanges(false);
+    } catch (error) {
+      console.error("스케줄 로딩 오류:", error);
+      setEvents([]);
+      setOriginalEvents([]);
+    }
+  };
+
   // 스케줄 불러오기 (정책 적용 없이 단순 조회)
   useEffect(() => {
-    const loadSchedules = async () => {
-      try {
-        if (!user?.id || !isClient) return;
-
-        // 주의 월요일~일요일 계산
-        const d = new Date(baseDate);
-        const currentDay = d.getDay();
-        const sundayOffset = -currentDay; // 주 시작: 일요일
-        const sunday = new Date(d);
-        sunday.setDate(d.getDate() + sundayOffset);
-        const saturday = new Date(sunday);
-        saturday.setDate(sunday.getDate() + 6);
-
-        const toStr = (date: Date) => {
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${y}-${m}-${day}`;
-        };
-
-        const startDate = toStr(sunday);
-        const endDate = toStr(saturday);
-
-        // 기간 스케줄 조회 (정책 적용 없이)
-        const schedules = await workScheduleApi.getUserSchedulesByDateRange(
-          Number(user.id),
-          startDate,
-          endDate
-        );
-
-        // LocalTime(string/object) → HH:mm 변환
-        const timeToHHmm = (t: any): string | undefined => {
-          if (!t) return undefined;
-          if (typeof t === "string") {
-            // "HH:mm:ss" 또는 "HH:mm" → 앞 5자리
-            return t.slice(0, 5);
-          }
-          if (typeof t.hour === "number" && typeof t.minute === "number") {
-            return `${String(t.hour).padStart(2, "0")}:${String(
-              t.minute
-            ).padStart(2, "0")}`;
-          }
-          return undefined;
-        };
-
-        // 스케줄 → 캘린더 이벤트 매핑
-        const mapped: WorkEvent[] = schedules
-          .map((s) => {
-            // LocalTime(string/object) → HH:mm 변환 (기본값 제거)
-            const timeToHHmm = (t: any): string | undefined => {
-              if (!t) return undefined;
-              if (typeof t === "string") return t.slice(0, 5);
-              if (
-                typeof t?.hour === "number" &&
-                typeof t?.minute === "number"
-              ) {
-                return `${String(t.hour).padStart(2, "0")}:${String(
-                  t.minute
-                ).padStart(2, "0")}`;
-              }
-              return undefined;
-            };
-
-            const startHHmm = timeToHHmm(s.startTime);
-            const endHHmm = timeToHHmm(s.endTime);
-
-            if (!startHHmm || !endHHmm) {
-              console.warn("시간 파싱 실패 또는 누락 - 이벤트 스킵", {
-                id: s.id,
-                startTime: s.startTime,
-                endTime: s.endTime,
-              });
-              return undefined;
-            }
-
-            const start = `${s.startDate}T${startHHmm}:00`;
-            const end = `${s.endDate}T${endHHmm}:00`;
-            const title = toLabelFromEnum(
-              s.scheduleType,
-              s.title || s.scheduleType
-            );
-            const color = SCHEDULE_TYPE_COLOR[s.scheduleType] || "#4FC3F7";
-
-            // CORETIME 스케줄 로깅
-            if (String(s.scheduleType) === "CORETIME") {
-              console.log("CORETIME 스케줄 발견:", {
-                id: s.id,
-                title,
-                scheduleType: s.scheduleType,
-                startDate: s.startDate,
-                startTime: startHHmm,
-                endTime: endHHmm,
-                color,
-              });
-            }
-
-            return {
-              id: String(s.id),
-              title,
-              start,
-              end,
-              backgroundColor: color,
-              borderColor: color,
-              textColor: "#1f2937",
-              allDay: s.isAllDay || false,
-              extendedProps: {
-                originalTitle: s.title,
-                type: s.scheduleType, // keep enum for logic
-              },
-            } as WorkEvent;
-          })
-          .filter((e): e is WorkEvent => Boolean(e));
-
-        console.log(
-          `로드된 스케줄 수: ${schedules.length}, CORETIME 수: ${
-            schedules.filter((s) => String(s.scheduleType) === "CORETIME")
-              .length
-          }`
-        );
-        setEvents(mapped);
-        setOriginalEvents(mapped);
-      } catch (e) {
-        // 실패해도 화면은 유지
-        console.error("Failed to load schedules:", e);
-      }
-    };
-
-    loadSchedules();
+    loadScheduleData();
   }, [user?.id, isClient, baseDate]);
 
   // 현재 주 기준으로 scheduleData 생성
@@ -359,6 +345,65 @@ export default function MyWorkComponent(): JSX.Element {
     const newBaseDate = new Date(baseDate);
     newBaseDate.setDate(baseDate.getDate() + 7);
     setBaseDate(newBaseDate);
+  };
+
+  // 근무 정책을 스케줄에 적용 (4주 기간)
+  const handleApplyWorkPolicy = async (): Promise<void> => {
+    if (!user?.id) {
+      return;
+    }
+
+    if (isApplyingWorkPolicy) {
+      return; // 이미 진행 중인 경우 중복 실행 방지
+    }
+
+    setIsApplyingWorkPolicy(true);
+
+    try {
+      // 현재 날짜 기준으로 4주 기간 계산
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(
+        today.getDate() - (today.getDay() === 0 ? 7 : today.getDay())
+      ); // 이번 주 월요일
+
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 27); // 4주 후 (28일 = 4주)
+
+      const formatDate = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      const startDateStr = formatDate(startDate);
+      const endDateStr = formatDate(endDate);
+
+      console.log(`근무 정책 적용: ${startDateStr} ~ ${endDateStr}`);
+
+      await workScheduleApi.applyWorkPolicyToSchedule(
+        user.id,
+        startDateStr,
+        endDateStr
+      );
+
+      // 스케줄 다시 로드 (페이지 새로고침 대신)
+      await loadScheduleData();
+    } catch (error: any) {
+      console.error("근무 정책 적용 실패:", error);
+
+      let errorMessage = "근무 정책 적용 중 오류가 발생했습니다.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsApplyingWorkPolicy(false);
+    }
   };
 
   const handleEventDrop = (info: any): void => {
@@ -961,12 +1006,28 @@ export default function MyWorkComponent(): JSX.Element {
       {/* Date Navigation and Work Time Summary Row */}
       <div className="flex items-start justify-between mb-2">
         <div className="w-80 flex-shrink-0"></div>
-        <div className="flex-1 flex justify-center mt-2">
+        <div className="flex-1 flex justify-center items-center space-x-4 mt-2">
           <DateNavigation
             currentPeriod={currentWeek}
             onPrevious={handlePreviousWeek}
             onNext={handleNextWeek}
           />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleApplyWorkPolicy}
+            disabled={isApplyingWorkPolicy}
+            className="flex items-center space-x-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 disabled:opacity-50"
+          >
+            <RotateCcw
+              className={`w-4 h-4 ${
+                isApplyingWorkPolicy ? "animate-spin" : ""
+              }`}
+            />
+            <span>
+              {isApplyingWorkPolicy ? "적용 중..." : "근무표 새로고침"}
+            </span>
+          </Button>
         </div>
         <div className="w-80 flex-shrink-0 -mt-6">
           <GlassCard className="p-4 border-2 border-gray-300 shadow-none">

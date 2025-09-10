@@ -337,9 +337,21 @@ export default function VacationPage(): JSX.Element {
       alert("근무년수에 따른 연차가 부여되었습니다.");
       // 연차 부여 후 잔액 새로고침
       await refreshLeaveBalance();
-    } catch (e) {
+    } catch (e: any) {
       console.error("연차 부여 실패:", e);
-      alert("연차 부여에 실패했습니다.");
+
+      // 더 자세한 에러 정보 표시
+      let errorMessage = "연차 부여에 실패했습니다.";
+
+      if (e?.response?.data?.message) {
+        errorMessage = `연차 부여 실패: ${e.response.data.message}`;
+      } else if (e?.response?.status) {
+        errorMessage = `연차 부여 실패: 서버 오류 (${e.response.status})`;
+      } else if (e?.message) {
+        errorMessage = `연차 부여 실패: ${e.message}`;
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -409,7 +421,7 @@ export default function VacationPage(): JSX.Element {
 
       setVacationRecords((prev) => [newRecord, ...prev]);
       setIsModalOpen(false);
-      alert("휴가 신청이 성공적으로 제출되었습니다.");
+      // alert("휴가 신청이 성공적으로 제출되었습니다."); // 모달 제거
 
       // 휴가 신청 후 연차 잔액 새로고침
       await refreshLeaveBalance();
@@ -442,15 +454,6 @@ export default function VacationPage(): JSX.Element {
             </p>
           </div>
           <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshLeaveBalance}
-              className="flex items-center space-x-2"
-            >
-              <Clock className="w-4 h-4" />
-              <span>연차 새로고침</span>
-            </Button>
             <Button
               variant="outline"
               size="sm"

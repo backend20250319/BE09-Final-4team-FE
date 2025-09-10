@@ -72,7 +72,13 @@ export default function CreateWorkPolicyPage(): JSX.Element {
       case "shift":
         return <ShiftWorkForm {...commonProps} />;
       case "time":
-        return <TimeWorkForm {...commonProps} />;
+        return (
+          <TimeWorkForm
+            {...commonProps}
+            formData={formData as any}
+            setFormData={setFormData as any}
+          />
+        );
       case "select":
         return <SelectWorkForm {...commonProps} />;
       default:
@@ -179,16 +185,15 @@ export default function CreateWorkPolicyPage(): JSX.Element {
       // 근무 타입별 필수 필드 설정
       if (type === WorkPolicyType.FLEXIBLE) {
         if (!policyData.startTime || !policyData.startTimeEnd) {
-          toast.error("시차 근무는 출근 시작 시간과 출근 종료 시간이 필수입니다.");
+          toast.error(
+            "시차 근무는 출근 시작 시간과 출근 종료 시간이 필수입니다."
+          );
           return;
         }
         request.startTime = toTimeString(policyData.startTime);
-        request.startTimeEnd =
-          toTimeString(policyData.startTimeEnd);
-        request.breakStartTime =
-          toTimeString(policyData.breakStartTime);
-        request.breakEndTime =
-          toTimeString(policyData.breakEndTime);
+        request.startTimeEnd = toTimeString(policyData.startTimeEnd);
+        request.breakStartTime = toTimeString(policyData.breakStartTime);
+        request.breakEndTime = toTimeString(policyData.breakEndTime);
       } else if (type === WorkPolicyType.OPTIONAL) {
         // 선택 근무: coreTimeStart, coreTimeEnd 필수
         if (!policyData.coreTimeStart || !policyData.coreTimeEnd) {
@@ -198,7 +203,7 @@ export default function CreateWorkPolicyPage(): JSX.Element {
           return;
         }
         additionalFields = {
-          coreTimeStart: toTimeString(policyData.coreTimeStart) ,
+          coreTimeStart: toTimeString(policyData.coreTimeStart),
           coreTimeEnd: toTimeString(policyData.coreTimeEnd),
         };
       } else if (type === WorkPolicyType.SHIFT) {

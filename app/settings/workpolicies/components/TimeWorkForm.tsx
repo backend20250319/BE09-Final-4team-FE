@@ -60,10 +60,10 @@ interface TimePickerState {
 }
 
 interface TimePickerRefs {
-  startTime: React.RefObject<HTMLDivElement>;
-  startTimeEnd: React.RefObject<HTMLDivElement>;
-  breakStartTime: React.RefObject<HTMLDivElement>;
-  breakEndTime: React.RefObject<HTMLDivElement>;
+  startTime: React.RefObject<HTMLDivElement | null>;
+  startTimeEnd: React.RefObject<HTMLDivElement | null>;
+  breakStartTime: React.RefObject<HTMLDivElement | null>;
+  breakEndTime: React.RefObject<HTMLDivElement | null>;
 }
 
 interface WeekDay {

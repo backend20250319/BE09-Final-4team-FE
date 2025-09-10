@@ -185,7 +185,7 @@ export default function CoworkerComponent(): JSX.Element {
     (async () => {
       try {
         const schedules = await workScheduleApi.getUserSchedulesByDateRange(
-          Number(targetId),
+          Number(targetId), // 선택한 동료의 ID
           startDate,
           endDate
         );
@@ -212,7 +212,7 @@ export default function CoworkerComponent(): JSX.Element {
               allDay: !!s.isAllDay,
               extendedProps: {
                 employeeId: String(targetId),
-                employeeName: undefined,
+                employeeName: undefined, // 동료 이름은 별도로 가져와야 함
                 type: s.scheduleType,
               },
             } as CoworkerEvent;
